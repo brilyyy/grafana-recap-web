@@ -1,0 +1,54 @@
+@startuml Upload Dictionary Flow
+actor User
+participant "DictionaryUploadCard" as Frontend
+participant "API /upload-dictionary" as API
+participant "MySQL Database" as DB
+
+User -> Frontend: Select application & upload file
+Frontend -> Frontend: Validate file extension (.xlsx/.xls/.csv)
+Frontend -> Frontend: Parse file (XLSX library atau custom CSV parser)
+Frontend -> Frontend: Validate columns (Jenis Transaksi, RC, S/N, [RC Description])
+Frontend -> Frontend: Validate rows (S/N must be S/N/Sukses)
+
+alt File invalid atau rows skipped
+    Frontend -> User: Show error popup dengan skipped rows
+else File valid
+    Frontend -> API: POST /api/upload-dictionary (FormData)
+    API -> API: Parse FormData (file + applicationId)
+    API -> API: Parse file (Excel/CSV)
+    API -> API: Validate rows (skip invalid S/N)
+    
+    alt Skipped rows found
+        API -> Frontend: Return error dengan skippedRows
+        Frontend -> User: Show ErrorPopup dengan details
+    else All rows valid
+        API -> DB: Verify application exists
+        DB -> API: Application data
+        
+        API -> DB: BEGIN TRANSACTION
+        loop For each dictionary entry
+            API -> DB: INSERT INTO response_code_dictionary\nON DUPLICATE KEY UPDATE
+        end
+        
+        API -> DB: SELECT unmapped_rc entries untuk application
+        DB -> API: Unmapped RC list
+        
+        loop For each unmapped RC
+            API -> DB: Check if RC exists in dictionary now
+            alt RC found in dictionary
+                API -> DB: UPDATE app_success_rate SET error_type
+                API -> DB: DELETE FROM unmapped_rc
+            end
+        end
+        
+        API -> DB: COMMIT TRANSACTION
+        DB -> API: Success
+        
+        API -> Frontend: Return success dengan entriesProcessed & remappedCount
+        Frontend -> Frontend: Reset form
+        Frontend -> Frontend: Dispatch 'dictionaryUploaded' event
+        Frontend -> User: Show success message
+    end
+end
+
+@enduml

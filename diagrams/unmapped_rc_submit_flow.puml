@@ -1,0 +1,41 @@
+@startuml Unmapped RC Submit Flow
+actor User
+participant "UnmappedRcCard" as Frontend
+participant "API /unmapped-rc/submit" as API
+participant "MySQL Database" as DB
+
+User -> Frontend: Select error_type (S/N/Sukses) untuk RC
+User -> Frontend: Click Submit (single atau batch)
+
+Frontend -> Frontend: Validate error_type selected
+Frontend -> API: POST /api/unmapped-rc/submit\n{ id, id_app_identifier, jenis_transaksi, rc, error_type }
+
+API -> API: Validate required fields & error_type
+API -> DB: BEGIN TRANSACTION
+
+API -> DB: INSERT INTO response_code_dictionary\n(id_app_identifier, jenis_transaksi, rc, error_type)\nON DUPLICATE KEY UPDATE error_type
+
+alt jenis_transaksi provided
+    API -> DB: UPDATE app_success_rate\nSET error_type = ?\nWHERE id_app_identifier = ?\nAND rc = ?\nAND jenis_transaksi = ?\nAND (error_type IS NULL OR\nstatus_transaksi IN ('pending','suspect','cancelled') AND error_type='S')
+else jenis_transaksi NULL
+    API -> DB: UPDATE app_success_rate\nSET error_type = ?\nWHERE id_app_identifier = ?\nAND rc = ?\nAND (error_type IS NULL OR\nstatus_transaksi IN ('pending','suspect','cancelled') AND error_type='S')
+end
+
+DB -> API: Updated rows count
+
+API -> DB: DELETE FROM unmapped_rc WHERE id = ?
+
+alt Error occurred
+    API -> DB: ROLLBACK TRANSACTION
+    API -> Frontend: Return error
+    Frontend -> User: Show error message
+else Success
+    API -> DB: COMMIT TRANSACTION
+    DB -> API: Success
+    API -> Frontend: Return success
+    Frontend -> Frontend: Remove RC dari local state
+    Frontend -> Frontend: Dispatch 'unmappedRcSubmitted' event
+    Frontend -> User: Show success message
+end
+
+@enduml

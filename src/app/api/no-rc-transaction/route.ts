@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         FROM app_success_rate a
         LEFT JOIN app_identifier app ON a.id_app_identifier = app.id
         WHERE a.rc IS NULL
-          AND (a.status_transaksi IS NULL OR LOWER(a.status_transaksi) NOT IN ('sukses', 'success'))
+          AND a.error_type IS NULL
       `
       const queryParams: any[] = []
       const countParams: any[] = []
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         FROM app_success_rate a
         LEFT JOIN app_identifier app ON a.id_app_identifier = app.id
         WHERE a.rc IS NULL
-          AND (a.status_transaksi IS NULL OR LOWER(a.status_transaksi) NOT IN ('sukses', 'success'))
+          AND a.error_type IS NULL
       `
       if (appId) {
         countQuery += ' AND a.id_app_identifier = ?'

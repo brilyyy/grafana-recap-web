@@ -295,74 +295,37 @@ export async function POST(request: NextRequest) {
         
         let rcDescription = rowData['RC Description']?.trim() || null
 
-        // Validate Status Transaksi
-        let statusTransaksi: 'sukses' | 'failed' | 'pending' | 'suspect' | 'cancelled' | null = null
-        const rawStatus = rowData['Status Transaksi']
-        const normalizedStatus = rawStatus.toLowerCase()
-        const upperStatus = rawStatus.toUpperCase()
+        // Status Transaksi: BOLEH null/kosong/value apapun (disimpan sebagai VARCHAR)
+        // Tidak ada validasi enum, simpan value asli untuk digunakan di business rule error_type assignment
+        const rawStatus = rowData['Status Transaksi']?.trim() || null
+        let statusTransaksi: string | null = null
         
-        // SUCCESS variations: sukses, Success, SUCCESS, SUKSES
-        if (
-          normalizedStatus === 'sukses' ||
-          normalizedStatus === 'success' ||
-          rawStatus === 'Success' ||
-          upperStatus === 'SUCCESS' ||
-          upperStatus === 'SUKSES'
-        ) {
-          statusTransaksi = 'sukses'
-        } else if (
-          // FAILED variations: failed, Failed, FAILED, Gagal, GAGAL, Failure, failure
-          normalizedStatus === 'failed' ||
-          normalizedStatus === 'failure' ||
-          normalizedStatus === 'gagal' ||
-          rawStatus === 'Failed' ||
-          rawStatus === 'Gagal' ||
-          rawStatus === 'Failure' ||
-          upperStatus === 'FAILED' ||
-          upperStatus === 'GAGAL' ||
-          upperStatus === 'FAILURE'
-        ) {
-          statusTransaksi = 'failed'
-        } else if (
-          // PENDING variations: pending, Pending, PENDING
-          normalizedStatus === 'pending' ||
-          rawStatus === 'Pending' ||
-          upperStatus === 'PENDING'
-        ) {
-          statusTransaksi = 'pending'
-        } else if (
-          // SUSPECT variations: suspect, Suspect, SUSPECT
-          normalizedStatus === 'suspect' ||
-          rawStatus === 'Suspect' ||
-          upperStatus === 'SUSPECT'
-        ) {
-          statusTransaksi = 'suspect'
-        } else if (
-          // CANCELLED variations: cancelled, Cancelled, CANCELLED, canceled, Canceled, CANCELED
-          normalizedStatus === 'cancelled' ||
-          normalizedStatus === 'canceled' ||
-          rawStatus === 'Cancelled' ||
-          rawStatus === 'Canceled' ||
-          upperStatus === 'CANCELLED' ||
-          upperStatus === 'CANCELED'
-        ) {
-          statusTransaksi = 'cancelled'
+        if (rawStatus && rawStatus !== '') {
+          statusTransaksi = rawStatus // Simpan value asli, tidak perlu validasi enum
         }
+        // Jika null/kosong, statusTransaksi tetap null (boleh)
 
-        if (statusTransaksi === null) {
-          skippedRows.push({
-            rowNumber: actualRowNumber,
-            reason: `Status Transaksi tidak valid: "${rawStatus || '(kosong)'}". Nilai yang diterima: sukses/Success/SUCCESS/SUKSES, failed/Failed/FAILED/Gagal/GAGAL/Failure, pending/Pending/PENDING, suspect/Suspect/SUSPECT, cancelled/Cancelled/CANCELLED/canceled/Canceled/CANCELED`
-          })
-          continue
-        }
-
-        // Apply business rules for successful transactions
-        if (statusTransaksi === 'sukses') {
-          if (!rcDescription || rcDescription === '') {
-            rcDescription = 'Success'
-          }
-          if (!rc || rc === '') {
+        // Business rule: Jika RC kosong/null atau RC='-', cek apakah transaksi sukses
+        // Jika RC Description atau status_transaksi menunjukkan sukses → set RC='00'
+        const rcValue = rc?.trim() || ''
+        const isRcEmpty = !rcValue || rcValue === '' || rcValue === '-'
+        
+        if (isRcEmpty) {
+          const normalizedRcDescription = rcDescription?.toLowerCase()?.trim() || ''
+          const normalizedStatus = statusTransaksi?.toLowerCase()?.trim() || ''
+          
+          const isRcDescriptionSukses = 
+            normalizedRcDescription === 'sukses' ||
+            normalizedRcDescription === 'success' ||
+            normalizedRcDescription === 'berhasil'
+          
+          const isStatusSukses = 
+            normalizedStatus === 'sukses' ||
+            normalizedStatus === 'success' ||
+            normalizedStatus === 'berhasil'
+          
+          if (isRcDescriptionSukses || isStatusSukses) {
+            // RC kosong/null/'-' + (RC Description sukses ATAU status sukses) → set RC='00'
             rc = '00'
           }
         }
@@ -618,23 +581,34 @@ export async function POST(request: NextRequest) {
         let statusTransaksi: string | null = null
         
         if (rawStatus && rawStatus !== '') {
-          // Normalize untuk logic check (tapi simpan value asli)
-          const normalizedStatus = rawStatus.toLowerCase()
-          const upperStatus = rawStatus.toUpperCase()
-          
-          // Check if it's "sukses" untuk logic assignment error_type
-          if (
-            normalizedStatus === 'sukses' ||
-            normalizedStatus === 'success' ||
-            upperStatus === 'SUCCESS' ||
-            upperStatus === 'SUKSES'
-          ) {
-            statusTransaksi = rawStatus // Simpan value asli
-          } else {
-            statusTransaksi = rawStatus // Simpan value asli (boleh value apapun)
-          }
+          statusTransaksi = rawStatus // Simpan value asli (boleh value apapun)
         }
         // Jika null/kosong, statusTransaksi tetap null (boleh)
+
+        // Business rule: Jika RC kosong/null atau RC='-', cek apakah transaksi sukses
+        // Jika RC Description atau status_transaksi menunjukkan sukses → set RC='00'
+        const rcValue = rc?.trim() || ''
+        const isRcEmpty = !rcValue || rcValue === '' || rcValue === '-'
+        
+        if (isRcEmpty) {
+          const normalizedRcDescription = rcDescription?.toLowerCase()?.trim() || ''
+          const normalizedStatus = statusTransaksi?.toLowerCase()?.trim() || ''
+          
+          const isRcDescriptionSukses = 
+            normalizedRcDescription === 'sukses' ||
+            normalizedRcDescription === 'success' ||
+            normalizedRcDescription === 'berhasil'
+          
+          const isStatusSukses = 
+            normalizedStatus === 'sukses' ||
+            normalizedStatus === 'success' ||
+            normalizedStatus === 'berhasil'
+          
+          if (isRcDescriptionSukses || isStatusSukses) {
+            // RC kosong/null/'-' + (RC Description sukses ATAU status sukses) → set RC='00'
+            rc = '00'
+          }
+        }
 
         const totalTransaksi = rowData['total transaksi']
           ? parseInt(rowData['total transaksi'])
@@ -721,7 +695,11 @@ export async function POST(request: NextRequest) {
           let foundInDictionary = false
 
           // Logic: Error_type assignment berdasarkan RC
-          if (entry.rc && entry.rc !== '' && entry.rc !== null) {
+          // Handle RC='-' sebagai empty RC
+          const rcValue = entry.rc?.trim() || ''
+          const isRcEmpty = !rcValue || rcValue === '' || rcValue === '-'
+          
+          if (!isRcEmpty) {
             // RC ada → Cari di dictionary
             if (entry.jenis_transaksi) {
               const [dictionaryResult]: any = await connection.execute(
@@ -765,19 +743,28 @@ export async function POST(request: NextRequest) {
               // error_type tetap NULL di app_success_rate
             }
           } else {
-            // RC kosong/null
-            // Check if status_transaksi is "sukses" (case-insensitive)
-            const normalizedStatus = entry.status_transaksi?.toLowerCase() || ''
-            if (
+            // RC kosong/null atau RC='-' atau RC kosong string
+            // Business rule khusus untuk transaksi sukses:
+            // Cek RC Description ATAU status_transaksi untuk menentukan apakah sukses
+            const normalizedRcDescription = entry.rc_description?.toLowerCase()?.trim() || ''
+            const normalizedStatus = entry.status_transaksi?.toLowerCase()?.trim() || ''
+            
+            const isRcDescriptionSukses = 
+              normalizedRcDescription === 'sukses' ||
+              normalizedRcDescription === 'success' ||
+              normalizedRcDescription === 'berhasil'
+            
+            const isStatusSukses = 
               normalizedStatus === 'sukses' ||
               normalizedStatus === 'success' ||
-              entry.status_transaksi?.toUpperCase() === 'SUCCESS' ||
-              entry.status_transaksi?.toUpperCase() === 'SUKSES'
-            ) {
-              // RC NULL + status sukses → error_type = 'Sukses'
+              normalizedStatus === 'berhasil'
+            
+            if (isRcDescriptionSukses || isStatusSukses) {
+              // RC NULL/empty/'-' + (RC Description sukses ATAU status sukses) → set RC='00' dan error_type = 'Sukses'
+              entry.rc = '00'
               entry.error_type = 'Sukses'
             } else {
-              // RC NULL + status != sukses → error_type = NULL (akan tampil di No RC Transaction Card)
+              // RC NULL/empty/'-' + tidak ada indikasi sukses → error_type = NULL (akan tampil di No RC Transaction Card)
               entry.error_type = null
             }
           }
