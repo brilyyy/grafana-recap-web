@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import AddAppCard from '@/components/AddAppCard'
 import AppListCard from '@/components/AppListCard'
 import DictionaryUploadCard from '@/components/DictionaryUploadCard'
@@ -10,6 +12,47 @@ import NoRcTransactionCard from '@/components/NoRcTransactionCard'
 import DictionaryCard from '@/components/DictionaryCard'
 
 export default function Home() {
+  const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/check')
+        const data = await response.json()
+        
+        if (data.success && data.data.authenticated) {
+          setIsAuthenticated(true)
+        } else {
+          // Not authenticated, redirect to login
+          router.push('/login')
+        }
+      } catch (error) {
+        // Error checking auth, redirect to login
+        router.push('/login')
+      }
+    }
+    
+    checkAuth()
+  }, [router])
+
+  // Show loading state while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated, don't render (redirect will happen)
+  if (!isAuthenticated) {
+    return null
+  }
+
   return (
     <main className="min-h-screen p-2 md:p-4 lg:p-5">
       {/* Header with gradient text */}

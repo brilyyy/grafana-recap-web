@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
-import { hashPassword, verifyPassword, setSession, requireAuth, getSession } from '@/lib/auth'
+import { hashPassword, verifyPassword, setSessionCookie, requireAuth, getSession } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import { enforceRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
 import type { ApiResponse } from '@/types'
