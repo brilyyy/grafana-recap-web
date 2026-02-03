@@ -34,8 +34,8 @@ export const RATE_LIMITS = {
   READ: { maxRequests: 100, windowMs: 60 * 1000 },
   // Write endpoints: 50 requests per minute
   WRITE: { maxRequests: 50, windowMs: 60 * 1000 },
-  // Auth endpoints: 5 requests per minute
-  AUTH: { maxRequests: 5, windowMs: 60 * 1000 },
+  // Auth endpoints: 20 requests per minute (increased for auth check which is called frequently)
+  AUTH: { maxRequests: 20, windowMs: 60 * 1000 },
 } as const
 
 /**

@@ -26,6 +26,10 @@ function getRateLimitConfig(pathname: string): typeof RATE_LIMITS.READ {
   if (pathname.includes('/upload-')) {
     return RATE_LIMITS.UPLOAD
   }
+  // Auth check endpoint gets higher limit since it's called frequently for validation
+  if (pathname === '/api/auth/check') {
+    return RATE_LIMITS.READ // Use READ limit (100/min) for auth check
+  }
   if (pathname.includes('/auth/')) {
     return RATE_LIMITS.AUTH
   }

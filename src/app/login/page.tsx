@@ -13,19 +13,27 @@ export default function LoginPage() {
 
   // Check if already authenticated
   useEffect(() => {
+    let isMounted = true
+    
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/check')
+        if (!isMounted) return
+        
         const data = await response.json()
         if (data.success && data.data.authenticated) {
-          router.push('/')
+          router.replace('/')
         }
       } catch (error) {
         // Not authenticated, stay on login page
       }
     }
     checkAuth()
-  }, [router])
+    
+    return () => {
+      isMounted = false
+    }
+  }, []) // Remove router from dependencies
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

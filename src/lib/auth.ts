@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { NextRequest } from 'next/server'
 
-export type UserRole = 'admin' | 'user'
+export type UserRole = 'superadmin' | 'admin' | 'user'
 
 export interface User {
   id: number
@@ -103,9 +103,30 @@ export function hasRole(userRole: UserRole, requiredRole: UserRole): boolean {
   const roleHierarchy: Record<UserRole, number> = {
     user: 1,
     admin: 2,
+    superadmin: 3,
   }
 
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
+}
+
+/**
+ * Check if user is superadmin
+ */
+export function isSuperAdmin(userRole: UserRole): boolean {
+  return userRole === 'superadmin'
+}
+
+/**
+ * Require superadmin role - throws if user is not superadmin
+ */
+export function requireSuperAdmin(request: NextRequest): SessionPayload {
+  const session = requireAuth(request)
+
+  if (session.role !== 'superadmin') {
+    throw new Error('Forbidden: superadmin role required')
+  }
+
+  return session
 }
 
 /**

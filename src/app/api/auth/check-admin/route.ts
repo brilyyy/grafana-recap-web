@@ -3,13 +3,14 @@ import pool from '@/lib/db'
 import type { ApiResponse } from '@/types'
 
 /**
- * Check if admin user exists
+ * Check if admin or superadmin user exists
  * Public endpoint for registration page
+ * Used to determine if new admin requests need approval
  */
 export async function GET(request: NextRequest) {
   try {
     const [admins]: any = await pool.execute(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'admin'"
+      "SELECT COUNT(*) as count FROM users WHERE role = 'admin' OR role = 'superadmin'"
     )
 
     return NextResponse.json({

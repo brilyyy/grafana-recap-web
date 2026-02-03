@@ -18,18 +18,24 @@ export default function RegisterPage() {
 
   // Check if admin exists and if already authenticated
   useEffect(() => {
+    let isMounted = true
+    
     const checkStatus = async () => {
       try {
         // Check authentication
         const authResponse = await fetch('/api/auth/check')
+        if (!isMounted) return
+        
         const authData = await authResponse.json()
         if (authData.success && authData.data.authenticated) {
-          router.push('/')
+          router.replace('/')
           return
         }
 
         // Check if admin exists
         const adminResponse = await fetch('/api/auth/check-admin')
+        if (!isMounted) return
+        
         const adminData = await adminResponse.json()
         if (adminData.success) {
           setAdminExists(adminData.data.adminExists)
@@ -37,11 +43,17 @@ export default function RegisterPage() {
       } catch (error) {
         console.error('Check error:', error)
       } finally {
-        setChecking(false)
+        if (isMounted) {
+          setChecking(false)
+        }
       }
     }
     checkStatus()
-  }, [router])
+    
+    return () => {
+      isMounted = false
+    }
+  }, []) // Remove router from dependencies
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,21 +75,33 @@ export default function RegisterPage() {
     }
 
     try {
+      // create-admin API will handle:
+      // - If no admin exists: create admin directly (first-time setup)
+      // - If admin exists: create pending request (needs superadmin approval)
       const response = await fetch('/api/auth/create-admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ 
+          username, 
+          email, 
+          password
+        }),
       })
 
       const data = await response.json()
 
       if (data.success) {
-        setSuccess('Admin user created successfully! Redirecting to login...')
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
+        // Check if it's a pending request or direct creation
+        if (data.data && data.data.status === 'pending') {
+          setSuccess('Registration request submitted successfully! Please wait for superadmin approval before you can login.')
+        } else {
+          setSuccess('Admin user created successfully! Redirecting to login...')
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+        }
       } else {
         setError(data.message || 'Registration failed')
       }
@@ -95,50 +119,6 @@ export default function RegisterPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // If admin exists, show message
-  if (adminExists) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse-slow"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-400/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
-        </div>
-
-        <div className="w-full max-w-md relative z-10">
-          <div className="rounded-3xl shadow-2xl p-8 md:p-10 space-y-6 animate-fade-in border border-white/30 bg-black/40 backdrop-blur-xl text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/30">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
-              Registration Closed
-            </h1>
-            <p className="text-white/80 text-sm md:text-base">
-              Admin user already exists. Please contact an administrator to create new users.
-            </p>
-            <Link
-              href="/login"
-              className="inline-block w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-            >
-              Go to Login
-            </Link>
-          </div>
         </div>
       </div>
     )
@@ -174,11 +154,33 @@ export default function RegisterPage() {
               </svg>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
-              Create Admin Account
+              {adminExists ? 'Request Admin Account' : 'Create First Admin Account'}
             </h1>
             <p className="text-white/80 text-sm md:text-base font-medium">
-              Set up your admin account to access the dashboard
+              {adminExists 
+                ? 'Submit a request for admin account. Superadmin approval required. Multiple admins can be created.'
+                : 'Set up your first admin account to access the dashboard'}
             </p>
+            {adminExists && (
+              <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 text-white px-4 py-3 rounded-xl text-sm">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-5 h-5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>Your request will be reviewed by a superadmin before you can login.</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Registration Form */}
@@ -395,10 +397,10 @@ export default function RegisterPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Creating account...
+                  {adminExists ? 'Submitting request...' : 'Creating account...'}
                 </span>
               ) : (
-                'Create Admin Account'
+                adminExists ? 'Submit Admin Request' : 'Create Admin Account'
               )}
             </button>
           </form>
@@ -412,7 +414,7 @@ export default function RegisterPage() {
               href="/login"
               className="block w-full text-center text-white/80 hover:text-white font-medium py-2 rounded-xl hover:bg-white/10 transition-all"
             >
-              Sign in instead
+              Sign in
             </Link>
           </div>
         </div>

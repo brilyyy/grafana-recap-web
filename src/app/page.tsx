@@ -10,31 +10,43 @@ import RestartDbCard from '@/components/RestartDbCard'
 import UnmappedRcCard from '@/components/UnmappedRcCard'
 import NoRcTransactionCard from '@/components/NoRcTransactionCard'
 import DictionaryCard from '@/components/DictionaryCard'
+import LogoutButton from '@/components/LogoutButton'
 
 export default function Home() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+    
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/check')
+        if (!isMounted) return
+        
         const data = await response.json()
         
         if (data.success && data.data.authenticated) {
           setIsAuthenticated(true)
+          setUserRole(data.data.user.role)
         } else {
           // Not authenticated, redirect to login
-          router.push('/login')
+          router.replace('/login')
         }
       } catch (error) {
+        if (!isMounted) return
         // Error checking auth, redirect to login
-        router.push('/login')
+        router.replace('/login')
       }
     }
     
     checkAuth()
-  }, [router])
+    
+    return () => {
+      isMounted = false
+    }
+  }, []) // Remove router from dependencies
 
   // Show loading state while checking authentication
   if (isAuthenticated === null) {
@@ -55,14 +67,41 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-2 md:p-4 lg:p-5">
-      {/* Header with gradient text */}
-      <div className="text-center mb-3 md:mb-4 animate-fade-in">
+      {/* Header with gradient text and logout button */}
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-3 md:mb-4 gap-3 sm:gap-4 animate-fade-in">
+        <div className="flex-1 text-center sm:text-left">
         <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
           Setup Data Grafana
         </h1>
         <p className="text-white/90 text-xs md:text-sm font-medium">
           Manage your application data with ease
         </p>
+        </div>
+        <div className="w-full sm:w-auto flex justify-center sm:justify-end gap-2">
+          {userRole === 'superadmin' && (
+            <button
+              onClick={() => router.push('/user-approval')}
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 border border-purple-400/30"
+              title="User Approval"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="hidden sm:inline">User Approval</span>
+            </button>
+          )}
+          <LogoutButton />
+        </div>
       </div>
 
       {/* Bento Box Grid Layout */}
