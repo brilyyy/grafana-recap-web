@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { type SignOptions, type Secret } from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { NextRequest } from 'next/server'
 
@@ -18,8 +18,8 @@ export interface SessionPayload {
   role: UserRole
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-key-in-production'
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
+const JWT_SECRET: Secret = (process.env.JWT_SECRET || 'change-this-secret-key-in-production') as Secret
+const JWT_EXPIRES_IN: string | number = process.env.JWT_EXPIRES_IN || '7d'
 const SESSION_COOKIE_NAME = 'auth_session'
 
 /**
@@ -41,9 +41,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
  * Generate a JWT token for a user session
  */
 export function generateToken(payload: SessionPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  })
+  const options: SignOptions = {
+    // Cast to any to satisfy jsonwebtoken's stricter typing while still allowing string like '7d'
+    expiresIn: JWT_EXPIRES_IN as any,
+  }
+
+  return jwt.sign(payload, JWT_SECRET, options)
 }
 
 /**
@@ -51,7 +54,7 @@ export function generateToken(payload: SessionPayload): string {
  */
 export function verifyToken(token: string): SessionPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload
+    const decoded = jwt.verify(token, JWT_SECRET as Secret) as SessionPayload
     return decoded
   } catch (error) {
     return null

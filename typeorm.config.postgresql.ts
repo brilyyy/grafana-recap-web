@@ -1,5 +1,5 @@
 require('reflect-metadata')
-const { DataSource } = require('typeorm')
+const typeorm = require('typeorm')
 const dotenv = require('dotenv')
 
 // Load environment variables
@@ -10,7 +10,7 @@ dotenv.config()
  * This file is used by TypeORM CLI tools for PostgreSQL
  * Using CommonJS style for typeorm-ts-node-commonjs compatibility
  */
-module.exports = new DataSource({
+module.exports = new typeorm.DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),

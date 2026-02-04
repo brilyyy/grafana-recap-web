@@ -404,48 +404,48 @@ export default function AddSuccessRateCard() {
               ? 'border-blue-500 bg-gradient-to-br from-blue-100 to-blue-50 scale-105'
               : 'border-gray-300 bg-gradient-to-br from-gray-50 to-blue-50 hover:border-blue-400 hover:from-blue-50 hover:to-blue-100'
           }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {selectedFile ? (
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {selectedFile ? (
             <div className="space-y-0.5 w-full min-w-0">
               <svg className="w-6 h-6 text-blue-600 mx-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
               <p className="text-xs font-semibold text-gray-700 truncate px-1 w-full min-w-0">
-                {selectedFile.name}
-              </p>
-              <p className="text-xs text-gray-500">Click to change</p>
-            </div>
-          ) : (
+              {selectedFile.name}
+            </p>
+            <p className="text-xs text-gray-500">Click to change</p>
+          </div>
+        ) : (
             <div className="space-y-0.5 w-full">
-              <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p className="text-xs font-medium text-gray-700">
-                Drag & drop or click
+            <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p className="text-xs font-medium text-gray-700">
+              Drag & drop or click
+            </p>
+            <p className="text-xs text-gray-400">Excel or CSV file</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Required: {requiredColumns.join(', ')}
+            </p>
+            {optionalColumns.length > 0 && (
+              <p className="text-xs text-gray-400">
+                Optional: {optionalColumns.join(', ')}
               </p>
-              <p className="text-xs text-gray-400">Excel or CSV file</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Required: {requiredColumns.join(', ')}
-              </p>
-              {optionalColumns.length > 0 && (
-                <p className="text-xs text-gray-400">
-                  Optional: {optionalColumns.join(', ')}
-                </p>
-              )}
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFileInputChange}
-            className="hidden"
-          />
-        </div>
+            )}
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onChange={handleFileInputChange}
+          className="hidden"
+        />
+      </div>
       </div>
 
       {message && (

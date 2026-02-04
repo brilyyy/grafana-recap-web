@@ -20,8 +20,6 @@ export class MySQLAdapter implements DatabaseAdapter {
       queueLimit: 0,
       // Timeout settings for large file uploads
       connectTimeout: 600000, // 10 minutes - allow enough time for connection establishment
-      acquireTimeout: 600000, // 10 minutes - allow enough time to acquire connection from pool
-      timeout: 1800000, // 30 minutes - query timeout for very large operations
     })
   }
 

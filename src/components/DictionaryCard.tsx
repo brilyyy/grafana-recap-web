@@ -33,7 +33,7 @@ export default function DictionaryCard() {
 
   // Use shared applications hook
   const { applications: sharedApplications } = useApplications()
-  
+
   useEffect(() => {
     setApplications(sharedApplications)
   }, [sharedApplications])

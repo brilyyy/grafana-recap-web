@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { checkRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
+import { checkRateLimit, RATE_LIMITS, type RateLimitConfig } from '@/lib/rateLimit'
 
 /**
  * Public API routes that don't require authentication
@@ -19,7 +19,7 @@ const ADMIN_ROUTES = [
 /**
  * Rate limit configuration per route pattern
  */
-function getRateLimitConfig(pathname: string): typeof RATE_LIMITS.READ {
+function getRateLimitConfig(pathname: string): RateLimitConfig {
   if (pathname.includes('/restart-db')) {
     return RATE_LIMITS.RESTART_DB
   }
