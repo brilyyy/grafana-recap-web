@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { Application } from '@/types'
 import ErrorPopup from './ErrorPopup'
+import { useApplications } from '@/hooks/useApplications'
 
 interface SkippedRow {
   rowNumber: number
@@ -10,7 +10,7 @@ interface SkippedRow {
 }
 
 export default function AddSuccessRateCard() {
-  const [applications, setApplications] = useState<Application[]>([])
+  const { applications } = useApplications()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -36,10 +36,6 @@ export default function AddSuccessRateCard() {
   ]
   const optionalColumns = ['RC Description']
 
-  useEffect(() => {
-    loadApplications()
-  }, [])
-
   // Auto-hide success message after 8 seconds
   useEffect(() => {
     if (message && message.type === 'success') {
@@ -49,19 +45,6 @@ export default function AddSuccessRateCard() {
       return () => clearTimeout(timer)
     }
   }, [message])
-
-  const loadApplications = async () => {
-    try {
-      const response = await fetch('/api/applications')
-      const result = await response.json()
-
-      if (result.success) {
-        setApplications(result.data)
-      }
-    } catch (error) {
-      console.error('Error loading applications:', error)
-    }
-  }
 
   const isValidFile = (file: File) => {
     const validExtensions = ['.xlsx', '.xls', '.csv']
@@ -378,7 +361,7 @@ export default function AddSuccessRateCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
+    <div className="glass-card rounded-xl p-3 md:p-4 flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
       {/* Icon Header */}
       <div className="flex items-center gap-1.5 mb-2">
         <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md flex-shrink-0">
@@ -394,10 +377,10 @@ export default function AddSuccessRateCard() {
         </div>
       </div>
 
-      <div className="mb-2 flex-1 flex flex-col min-h-0">
+      <div className="mb-2 flex flex-col gap-2">
         <label
           htmlFor="applicationSelectSuccessRate"
-          className="block mb-1 font-semibold text-xs text-gray-700"
+          className="block font-semibold text-xs text-gray-700"
         >
           Application:
         </label>
@@ -405,7 +388,7 @@ export default function AddSuccessRateCard() {
           id="applicationSelectSuccessRate"
           value={selectedAppId}
           onChange={(e) => setSelectedAppId(e.target.value)}
-          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all bg-white/80 backdrop-blur-sm mb-2"
+          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all bg-white/80 backdrop-blur-sm"
         >
           <option value="">-- Select Application --</option>
           {applications.map((app) => (
@@ -416,53 +399,53 @@ export default function AddSuccessRateCard() {
         </select>
 
         <div
-          className={`border-2 border-dashed rounded-md p-3 text-center flex-1 flex items-center justify-center transition-all cursor-pointer relative overflow-hidden min-h-[60px] ${
+          className={`border-2 border-dashed rounded-md p-3 text-center transition-all cursor-pointer relative overflow-hidden ${
             isDragging
               ? 'border-blue-500 bg-gradient-to-br from-blue-100 to-blue-50 scale-105'
               : 'border-gray-300 bg-gradient-to-br from-gray-50 to-blue-50 hover:border-blue-400 hover:from-blue-50 hover:to-blue-100'
           }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        {selectedFile ? (
-          <div className="space-y-0.5">
-            <svg className="w-6 h-6 text-blue-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs font-semibold text-gray-700 truncate px-1">
-              {selectedFile.name}
-            </p>
-            <p className="text-xs text-gray-500">Click to change</p>
-          </div>
-        ) : (
-          <div className="space-y-0.5">
-            <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <p className="text-xs font-medium text-gray-700">
-              Drag & drop or click
-            </p>
-            <p className="text-xs text-gray-400">Excel or CSV file</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Required: {requiredColumns.join(', ')}
-            </p>
-            {optionalColumns.length > 0 && (
-              <p className="text-xs text-gray-400">
-                Optional: {optionalColumns.join(', ')}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {selectedFile ? (
+            <div className="space-y-0.5">
+              <svg className="w-6 h-6 text-blue-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs font-semibold text-gray-700 truncate px-1">
+                {selectedFile.name}
               </p>
-            )}
-          </div>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={handleFileInputChange}
-          className="hidden"
-        />
-      </div>
+              <p className="text-xs text-gray-500">Click to change</p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p className="text-xs font-medium text-gray-700">
+                Drag & drop or click
+              </p>
+              <p className="text-xs text-gray-400">Excel or CSV file</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Required: {requiredColumns.join(', ')}
+              </p>
+              {optionalColumns.length > 0 && (
+                <p className="text-xs text-gray-400">
+                  Optional: {optionalColumns.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
+        </div>
       </div>
 
       {message && (
@@ -499,7 +482,7 @@ export default function AddSuccessRateCard() {
         type="button"
         onClick={handleUpload}
         disabled={isLoading || !selectedAppId || !selectedFile}
-        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden group mt-auto"
+        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden group"
       >
         <span className="relative z-10 flex items-center justify-center gap-1.5">
           {isLoading ? (

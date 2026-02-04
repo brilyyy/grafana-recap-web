@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { UnmappedRC, Application } from '@/types'
+import type { UnmappedRC } from '@/types'
+import { useApplications } from '@/hooks/useApplications'
 
 export default function UnmappedRcCard() {
   const [unmappedRcs, setUnmappedRcs] = useState<UnmappedRC[]>([])
-  const [applications, setApplications] = useState<Application[]>([])
+  const { applications } = useApplications()
   const [selectedAppId, setSelectedAppId] = useState<string>('')
   const [selectedErrorTypes, setSelectedErrorTypes] = useState<Record<number, 'S' | 'N' | 'Sukses'>>({})
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
@@ -14,19 +15,6 @@ export default function UnmappedRcCard() {
   const [submitting, setSubmitting] = useState<number | null>(null)
   const [submittingAll, setSubmittingAll] = useState(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-
-  const loadApplications = async () => {
-    try {
-      const response = await fetch('/api/applications')
-      const result = await response.json()
-
-      if (result.success) {
-        setApplications(result.data)
-      }
-    } catch (err: any) {
-      console.error('Error loading applications:', err)
-    }
-  }
 
   const loadUnmappedRcs = useCallback(async () => {
     try {
@@ -57,9 +45,7 @@ export default function UnmappedRcCard() {
     }
   }, [selectedAppId])
 
-  useEffect(() => {
-    loadApplications()
-  }, [])
+  // Applications loaded via useApplications hook
 
   useEffect(() => {
     loadUnmappedRcs()

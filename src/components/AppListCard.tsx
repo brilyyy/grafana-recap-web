@@ -1,40 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import type { Application } from '@/types'
+import { useEffect } from 'react'
+import { useApplications } from '@/hooks/useApplications'
 
 export default function AppListCard() {
-  const [applications, setApplications] = useState<Application[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const loadApplications = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const response = await fetch('/api/applications')
-      const result = await response.json()
-
-      if (result.success) {
-        setApplications(result.data)
-      } else {
-        throw new Error(result.message || 'Failed to load applications')
-      }
-    } catch (err: any) {
-      setError(err.message)
-      console.error('Error loading applications:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { applications, isLoading, error, refreshApplications } = useApplications()
 
   useEffect(() => {
-    loadApplications()
-
     // Listen for app added event
     const handleAppAdded = () => {
-      loadApplications()
+      refreshApplications()
     }
 
     window.addEventListener('appAdded', handleAppAdded)
@@ -42,7 +17,7 @@ export default function AppListCard() {
     return () => {
       window.removeEventListener('appAdded', handleAppAdded)
     }
-  }, [])
+  }, [refreshApplications])
 
   const getInitials = (name: string) => {
     if (!name) return '?'
@@ -119,7 +94,7 @@ export default function AppListCard() {
 
       <button
         type="button"
-        onClick={loadApplications}
+        onClick={refreshApplications}
         className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1 mt-auto"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

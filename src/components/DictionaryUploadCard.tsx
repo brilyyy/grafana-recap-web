@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import type { Application } from '@/types'
 import ErrorPopup from './ErrorPopup'
+import { useApplications } from '@/hooks/useApplications'
 
 interface SkippedRow {
   rowNumber: number
@@ -10,7 +10,7 @@ interface SkippedRow {
 }
 
 export default function DictionaryUploadCard() {
-  const [applications, setApplications] = useState<Application[]>([])
+  const { applications } = useApplications()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -28,10 +28,6 @@ export default function DictionaryUploadCard() {
   const requiredColumns = ['Jenis Transaksi', 'RC', 'S/N']
   const optionalColumns = ['RC Description']
 
-  useEffect(() => {
-    loadApplications()
-  }, [])
-
   // Auto-hide success message after 8 seconds
   useEffect(() => {
     if (message && message.type === 'success') {
@@ -41,19 +37,6 @@ export default function DictionaryUploadCard() {
       return () => clearTimeout(timer)
     }
   }, [message])
-
-  const loadApplications = async () => {
-    try {
-      const response = await fetch('/api/applications')
-      const result = await response.json()
-
-      if (result.success) {
-        setApplications(result.data)
-      }
-    } catch (error) {
-      console.error('Error loading applications:', error)
-    }
-  }
 
   const isValidFile = (file: File) => {
     const validExtensions = ['.xlsx', '.xls', '.csv']

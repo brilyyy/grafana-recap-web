@@ -6,7 +6,6 @@ import AddAppCard from '@/components/AddAppCard'
 import AppListCard from '@/components/AppListCard'
 import DictionaryUploadCard from '@/components/DictionaryUploadCard'
 import AddSuccessRateCard from '@/components/AddSuccessRateCard'
-import RestartDbCard from '@/components/RestartDbCard'
 import UnmappedRcCard from '@/components/UnmappedRcCard'
 import NoRcTransactionCard from '@/components/NoRcTransactionCard'
 import DictionaryCard from '@/components/DictionaryCard'
@@ -126,21 +125,16 @@ export default function Home() {
           </div>
 
           {/* Add Success Rate Card - Middle left (Row 4, cols 1-4) */}
-          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-4 lg:row-span-1 animate-fade-in bento-item" style={{ animationDelay: '0.4s' }}>
+          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-4 lg:row-span-1 animate-fade-in bento-item flex items-start" style={{ animationDelay: '0.4s' }}>
             <AddSuccessRateCard />
           </div>
 
-          {/* Restart DB Card - Bottom left (Row 5, cols 1-4) */}
-          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-5 lg:row-span-1 animate-fade-in bento-item" style={{ animationDelay: '0.5s' }}>
-            <RestartDbCard />
-          </div>
-
           {/* No RC Transaction Card - Wide rectangle di kanan (spans rows 3-5, cols 5-12) */}
-          <div className="lg:col-span-8 lg:col-start-5 lg:row-span-3 lg:row-start-3 animate-fade-in bento-item" style={{ animationDelay: '0.2s' }}>
+          <div className="lg:col-span-8 lg:col-start-5 lg:row-span-2 lg:row-start-3 animate-fade-in bento-item" style={{ animationDelay: '0.2s' }}>
             <NoRcTransactionCard />
           </div>
 
-          <div className="lg:col-span-12 lg:row-start-6 lg:row-span-1 animate-fade-in bento-item" style={{ animationDelay: '0.7s' }}>
+          <div className="lg:col-span-12 lg:row-start-5 lg:row-span-2 animate-fade-in bento-item" style={{ animationDelay: '0.7s' }}>
             <DictionaryCard />
           </div>
         </div>
@@ -167,13 +161,8 @@ export default function Home() {
             <AddSuccessRateCard />
           </div>
 
-          {/* Restart DB Card */}
-          <div className="md:col-span-2 md:row-span-1 animate-fade-in bento-item" style={{ animationDelay: '0.5s' }}>
-            <RestartDbCard />
-          </div>
-
           {/* Unmapped RC Card - Wide rectangle */}
-          <div className="md:col-span-4 md:row-span-2 animate-fade-in bento-item" style={{ animationDelay: '0.6s' }}>
+          <div className="md:col-span-4 md:row-span-2 animate-fade-in bento-item" style={{ animationDelay: '0.5s' }}>
             <UnmappedRcCard />
           </div>
 
@@ -209,9 +198,6 @@ export default function Home() {
             <AddSuccessRateCard />
           </div>
           <div className="animate-fade-in" style={{ animationDelay: '0.6s' }}>
-            <RestartDbCard />
-          </div>
-          <div className="animate-fade-in" style={{ animationDelay: '0.7s' }}>
             <DictionaryCard />
           </div>
         </div>

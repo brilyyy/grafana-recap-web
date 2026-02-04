@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { DictionaryViewEntry, Application } from '@/types'
 import MultiSelectFilter from './MultiSelectFilter'
+import { useApplications } from '@/hooks/useApplications'
 
 export default function DictionaryCard() {
   const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryViewEntry[]>([])
@@ -30,18 +31,12 @@ export default function DictionaryCard() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const limit = 25
 
-  const loadApplications = async () => {
-    try {
-      const response = await fetch('/api/applications')
-      const result = await response.json()
-
-      if (result.success) {
-        setApplications(result.data)
-      }
-    } catch (err: any) {
-      console.error('Error loading applications:', err)
-    }
-  }
+  // Use shared applications hook
+  const { applications: sharedApplications } = useApplications()
+  
+  useEffect(() => {
+    setApplications(sharedApplications)
+  }, [sharedApplications])
 
   const loadDictionary = useCallback(async (page: number, fetchAll: boolean = false) => {
     try {
@@ -94,9 +89,7 @@ export default function DictionaryCard() {
     }
   }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, limit])
 
-  useEffect(() => {
-    loadApplications()
-  }, [])
+  // Applications loaded via useApplications hook
 
   useEffect(() => {
     // Listen for data changes

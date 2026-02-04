@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { SuccessRateEntry, Application } from '@/types'
+import type { SuccessRateEntry } from '@/types'
+import { useApplications } from '@/hooks/useApplications'
 
 export default function NoRcTransactionCard() {
   const [transactions, setTransactions] = useState<SuccessRateEntry[]>([])
-  const [applications, setApplications] = useState<Application[]>([])
+  const { applications } = useApplications()
   const [selectedAppId, setSelectedAppId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -21,19 +22,6 @@ export default function NoRcTransactionCard() {
   const [submittingAll, setSubmittingAll] = useState(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const limit = 25
-
-  const loadApplications = async () => {
-    try {
-      const response = await fetch('/api/applications')
-      const result = await response.json()
-
-      if (result.success) {
-        setApplications(result.data)
-      }
-    } catch (err: any) {
-      console.error('Error loading applications:', err)
-    }
-  }
 
   const loadTransactions = useCallback(async (page: number) => {
     try {
@@ -69,9 +57,7 @@ export default function NoRcTransactionCard() {
     }
   }, [selectedAppId, limit])
 
-  useEffect(() => {
-    loadApplications()
-  }, [])
+  // Applications loaded via useApplications hook
 
   useEffect(() => {
     loadTransactions(currentPage)
