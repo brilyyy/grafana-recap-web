@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
+import { normalizeDbError } from '@/lib/db-helpers'
 import type { ApiResponse } from '@/types'
 
 /**
@@ -117,7 +118,10 @@ export async function POST(request: NextRequest) {
       message: 'Admin user created successfully (first-time setup)',
     } as ApiResponse)
   } catch (error: any) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    // Normalize error for database-agnostic handling
+    const normalizedError = normalizeDbError(error)
+    
+    if (normalizedError.code === 'DUPLICATE_ENTRY') {
       return NextResponse.json(
         {
           success: false,

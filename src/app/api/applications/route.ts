@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
+import { getInsertId, normalizeDbError } from '@/lib/db-helpers'
 import type { ApiResponse, Application } from '@/types'
 
 // GET - Fetch all applications
@@ -41,24 +42,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const [result]: any = await pool.execute(
+    const [rows, result] = await pool.execute(
       'INSERT INTO app_identifier (app_name) VALUES (?)',
       [appName.trim()]
     )
+
+    const insertId = getInsertId(result)
 
     return NextResponse.json({
       success: true,
       message: 'Application added successfully',
       data: {
-        id: result.insertId,
+        id: insertId,
         appName: appName.trim(),
       },
     } as ApiResponse)
   } catch (error: any) {
     console.error('Error adding application:', error.message)
 
+    // Normalize error for database-agnostic handling
+    const normalizedError = normalizeDbError(error)
+    
     // Check for duplicate entry
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (normalizedError.code === 'DUPLICATE_ENTRY') {
       return NextResponse.json(
         {
           success: false,

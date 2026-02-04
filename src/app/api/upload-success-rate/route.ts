@@ -728,18 +728,34 @@ export async function POST(request: NextRequest) {
 
             // RC tidak ada di dictionary → Masuk ke unmapped_rc
             if (!foundInDictionary) {
-              await connection.execute(
-                `INSERT IGNORE INTO unmapped_rc 
-                 (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
-                 VALUES (?, ?, ?, ?, ?, NULL)`,
-                [
-                  applicationId,
-                  entry.jenis_transaksi,
-                  entry.rc,
-                  entry.rc_description,
-                  entry.status_transaksi
-                ]
-              )
+              // Use database-agnostic INSERT IGNORE / ON CONFLICT DO NOTHING
+              const { adapter } = await import('@/lib/db')
+              let insertUnmappedQuery: string
+              
+              if (adapter.getDatabaseType() === 'postgresql') {
+                // PostgreSQL: Use ON CONFLICT DO NOTHING (connection.execute will convert ? to $1, $2, etc.)
+                insertUnmappedQuery = `
+                  INSERT INTO unmapped_rc 
+                  (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
+                  VALUES (?, ?, ?, ?, ?, NULL)
+                  ON CONFLICT (id_app_identifier, jenis_transaksi, rc) DO NOTHING
+                `
+              } else {
+                // MySQL: Use INSERT IGNORE
+                insertUnmappedQuery = `
+                  INSERT IGNORE INTO unmapped_rc 
+                  (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
+                  VALUES (?, ?, ?, ?, ?, NULL)
+                `
+              }
+              
+              await connection.execute(insertUnmappedQuery, [
+                applicationId,
+                entry.jenis_transaksi,
+                entry.rc,
+                entry.rc_description,
+                entry.status_transaksi
+              ])
               // error_type tetap NULL di app_success_rate
             }
           } else {

@@ -336,7 +336,7 @@ export default function NoRcTransactionCard() {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto mb-1.5 border border-gray-200/50 rounded-md bg-white/60 backdrop-blur-sm shadow-inner min-h-0" style={{ maxHeight: 'calc(100vh)' }}>
+      <div className="flex-1 overflow-y-auto mb-1.5 border border-gray-200/50 rounded-md bg-white/60 backdrop-blur-sm shadow-inner min-h-0 max-h-[500px]">
         {isLoading ? (
           <div className="p-2 text-center">
             <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent mb-1"></div>

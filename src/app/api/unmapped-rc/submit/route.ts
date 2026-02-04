@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
+import { adapter } from '@/lib/db'
+import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
 import type { ApiResponse } from '@/types'
 
 // POST - Submit mapping for an unmapped RC
@@ -35,11 +37,16 @@ export async function POST(request: NextRequest) {
       // Start transaction
       await connection.beginTransaction()
 
-      // 1. Insert into response_code_dictionary
+      // 1. Insert into response_code_dictionary with upsert
+      const upsertQuery = buildSimpleUpsertQuery(
+        adapter,
+        'response_code_dictionary',
+        ['id_app_identifier', 'jenis_transaksi', 'rc', 'error_type'],
+        ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
+        ['error_type'] // update columns
+      )
       await connection.execute(
-        `INSERT INTO response_code_dictionary (id_app_identifier, jenis_transaksi, rc, error_type)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE error_type = VALUES(error_type)`,
+        upsertQuery,
         [id_app_identifier, jenis_transaksi || '', rc, error_type]
       )
 

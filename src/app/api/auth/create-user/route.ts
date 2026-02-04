@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { hashPassword, requireAuth, isSuperAdmin } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
+import { getInsertId, normalizeDbError } from '@/lib/db-helpers'
 import type { ApiResponse } from '@/types'
 
 /**
@@ -143,10 +144,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert user directly
-    const [result]: any = await pool.execute(
+    const [rows, result] = await pool.execute(
       'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
       [username, email, passwordHash, role]
     )
+
+    const userId = getInsertId(result)
 
     // Log the action
     await logAuditEvent(
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
       session.username,
       'USER_CREATED',
       'user',
-      result.insertId.toString(),
+      userId.toString(),
       `Created ${role} user: ${username}`,
       getClientIp(request),
       getUserAgent(request)
@@ -164,7 +167,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: `User "${username}" created successfully`,
       data: {
-        userId: result.insertId,
+        userId,
         username,
         email,
         role,
@@ -182,8 +185,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Normalize error for database-agnostic handling
+    const normalizedError = normalizeDbError(error)
+
     // Handle duplicate entry
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (normalizedError.code === 'DUPLICATE_ENTRY') {
       const field = error.message.includes('username') ? 'username' : 'email'
       return NextResponse.json(
         {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
+import { adapter } from '@/lib/db'
+import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
 import type { ApiResponse } from '@/types'
 
 export async function POST(request: NextRequest) {
@@ -82,16 +84,24 @@ export async function POST(request: NextRequest) {
           )
         } else {
           // RC tidak ada di dictionary → Insert ke unmapped_rc (jika belum ada)
+          // Get status_transaksi first
+          const [statusResult]: any = await connection.execute(
+            'SELECT status_transaksi FROM app_success_rate WHERE id = ?',
+            [id]
+          )
+          const status_transaksi = statusResult.length > 0 ? statusResult[0].status_transaksi : null
+
+          // Use upsert query
+          const upsertQuery = buildSimpleUpsertQuery(
+            adapter,
+            'unmapped_rc',
+            ['id_app_identifier', 'jenis_transaksi', 'rc', 'rc_description', 'status_transaksi', 'error_type'],
+            ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
+            ['rc_description', 'status_transaksi'] // update columns
+          )
           await connection.execute(
-            `INSERT INTO unmapped_rc 
-             (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
-             SELECT ?, ?, ?, ?, status_transaksi, NULL
-             FROM app_success_rate
-             WHERE id = ?
-             ON DUPLICATE KEY UPDATE 
-               rc_description = VALUES(rc_description),
-               status_transaksi = VALUES(status_transaksi)`,
-            [id_app_identifier, jenis_transaksi || '', rc.trim(), rc_description?.trim() || null, id]
+            upsertQuery,
+            [id_app_identifier, jenis_transaksi || '', rc.trim(), rc_description?.trim() || null, status_transaksi, null]
           )
           // error_type tetap NULL di app_success_rate
         }

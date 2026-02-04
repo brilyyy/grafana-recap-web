@@ -125,7 +125,7 @@ export default function Home() {
           </div>
 
           {/* Add Success Rate Card - Middle left (Row 4, cols 1-4) */}
-          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-4 lg:row-span-1 animate-fade-in bento-item flex items-start" style={{ animationDelay: '0.4s' }}>
+          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-4 lg:row-span-1 animate-fade-in bento-item flex items-start w-full min-w-0" style={{ animationDelay: '0.4s' }}>
             <AddSuccessRateCard />
           </div>
 

@@ -1,5 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm'
 import bcrypt from 'bcryptjs'
+import { getDatabaseAdapter } from '../lib/db-factory'
 
 // Hash password helper (duplicated from auth.ts to avoid circular dependency)
 async function hashPassword(password: string): Promise<string> {
@@ -9,6 +10,14 @@ async function hashPassword(password: string): Promise<string> {
 
 export class SeedSuperAdmins1770030366141 implements MigrationInterface {
   name = 'SeedSuperAdmins1770030366141'
+
+  private getAdapter() {
+    return getDatabaseAdapter()
+  }
+
+  private quoteIdentifier(name: string): string {
+    return this.getAdapter().quoteIdentifier(name)
+  }
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     const defaultUsernames = process.env.DEFAULT_SU_USERNAME
@@ -60,16 +69,36 @@ export class SeedSuperAdmins1770030366141 implements MigrationInterface {
       const passwordHash = await hashPassword(password)
 
       // Insert user (skip if already exists)
+      const adapter = this.getAdapter()
+      const isPostgres = adapter.getDatabaseType() === 'postgresql'
+      const usersTable = this.quoteIdentifier('users')
+      const usernameCol = this.quoteIdentifier('username')
+      const emailCol = this.quoteIdentifier('email')
+      const passwordHashCol = this.quoteIdentifier('password_hash')
+      const roleCol = this.quoteIdentifier('role')
+
       try {
-        await queryRunner.query(
-          `INSERT INTO \`users\` (\`username\`, \`email\`, \`password_hash\`, \`role\`)
-           VALUES (?, ?, ?, 'superadmin')
-           ON DUPLICATE KEY UPDATE \`username\` = \`username\``,
-          [username, email, passwordHash]
-        )
+        if (isPostgres) {
+          // PostgreSQL: Use ON CONFLICT
+          await queryRunner.query(
+            `INSERT INTO ${usersTable} (${usernameCol}, ${emailCol}, ${passwordHashCol}, ${roleCol})
+             VALUES ($1, $2, $3, 'superadmin')
+             ON CONFLICT (${usernameCol}) DO NOTHING`,
+            [username, email, passwordHash]
+          )
+        } else {
+          // MySQL: Use ON DUPLICATE KEY UPDATE
+          await queryRunner.query(
+            `INSERT INTO ${usersTable} (${usernameCol}, ${emailCol}, ${passwordHashCol}, ${roleCol})
+             VALUES (?, ?, ?, 'superadmin')
+             ON DUPLICATE KEY UPDATE ${usernameCol} = ${usernameCol}`,
+            [username, email, passwordHash]
+          )
+        }
         console.log(`✅ Superadmin user created: ${username}`)
       } catch (error: any) {
-        if (error.code === 'ER_DUP_ENTRY') {
+        const normalizedError = adapter.normalizeError(error)
+        if (normalizedError.code === 'DUPLICATE_ENTRY') {
           console.log(`ℹ️  Superadmin user already exists: ${username}. Skipping.`)
         } else {
           console.error(`❌ Error creating superadmin user ${username}:`, error.message)
@@ -90,11 +119,27 @@ export class SeedSuperAdmins1770030366141 implements MigrationInterface {
 
     // Remove superadmin users
     if (usernames.length > 0) {
-      const placeholders = usernames.map(() => '?').join(',')
-      await queryRunner.query(
-        `DELETE FROM \`users\` WHERE \`username\` IN (${placeholders}) AND \`role\` = 'superadmin'`,
-        usernames
-      )
+      const adapter = this.getAdapter()
+      const isPostgres = adapter.getDatabaseType() === 'postgresql'
+      const usersTable = this.quoteIdentifier('users')
+      const usernameCol = this.quoteIdentifier('username')
+      const roleCol = this.quoteIdentifier('role')
+
+      if (isPostgres) {
+        // PostgreSQL: Use parameterized query with $1, $2, etc.
+        const placeholders = usernames.map((_, i) => `$${i + 1}`).join(',')
+        await queryRunner.query(
+          `DELETE FROM ${usersTable} WHERE ${usernameCol} IN (${placeholders}) AND ${roleCol} = 'superadmin'`,
+          usernames
+        )
+      } else {
+        // MySQL: Use parameterized query with ?
+        const placeholders = usernames.map(() => '?').join(',')
+        await queryRunner.query(
+          `DELETE FROM ${usersTable} WHERE ${usernameCol} IN (${placeholders}) AND ${roleCol} = 'superadmin'`,
+          usernames
+        )
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { hashPassword, getSession } from '@/lib/auth'
+import { normalizeDbError } from '@/lib/db-helpers'
 import type { ApiResponse } from '@/types'
 
 /**
@@ -114,8 +115,11 @@ export async function POST(request: NextRequest) {
       },
     } as ApiResponse)
   } catch (error: any) {
+    // Normalize error for database-agnostic handling
+    const normalizedError = normalizeDbError(error)
+    
     // Handle duplicate entry
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (normalizedError.code === 'DUPLICATE_ENTRY') {
       const field = error.message.includes('username') ? 'username' : 'email'
       return NextResponse.json(
         {

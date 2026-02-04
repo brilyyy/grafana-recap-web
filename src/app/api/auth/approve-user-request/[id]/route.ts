@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { requireSuperAdmin, hashPassword } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
+import { getInsertId } from '@/lib/db-helpers'
 import type { ApiResponse } from '@/types'
 
 /**
@@ -66,12 +67,13 @@ export async function POST(
 
     try {
       // Create user with approved role
-      const [userResult]: any = await connection.execute(
+      const [userRows, userResult] = await connection.execute(
         'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
         [pendingRequest.username, pendingRequest.email, pendingRequest.password_hash, approvedRole]
       )
 
-      const userId = userResult.insertId
+      // Get insert ID using adapter
+      const userId = getInsertId(userResult)
 
       // Update pending request status
       await connection.execute(
@@ -113,8 +115,12 @@ export async function POST(
       // Rollback transaction
       await connection.rollback()
 
+      // Normalize error for database-agnostic handling
+      const { normalizeDbError } = await import('@/lib/db-helpers')
+      const normalizedError = normalizeDbError(error)
+
       // Handle duplicate entry
-      if (error.code === 'ER_DUP_ENTRY') {
+      if (normalizedError.code === 'DUPLICATE_ENTRY') {
         const field = error.message.includes('username') ? 'username' : 'email'
         return NextResponse.json(
           {

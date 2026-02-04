@@ -361,7 +361,7 @@ export default function AddSuccessRateCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
+    <div className="glass-card rounded-xl p-3 md:p-4 flex flex-col w-full min-w-0 flex-shrink-0 transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
       {/* Icon Header */}
       <div className="flex items-center gap-1.5 mb-2">
         <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md flex-shrink-0">
@@ -399,7 +399,7 @@ export default function AddSuccessRateCard() {
         </select>
 
         <div
-          className={`border-2 border-dashed rounded-md p-3 text-center transition-all cursor-pointer relative overflow-hidden ${
+          className={`border-2 border-dashed rounded-md p-3 text-center transition-all cursor-pointer relative overflow-hidden w-full min-w-0 min-h-[100px] flex items-center justify-center ${
             isDragging
               ? 'border-blue-500 bg-gradient-to-br from-blue-100 to-blue-50 scale-105'
               : 'border-gray-300 bg-gradient-to-br from-gray-50 to-blue-50 hover:border-blue-400 hover:from-blue-50 hover:to-blue-100'
@@ -410,17 +410,17 @@ export default function AddSuccessRateCard() {
           onClick={() => fileInputRef.current?.click()}
         >
           {selectedFile ? (
-            <div className="space-y-0.5">
-              <svg className="w-6 h-6 text-blue-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="space-y-0.5 w-full min-w-0">
+              <svg className="w-6 h-6 text-blue-600 mx-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-xs font-semibold text-gray-700 truncate px-1">
+              <p className="text-xs font-semibold text-gray-700 truncate px-1 w-full min-w-0">
                 {selectedFile.name}
               </p>
               <p className="text-xs text-gray-500">Click to change</p>
             </div>
           ) : (
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 w-full">
               <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>

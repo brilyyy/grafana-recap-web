@@ -3,13 +3,26 @@ import { DataSource } from 'typeorm'
 import path from 'path'
 
 /**
+ * Get database type from environment variable
+ */
+function getDatabaseType(): 'mysql' | 'postgres' {
+  const dbType = (process.env.DB_TYPE || 'mysql').toLowerCase()
+  if (dbType === 'postgresql' || dbType === 'postgres') {
+    return 'postgres'
+  }
+  return 'mysql'
+}
+
+/**
  * TypeORM Data Source Configuration
  * Used for migrations and entity management
+ * Supports both MySQL and PostgreSQL
  */
-export const AppDataSource = new DataSource({
-  type: 'mysql',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
+const dbType = getDatabaseType()
+
+const baseConfig = {
+  host: process.env.DB_HOST || (dbType === 'postgres' ? 'localhost' : 'localhost'),
+  port: parseInt(process.env.DB_PORT || (dbType === 'postgres' ? '5432' : '3306')),
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -33,10 +46,24 @@ export const AppDataSource = new DataSource({
   extra: {
     connectionLimit: 10,
   },
-  
-  // MySQL specific options
-  charset: 'utf8mb4',
-  timezone: '+00:00',
+}
+
+// Add database-specific options
+const dbSpecificConfig = dbType === 'postgres' 
+  ? {
+      // PostgreSQL specific options
+      // No charset or timezone needed
+    }
+  : {
+      // MySQL specific options
+      charset: 'utf8mb4',
+      timezone: '+00:00',
+    }
+
+export const AppDataSource = new DataSource({
+  type: dbType,
+  ...baseConfig,
+  ...dbSpecificConfig,
 })
 
 /**

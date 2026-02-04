@@ -417,14 +417,34 @@ export async function POST(request: NextRequest) {
 
       const applicationName = appResult[0].app_name
 
-      // Use INSERT IGNORE or ON DUPLICATE KEY UPDATE to handle duplicates
-      const insertQuery = `
-        INSERT INTO response_code_dictionary (id_app_identifier, jenis_transaksi, rc, rc_description, error_type)
-        VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-        error_type = VALUES(error_type),
-        rc_description = COALESCE(VALUES(rc_description), rc_description)
-      `
+      // Use upsert query to handle duplicates
+      const { adapter } = await import('@/lib/db')
+      const { buildSimpleUpsertQuery } = await import('@/lib/sql-helpers')
+      
+      let insertQuery = buildSimpleUpsertQuery(
+        adapter,
+        'response_code_dictionary',
+        ['id_app_identifier', 'jenis_transaksi', 'rc', 'rc_description', 'error_type'],
+        ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
+        ['error_type', 'rc_description'] // update columns
+      )
+      
+      // For MySQL, we need to handle COALESCE manually in a custom query
+      // For PostgreSQL, EXCLUDED will work fine
+      if (adapter.getDatabaseType() === 'mysql') {
+        // MySQL: Use COALESCE to preserve existing rc_description if new one is null
+        insertQuery = insertQuery.replace(
+          /rc_description = VALUES\(rc_description\)/,
+          'rc_description = COALESCE(VALUES(rc_description), rc_description)'
+        )
+      } else {
+        // PostgreSQL: Use COALESCE with EXCLUDED and table name to avoid ambiguous reference
+        const quotedTable = adapter.quoteIdentifier('response_code_dictionary')
+        insertQuery = insertQuery.replace(
+          /"rc_description" = EXCLUDED\."rc_description"/,
+          `"rc_description" = COALESCE(EXCLUDED."rc_description", ${quotedTable}."rc_description")`
+        )
+      }
 
       for (const entry of dictionaryData) {
           await connection.execute(insertQuery, [

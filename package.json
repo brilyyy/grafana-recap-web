@@ -11,7 +11,15 @@
     "migration:generate": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; npx typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts\"",
     "migration:run": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; npx typeorm-ts-node-commonjs migration:run -d typeorm.config.ts\"",
     "migration:revert": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; npx typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts\"",
-    "migration:show": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; npx typeorm-ts-node-commonjs migration:show -d typeorm.config.ts\""
+    "migration:show": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; npx typeorm-ts-node-commonjs migration:show -d typeorm.config.ts\"",
+    "migration:mysql:generate": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='mysql'; npx typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts\"",
+    "migration:mysql:run": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='mysql'; npx typeorm-ts-node-commonjs migration:run -d typeorm.config.ts\"",
+    "migration:mysql:revert": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='mysql'; npx typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts\"",
+    "migration:mysql:show": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='mysql'; npx typeorm-ts-node-commonjs migration:show -d typeorm.config.ts\"",
+    "migration:postgres:generate": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='postgresql'; npx typeorm-ts-node-commonjs migration:generate -d typeorm.config.postgresql.ts\"",
+    "migration:postgres:run": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='postgresql'; npx typeorm-ts-node-commonjs migration:run -d typeorm.config.postgresql.ts\"",
+    "migration:postgres:revert": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='postgresql'; npx typeorm-ts-node-commonjs migration:revert -d typeorm.config.postgresql.ts\"",
+    "migration:postgres:show": "powershell -Command \"$env:TS_NODE_PROJECT='tsconfig.typeorm.json'; $env:DB_TYPE='postgresql'; npx typeorm-ts-node-commonjs migration:show -d typeorm.config.postgresql.ts\""
   },
   "keywords": [],
   "author": "",

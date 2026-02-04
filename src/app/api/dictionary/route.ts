@@ -132,9 +132,9 @@ export async function GET(request: NextRequest) {
       // Apply pagination if not fetching all
       if (!fetchAll && limit > 0) {
         const offset = (page - 1) * limit
-        // Use string interpolation for LIMIT/OFFSET instead of placeholders
-        // to avoid "Incorrect arguments to mysqld_stmt_execute" error
-        query += ` LIMIT ${connection.escape(limit)} OFFSET ${connection.escape(offset)}`
+        // LIMIT and OFFSET are safe to use directly as they're parsed from integers
+        // Both MySQL and PostgreSQL support LIMIT/OFFSET syntax
+        query += ` LIMIT ${limit} OFFSET ${offset}`
       }
 
       const [rows]: any = await connection.execute(query, params)
