@@ -67,8 +67,8 @@ export default function Home() {
   return (
     <main className="min-h-screen p-2 md:p-4 lg:p-5">
       {/* Header with gradient text and logout button */}
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-3 md:mb-4 gap-3 sm:gap-4 animate-fade-in">
-        <div className="flex-1 text-center sm:text-left">
+      <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-3 md:gap-4 animate-fade-in">
+        <div className="flex-1 text-center">
         <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
           Setup Data Grafana
         </h1>
@@ -76,7 +76,7 @@ export default function Home() {
           Manage your application data with ease
         </p>
         </div>
-        <div className="w-full sm:w-auto flex justify-center sm:justify-end gap-2">
+        <div className="w-full flex justify-center gap-2">
           {userRole === 'superadmin' && (
             <button
               onClick={() => router.push('/user-approval')}
@@ -96,7 +96,7 @@ export default function Home() {
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="hidden sm:inline">User Approval</span>
+              <span>User Approval</span>
             </button>
           )}
           <LogoutButton />

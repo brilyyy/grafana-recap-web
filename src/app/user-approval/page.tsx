@@ -185,8 +185,8 @@ export default function UserApprovalPage() {
   return (
     <main className="min-h-screen p-2 md:p-4 lg:p-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-3 md:mb-4 gap-3 sm:gap-4 animate-fade-in">
-        <div className="flex-1 text-center sm:text-left">
+      <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-3 md:gap-4 animate-fade-in">
+        <div className="flex-1 text-center">
           <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
             User Approval
           </h1>
@@ -194,7 +194,7 @@ export default function UserApprovalPage() {
             Review and approve user registration requests
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="w-full flex justify-center gap-2">
           <button
             onClick={() => router.push('/')}
             className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
@@ -202,7 +202,7 @@ export default function UserApprovalPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            <span className="hidden sm:inline">Dashboard</span>
+            <span>Dashboard</span>
           </button>
           <LogoutButton />
         </div>
