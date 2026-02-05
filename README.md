@@ -977,13 +977,31 @@ Upload operations return detailed validation errors:
 
 ### Database Migrations
 
-Aplikasi menggunakan TypeORM migrations:
-- Generate: `npm run migration:generate`
+Aplikasi menggunakan TypeORM migrations dengan script yang kompatibel dengan Linux/Ubuntu.
+
+**Migration Commands (Default - MySQL)**:
+- Generate: `npm run migration:generate -- src/migrations/MigrationName`
 - Run: `npm run migration:run`
 - Revert: `npm run migration:revert`
 - Show: `npm run migration:show`
 
-Support untuk MySQL dan PostgreSQL dengan separate config files.
+**Migration Commands (MySQL)**:
+- Generate: `npm run migration:mysql:generate -- src/migrations/MigrationName`
+- Run: `npm run migration:mysql:run`
+- Revert: `npm run migration:mysql:revert`
+- Show: `npm run migration:mysql:show`
+
+**Migration Commands (PostgreSQL)**:
+- Generate: `npm run migration:postgres:generate -- src/migrations/MigrationName`
+- Run: `npm run migration:postgres:run`
+- Revert: `npm run migration:postgres:revert`
+- Show: `npm run migration:postgres:show`
+
+**Catatan**:
+- Script migration menggunakan environment variable yang kompatibel dengan Linux/Ubuntu
+- Pastikan file `.env` sudah dikonfigurasi dengan benar sebelum menjalankan migration
+- Untuk generate migration, tambahkan nama migration setelah `--` (contoh: `npm run migration:generate -- src/migrations/AddNewTable`)
+- Support untuk MySQL dan PostgreSQL dengan separate config files (`typeorm.config.ts` untuk MySQL, `typeorm.config.postgresql.ts` untuk PostgreSQL)
 
 ---
 
