@@ -1,6 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
 import type { UserRole as UserRoleType } from './User'
-const { UserRole } = require('./User')
+
+// Define UserRole values as array to avoid circular dependency
+// This matches the UserRole enum values from User.ts
+const UserRoleValues = ['superadmin', 'admin', 'user'] as const
 
 export enum RequestStatus {
   PENDING = 'pending',
@@ -36,8 +39,21 @@ export class PendingUserRequest {
 
   @ManyToOne(
     () => {
-      const { User } = require('./User')
-      return User
+      try {
+        return require('./User').User
+      } catch (e1) {
+        try {
+          return require('./User.js').User
+        } catch (e2) {
+          try {
+            return require('./User.ts').User
+          } catch (e3) {
+            const path = require('path')
+            const userPath = path.resolve(__dirname, 'User')
+            return require(userPath).User
+          }
+        }
+      }
     },
     { nullable: true, onDelete: 'SET NULL' }
   )
@@ -52,7 +68,7 @@ export class PendingUserRequest {
 
   @Column({ 
     type: 'enum', 
-    enum: UserRole, 
+    enum: UserRoleValues, 
     enumName: 'UserRole',
     nullable: true, 
     name: 'approved_role' 
@@ -61,8 +77,21 @@ export class PendingUserRequest {
 
   @ManyToOne(
     () => {
-      const { User } = require('./User')
-      return User
+      try {
+        return require('./User').User
+      } catch (e1) {
+        try {
+          return require('./User.js').User
+        } catch (e2) {
+          try {
+            return require('./User.ts').User
+          } catch (e3) {
+            const path = require('path')
+            const userPath = path.resolve(__dirname, 'User')
+            return require(userPath).User
+          }
+        }
+      }
     },
     { nullable: true, onDelete: 'SET NULL' }
   )
@@ -74,8 +103,21 @@ export class PendingUserRequest {
 
   @ManyToOne(
     () => {
-      const { User } = require('./User')
-      return User
+      try {
+        return require('./User').User
+      } catch (e1) {
+        try {
+          return require('./User.js').User
+        } catch (e2) {
+          try {
+            return require('./User.ts').User
+          } catch (e3) {
+            const path = require('path')
+            const userPath = path.resolve(__dirname, 'User')
+            return require(userPath).User
+          }
+        }
+      }
     },
     { nullable: true, onDelete: 'SET NULL' }
   )

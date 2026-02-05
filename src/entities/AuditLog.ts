@@ -11,8 +11,21 @@ export class AuditLog {
 
   @ManyToOne(
     () => {
-      const { User } = require('./User')
-      return User
+      try {
+        return require('./User').User
+      } catch (e1) {
+        try {
+          return require('./User.js').User
+        } catch (e2) {
+          try {
+            return require('./User.ts').User
+          } catch (e3) {
+            const path = require('path')
+            const userPath = path.resolve(__dirname, 'User')
+            return require(userPath).User
+          }
+        }
+      }
     },
     { nullable: true, onDelete: 'SET NULL' }
   )
