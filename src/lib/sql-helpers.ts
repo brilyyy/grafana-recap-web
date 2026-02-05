@@ -221,3 +221,58 @@ export function buildSimpleUpsertQuery(
 
   return query
 }
+
+/**
+ * Build CREATE INDEX query that is compatible with MySQL 8.4
+ * MySQL 8.4 doesn't support IF NOT EXISTS for CREATE INDEX
+ * So we need to check if index exists first or use error handling
+ */
+export function buildCreateIndexQuery(
+  adapter: DatabaseAdapter,
+  indexName: string,
+  tableName: string,
+  columns: string[],
+  unique: boolean = false
+): string {
+  const quotedIndex = adapter.quoteIdentifier(indexName)
+  const quotedTable = adapter.quoteIdentifier(tableName)
+  const quotedColumns = columns.map(col => adapter.quoteIdentifier(col)).join(', ')
+  const uniqueClause = unique ? 'UNIQUE' : ''
+  
+  if (adapter.getDatabaseType() === 'postgresql') {
+    // PostgreSQL supports IF NOT EXISTS
+    return `CREATE ${uniqueClause} INDEX IF NOT EXISTS ${quotedIndex} ON ${quotedTable} (${quotedColumns})`
+  } else {
+    // MySQL 8.4 doesn't support IF NOT EXISTS for CREATE INDEX
+    // Return query without IF NOT EXISTS - caller should handle error if index exists
+    return `CREATE ${uniqueClause} INDEX ${quotedIndex} ON ${quotedTable} (${quotedColumns})`
+  }
+}
+
+/**
+ * Check if index exists in database
+ */
+export function buildCheckIndexExistsQuery(
+  adapter: DatabaseAdapter,
+  indexName: string,
+  tableName: string
+): string {
+  if (adapter.getDatabaseType() === 'postgresql') {
+    return `
+      SELECT COUNT(*) as count
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = $1
+        AND indexname = $2
+    `
+  } else {
+    // MySQL - use parameterized query
+    return `
+      SELECT COUNT(*) as count
+      FROM information_schema.statistics
+      WHERE table_schema = DATABASE()
+        AND table_name = ?
+        AND index_name = ?
+    `
+  }
+}

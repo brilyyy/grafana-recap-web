@@ -5,6 +5,8 @@ import {
   buildEnumColumn,
   buildTimestampColumns,
   buildDropTableQuery,
+  buildCreateIndexQuery,
+  buildCheckIndexExistsQuery,
 } from '../lib/sql-helpers'
 
 export class InitialSchema1770030366139 implements MigrationInterface {
@@ -16,6 +18,37 @@ export class InitialSchema1770030366139 implements MigrationInterface {
 
   private quoteIdentifier(name: string): string {
     return this.getAdapter().quoteIdentifier(name)
+  }
+
+  /**
+   * Create index safely - check if exists first for MySQL 8.4 compatibility
+   * MySQL 8.4 doesn't support IF NOT EXISTS for CREATE INDEX
+   */
+  private async createIndexSafely(
+    queryRunner: QueryRunner,
+    indexName: string,
+    tableName: string,
+    columns: string[],
+    unique: boolean = false
+  ): Promise<void> {
+    const adapter = this.getAdapter()
+    const isPostgres = adapter.getDatabaseType() === 'postgresql'
+    
+    if (isPostgres) {
+      // PostgreSQL supports IF NOT EXISTS
+      const query = buildCreateIndexQuery(adapter, indexName, tableName, columns, unique)
+      await queryRunner.query(query)
+    } else {
+      // MySQL 8.4 - check if index exists first
+      const checkQuery = buildCheckIndexExistsQuery(adapter, indexName, tableName)
+      const [result]: any = await queryRunner.query(checkQuery, [tableName, indexName])
+      const indexExists = result[0]?.count > 0
+      
+      if (!indexExists) {
+        const createQuery = buildCreateIndexQuery(adapter, indexName, tableName, columns, unique)
+        await queryRunner.query(createQuery)
+      }
+    }
   }
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -43,10 +76,8 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       )${engineClause}
     `)
     
-    // Create index
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${idxAppName} ON ${appIdentifierTable} (${appNameCol})
-    `)
+    // Create index (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'idx_app_name', 'app_identifier', ['app_name'])
     
     // Create update trigger for PostgreSQL
     if (isPostgres) {
@@ -83,13 +114,9 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       )${engineClause}
     `)
     
-    // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_tanggal_transaksi')} ON ${appSuccessRateTable} (${this.quoteIdentifier('tanggal_transaksi')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_id_app_identifier')} ON ${appSuccessRateTable} (${this.quoteIdentifier('id_app_identifier')})
-    `)
+    // Create indexes (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'idx_tanggal_transaksi', 'app_success_rate', ['tanggal_transaksi'])
+    await this.createIndexSafely(queryRunner, 'idx_id_app_identifier', 'app_success_rate', ['id_app_identifier'])
     
     // Create foreign key
     await queryRunner.query(`
@@ -135,11 +162,8 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       ON DELETE CASCADE
     `)
     
-    // Create unique constraint
-    await queryRunner.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS ${this.quoteIdentifier('unique_dictionary_entry')}
-      ON ${dictionaryTable} (${this.quoteIdentifier('id_app_identifier')}, ${this.quoteIdentifier('jenis_transaksi')}, ${this.quoteIdentifier('rc')})
-    `)
+    // Create unique constraint (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'unique_dictionary_entry', 'response_code_dictionary', ['id_app_identifier', 'jenis_transaksi', 'rc'], true)
 
     // Create unmapped_rc table
     const unmappedRcTable = this.quoteIdentifier('unmapped_rc')
@@ -167,11 +191,8 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       ON DELETE CASCADE
     `)
     
-    // Create unique constraint
-    await queryRunner.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS ${this.quoteIdentifier('unique_unmapped_entry')}
-      ON ${unmappedRcTable} (${this.quoteIdentifier('id_app_identifier')}, ${this.quoteIdentifier('jenis_transaksi')}, ${this.quoteIdentifier('rc')})
-    `)
+    // Create unique constraint (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'unique_unmapped_entry', 'unmapped_rc', ['id_app_identifier', 'jenis_transaksi', 'rc'], true)
 
     // Create users table with superadmin role
     const usersTable = this.quoteIdentifier('users')
@@ -192,13 +213,9 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       )${engineClause}
     `)
     
-    // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_username')} ON ${usersTable} (${this.quoteIdentifier('username')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_email')} ON ${usersTable} (${this.quoteIdentifier('email')})
-    `)
+    // Create indexes (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'idx_username', 'users', ['username'])
+    await this.createIndexSafely(queryRunner, 'idx_email', 'users', ['email'])
     
     // Create update trigger for PostgreSQL
     if (isPostgres) {
@@ -229,19 +246,11 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       )${engineClause}
     `)
     
-    // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_user_id')} ON ${auditLogsTable} (${this.quoteIdentifier('user_id')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_action')} ON ${auditLogsTable} (${this.quoteIdentifier('action')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_resource_type')} ON ${auditLogsTable} (${this.quoteIdentifier('resource_type')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_created_at')} ON ${auditLogsTable} (${this.quoteIdentifier('created_at')})
-    `)
+    // Create indexes (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'idx_user_id', 'audit_logs', ['user_id'])
+    await this.createIndexSafely(queryRunner, 'idx_action', 'audit_logs', ['action'])
+    await this.createIndexSafely(queryRunner, 'idx_resource_type', 'audit_logs', ['resource_type'])
+    await this.createIndexSafely(queryRunner, 'idx_created_at', 'audit_logs', ['created_at'])
     
     // Create foreign key
     await queryRunner.query(`
@@ -264,15 +273,9 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       )${engineClause}
     `)
     
-    // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_ip_endpoint')}
-      ON ${rateLimitLogsTable} (${this.quoteIdentifier('ip_address')}, ${this.quoteIdentifier('endpoint')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_blocked_at')}
-      ON ${rateLimitLogsTable} (${this.quoteIdentifier('blocked_at')})
-    `)
+    // Create indexes (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'idx_ip_endpoint', 'rate_limit_logs', ['ip_address', 'endpoint'])
+    await this.createIndexSafely(queryRunner, 'idx_blocked_at', 'rate_limit_logs', ['blocked_at'])
 
     // Create pending_user_requests table
     const pendingUserRequestsTable = this.quoteIdentifier('pending_user_requests')
@@ -301,19 +304,11 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       )${engineClause}
     `)
     
-    // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_username')} ON ${pendingUserRequestsTable} (${this.quoteIdentifier('username')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_email')} ON ${pendingUserRequestsTable} (${this.quoteIdentifier('email')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_status')} ON ${pendingUserRequestsTable} (${this.quoteIdentifier('status')})
-    `)
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS ${this.quoteIdentifier('idx_requested_by')} ON ${pendingUserRequestsTable} (${this.quoteIdentifier('requested_by')})
-    `)
+    // Create indexes (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'idx_username', 'pending_user_requests', ['username'])
+    await this.createIndexSafely(queryRunner, 'idx_email', 'pending_user_requests', ['email'])
+    await this.createIndexSafely(queryRunner, 'idx_status', 'pending_user_requests', ['status'])
+    await this.createIndexSafely(queryRunner, 'idx_requested_by', 'pending_user_requests', ['requested_by'])
     
     // Create foreign keys
     await queryRunner.query(`
