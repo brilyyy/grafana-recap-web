@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Unique, Index } from 'typeorm'
-import { AppIdentifier } from './AppIdentifier'
 import { ErrorType } from './AppSuccessRate'
 
 @Entity('response_code_dictionary')
@@ -8,9 +7,15 @@ export class ResponseCodeDictionary {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @ManyToOne(() => AppIdentifier, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => {
+      const { AppIdentifier } = require('./AppIdentifier')
+      return AppIdentifier
+    },
+    { nullable: false, onDelete: 'CASCADE' }
+  )
   @JoinColumn({ name: 'id_app_identifier' })
-  appIdentifier!: AppIdentifier
+  appIdentifier!: any
 
   @Column({ name: 'id_app_identifier' })
   idAppIdentifier!: number

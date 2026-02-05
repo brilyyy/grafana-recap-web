@@ -18,7 +18,6 @@ module.exports = new typeorm.DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   
-  // Entities - load all entity files
   entities: [__dirname + '/src/entities/**/*.ts'],
   
   // Migrations - using pattern like example project

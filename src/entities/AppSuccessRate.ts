@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
-import { AppIdentifier } from './AppIdentifier'
 
 export enum ErrorType {
   S = 'S',
@@ -14,9 +13,15 @@ export class AppSuccessRate {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @ManyToOne(() => AppIdentifier, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => {
+      const { AppIdentifier } = require('./AppIdentifier')
+      return AppIdentifier
+    },
+    { nullable: false, onDelete: 'CASCADE' }
+  )
   @JoinColumn({ name: 'id_app_identifier' })
-  appIdentifier!: AppIdentifier
+  appIdentifier!: any
 
   @Column({ name: 'id_app_identifier' })
   idAppIdentifier!: number

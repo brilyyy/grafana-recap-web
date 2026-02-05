@@ -1,6 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToMany } from 'typeorm'
-import { AuditLog } from './AuditLog'
-import { PendingUserRequest } from './PendingUserRequest'
 
 export enum UserRole {
   SUPERADMIN = 'superadmin',
@@ -33,16 +31,39 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date
 
-  // Relations
-  @OneToMany(() => AuditLog, (auditLog) => auditLog.user)
-  auditLogs!: AuditLog[]
+  @OneToMany(
+    () => {
+      const { AuditLog } = require('./AuditLog')
+      return AuditLog
+    },
+    (auditLog: any) => auditLog.user
+  )
+  auditLogs!: any[]
 
-  @OneToMany(() => PendingUserRequest, (request) => request.requestedBy)
-  requestedUserRequests!: PendingUserRequest[]
+  @OneToMany(
+    () => {
+      const { PendingUserRequest } = require('./PendingUserRequest')
+      return PendingUserRequest
+    },
+    (request: any) => request.requestedBy
+  )
+  requestedUserRequests!: any[]
 
-  @OneToMany(() => PendingUserRequest, (request) => request.approvedBy)
-  approvedUserRequests!: PendingUserRequest[]
+  @OneToMany(
+    () => {
+      const { PendingUserRequest } = require('./PendingUserRequest')
+      return PendingUserRequest
+    },
+    (request: any) => request.approvedBy
+  )
+  approvedUserRequests!: any[]
 
-  @OneToMany(() => PendingUserRequest, (request) => request.rejectedBy)
-  rejectedUserRequests!: PendingUserRequest[]
+  @OneToMany(
+    () => {
+      const { PendingUserRequest } = require('./PendingUserRequest')
+      return PendingUserRequest
+    },
+    (request: any) => request.rejectedBy
+  )
+  rejectedUserRequests!: any[]
 }

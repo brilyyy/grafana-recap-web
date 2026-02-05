@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Unique, Index } from 'typeorm'
-import { AppIdentifier } from './AppIdentifier'
 import { ErrorType } from './AppSuccessRate'
 
 @Entity('unmapped_rc')
@@ -8,9 +7,15 @@ export class UnmappedRc {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @ManyToOne(() => AppIdentifier, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => {
+      const { AppIdentifier } = require('./AppIdentifier')
+      return AppIdentifier
+    },
+    { nullable: false, onDelete: 'CASCADE' }
+  )
   @JoinColumn({ name: 'id_app_identifier' })
-  appIdentifier!: AppIdentifier
+  appIdentifier!: any
 
   @Column({ name: 'id_app_identifier' })
   idAppIdentifier!: number

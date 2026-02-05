@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
-import { User } from './User'
-import { UserRole } from './User'
+import type { UserRole as UserRoleType } from './User'
+const { UserRole } = require('./User')
 
 export enum RequestStatus {
   PENDING = 'pending',
@@ -34,9 +34,15 @@ export class PendingUserRequest {
   @Column({ type: 'enum', enum: RequestedRole, name: 'requested_role' })
   requestedRole!: RequestedRole
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(
+    () => {
+      const { User } = require('./User')
+      return User
+    },
+    { nullable: true, onDelete: 'SET NULL' }
+  )
   @JoinColumn({ name: 'requested_by' })
-  requestedBy!: User | null
+  requestedBy!: any
 
   @Column({ name: 'requested_by', nullable: true })
   requestedById!: number | null
@@ -51,18 +57,30 @@ export class PendingUserRequest {
     nullable: true, 
     name: 'approved_role' 
   })
-  approvedRole!: UserRole | null
+  approvedRole!: UserRoleType | null
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(
+    () => {
+      const { User } = require('./User')
+      return User
+    },
+    { nullable: true, onDelete: 'SET NULL' }
+  )
   @JoinColumn({ name: 'approved_by' })
-  approvedBy!: User | null
+  approvedBy!: any
 
   @Column({ name: 'approved_by', nullable: true })
   approvedById!: number | null
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(
+    () => {
+      const { User } = require('./User')
+      return User
+    },
+    { nullable: true, onDelete: 'SET NULL' }
+  )
   @JoinColumn({ name: 'rejected_by' })
-  rejectedBy!: User | null
+  rejectedBy!: any
 
   @Column({ name: 'rejected_by', nullable: true })
   rejectedById!: number | null

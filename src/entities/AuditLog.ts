@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
-import { User } from './User'
 
 @Entity('audit_logs')
 @Index('idx_user_id', ['user'])
@@ -10,9 +9,15 @@ export class AuditLog {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(
+    () => {
+      const { User } = require('./User')
+      return User
+    },
+    { nullable: true, onDelete: 'SET NULL' }
+  )
   @JoinColumn({ name: 'user_id' })
-  user!: User | null
+  user!: any
 
   @Column({ name: 'user_id', nullable: true })
   userId!: number | null
