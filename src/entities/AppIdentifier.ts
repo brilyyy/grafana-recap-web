@@ -1,7 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm'
-import { AppSuccessRate } from './AppSuccessRate'
-import { ResponseCodeDictionary } from './ResponseCodeDictionary'
-import { UnmappedRc } from './UnmappedRc'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm'
 
 @Entity('app_identifier')
 export class AppIdentifier {
@@ -17,13 +14,32 @@ export class AppIdentifier {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date
 
-  // Relations
-  @OneToMany(() => AppSuccessRate, (appSuccessRate) => appSuccessRate.appIdentifier)
-  appSuccessRates!: AppSuccessRate[]
 
-  @OneToMany(() => ResponseCodeDictionary, (dictionary) => dictionary.appIdentifier)
-  responseCodeDictionaries!: ResponseCodeDictionary[]
+  @OneToMany(
+    () => {
+      // Lazy load to break circular dependency
+      const { AppSuccessRate } = require('./AppSuccessRate')
+      return AppSuccessRate
+    },
+    (appSuccessRate: any) => appSuccessRate.appIdentifier
+  )
+  appSuccessRates!: any[]
 
-  @OneToMany(() => UnmappedRc, (unmappedRc) => unmappedRc.appIdentifier)
-  unmappedRcs!: UnmappedRc[]
+  @OneToMany(
+    () => {
+      const { ResponseCodeDictionary } = require('./ResponseCodeDictionary')
+      return ResponseCodeDictionary
+    },
+    (dictionary: any) => dictionary.appIdentifier
+  )
+  responseCodeDictionaries!: any[]
+
+  @OneToMany(
+    () => {
+      const { UnmappedRc } = require('./UnmappedRc')
+      return UnmappedRc
+    },
+    (unmappedRc: any) => unmappedRc.appIdentifier
+  )
+  unmappedRcs!: any[]
 }

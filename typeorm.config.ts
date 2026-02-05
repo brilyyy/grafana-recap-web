@@ -18,8 +18,8 @@ module.exports = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   
-  // Entities - using pattern like example project
-  entities: [__dirname + '/src/entities/**/*{.ts,.js}'],
+  // Entities - load all entity files
+  entities: [__dirname + '/src/entities/**/*.ts'],
   
   // Migrations - using pattern like example project
   migrations: [__dirname + '/src/migrations/**/*{.ts,.js}'],
