@@ -74,16 +74,15 @@ export function getSession(request: NextRequest): SessionPayload | null {
   return verifyToken(token)
 }
 
-/**
- * Set session cookie (returns cookie string to set in response)
- */
 export function setSessionCookie(payload: SessionPayload): string {
   const token = generateToken(payload)
+  
+  const shouldUseSecure = process.env.COOKIE_SECURE === 'true' || process.env.COOKIE_SECURE === '1'
   
   const cookieOptions = [
     `${SESSION_COOKIE_NAME}=${token}`,
     'HttpOnly',
-    process.env.NODE_ENV === 'production' ? 'Secure' : '',
+    shouldUseSecure ? 'Secure' : '',
     'SameSite=Lax',
     `Max-Age=${60 * 60 * 24 * 7}`, // 7 days
     'Path=/',
@@ -92,11 +91,12 @@ export function setSessionCookie(payload: SessionPayload): string {
   return cookieOptions
 }
 
-/**
- * Clear session cookie (returns cookie string to clear in response)
- */
 export function clearSessionCookie(): string {
-  return `${SESSION_COOKIE_NAME}=; HttpOnly; Path=/; Max-Age=0`
+  // Only set Secure flag if explicitly enabled via environment variable
+  const shouldUseSecure = process.env.COOKIE_SECURE === 'true' || process.env.COOKIE_SECURE === '1'
+  const secureFlag = shouldUseSecure ? '; Secure' : ''
+  
+  return `${SESSION_COOKIE_NAME}=; HttpOnly${secureFlag}; Path=/; Max-Age=0`
 }
 
 /**

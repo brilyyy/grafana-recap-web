@@ -95,7 +95,9 @@ src/
 
 - **Cookie Name**: `auth_session`
 - **HttpOnly**: Yes (XSS protection)
-- **Secure**: Yes (production only)
+- **Secure**: Configurable via `COOKIE_SECURE` environment variable (default: `false` for HTTP support)
+  - Set `COOKIE_SECURE=true` or `COOKIE_SECURE=1` to enable Secure flag (requires HTTPS)
+  - Leave unset or set to `false` for HTTP usage (internal networks)
 - **SameSite**: Lax (CSRF protection)
 - **Max-Age**: 7 days
 
