@@ -28,8 +28,8 @@ export interface RateLimitConfig {
 export const RATE_LIMITS = {
   // Restart DB: 1 request per hour
   RESTART_DB: { maxRequests: 1, windowMs: 60 * 60 * 1000 },
-  // Upload endpoints: 10 requests per hour
-  UPLOAD: { maxRequests: 10, windowMs: 60 * 60 * 1000 },
+  // Upload endpoints: 100 requests per hour
+  UPLOAD: { maxRequests: 100, windowMs: 60 * 60 * 1000 },
   // Read endpoints: 100 requests per minute
   READ: { maxRequests: 100, windowMs: 60 * 1000 },
   // Write endpoints: 50 requests per minute

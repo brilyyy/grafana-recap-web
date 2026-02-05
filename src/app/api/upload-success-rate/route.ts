@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
+import { requireAuth } from '@/lib/auth'
+import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse, SuccessRateEntry } from '@/types'
 import * as XLSX from 'xlsx'
 
@@ -83,6 +85,7 @@ const optionalColumns = ['RC Description']
 
 export async function POST(request: NextRequest) {
   try {
+    const session = requireAuth(request)
     const formData = await request.formData()
     const file = formData.get('successRateFile') as File
     const selectedApplicationId = formData.get('selectedApplicationId') as string
@@ -690,7 +693,8 @@ export async function POST(request: NextRequest) {
 
       try {
         // Lookup error_type from response_code_dictionary for each entry
-        // PENTING: Error_type HANYA dipengaruhi RC (bukan RC Description)
+        // PENTING: Error_type assignment harus exact match: id_app_identifier + jenis_transaksi + rc
+        // Tidak ada fallback ke RC only karena jenis_transaksi dan id_app_identifier juga mempengaruhi RC
         for (const entry of successRateData) {
           let foundInDictionary = false
 
@@ -699,31 +703,15 @@ export async function POST(request: NextRequest) {
           const rcValue = entry.rc?.trim() || ''
           const isRcEmpty = !rcValue || rcValue === '' || rcValue === '-'
           
-          if (!isRcEmpty) {
-            // RC ada → Cari di dictionary
-            if (entry.jenis_transaksi) {
-              const [dictionaryResult]: any = await connection.execute(
-                'SELECT error_type FROM response_code_dictionary WHERE id_app_identifier = ? AND jenis_transaksi = ? AND rc = ?',
-                [applicationId, entry.jenis_transaksi, entry.rc]
-              )
+          if (!isRcEmpty && entry.jenis_transaksi) {
+            const [dictionaryResult]: any = await connection.execute(
+              'SELECT error_type FROM response_code_dictionary WHERE id_app_identifier = ? AND jenis_transaksi = ? AND rc = ?',
+              [applicationId, entry.jenis_transaksi, entry.rc]
+            )
 
-              if (dictionaryResult.length > 0) {
-                entry.error_type = dictionaryResult[0].error_type
-                foundInDictionary = true
-              }
-            }
-
-            // If no exact match, try lookup by rc only for this application
-            if (!foundInDictionary) {
-              const [rcOnlyResult]: any = await connection.execute(
-                'SELECT error_type FROM response_code_dictionary WHERE id_app_identifier = ? AND rc = ? LIMIT 1',
-                [applicationId, entry.rc]
-              )
-
-              if (rcOnlyResult.length > 0) {
-                entry.error_type = rcOnlyResult[0].error_type
-                foundInDictionary = true
-              }
+            if (dictionaryResult.length > 0) {
+              entry.error_type = dictionaryResult[0].error_type
+              foundInDictionary = true
             }
 
             // RC tidak ada di dictionary → Masuk ke unmapped_rc
@@ -756,12 +744,8 @@ export async function POST(request: NextRequest) {
                 entry.rc_description,
                 entry.status_transaksi
               ])
-              // error_type tetap NULL di app_success_rate
             }
           } else {
-            // RC kosong/null atau RC='-' atau RC kosong string
-            // Business rule khusus untuk transaksi sukses:
-            // Cek RC Description ATAU status_transaksi untuk menentukan apakah sukses
             const normalizedRcDescription = entry.rc_description?.toLowerCase()?.trim() || ''
             const normalizedStatus = entry.status_transaksi?.toLowerCase()?.trim() || ''
             
@@ -814,6 +798,18 @@ export async function POST(request: NextRequest) {
         // Commit transaction jika semua berhasil
         await connection.commit()
 
+        // Log audit event
+        await logAuditEvent(
+          session.userId,
+          session.username,
+          'SUCCESS_RATE_UPLOADED',
+          'app_success_rate',
+          applicationId.toString(),
+          `Uploaded success rate for application: ${applicationName}. ${successRateData.length} entries processed.`,
+          getClientIp(request),
+          getUserAgent(request)
+        )
+
         return NextResponse.json({
           success: true,
           message: `Success rate document uploaded successfully. ${successRateData.length} entries processed.`,
@@ -832,6 +828,17 @@ export async function POST(request: NextRequest) {
       connection.release()
     }
   } catch (error: any) {
+    // Handle authentication errors
+    if (error.message?.includes('Unauthorized') || error.message?.includes('Forbidden')) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        } as ApiResponse,
+        { status: 403 }
+      )
+    }
+    
     console.error('Error uploading success rate:', error)
     return NextResponse.json(
       {

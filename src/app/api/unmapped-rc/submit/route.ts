@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { adapter } from '@/lib/db'
+import { requireAuth } from '@/lib/auth'
+import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
 import type { ApiResponse } from '@/types'
 
 // POST - Submit mapping for an unmapped RC
 export async function POST(request: NextRequest) {
   try {
+    const session = requireAuth(request)
     const body = await request.json()
     const { id, id_app_identifier, jenis_transaksi, rc, error_type } = body
 
@@ -79,7 +82,8 @@ export async function POST(request: NextRequest) {
         updateParams = [error_type, id_app_identifier, rc]
       }
       
-      await connection.execute(updateQuery, updateParams)
+      const [updateResult]: any = await connection.execute(updateQuery, updateParams)
+      const updatedRows = updateResult.affectedRows || 0
 
       // 3. Delete from unmapped_rc
       await connection.execute(
@@ -89,6 +93,18 @@ export async function POST(request: NextRequest) {
 
       // Commit transaction
       await connection.commit()
+
+      // Log audit event
+      await logAuditEvent(
+        session.userId,
+        session.username,
+        'UNMAPPED_RC_SUBMITTED',
+        'unmapped_rc',
+        id.toString(),
+        `Submitted unmapped RC mapping (id: ${id}, app: ${id_app_identifier}, jenis_transaksi: ${jenis_transaksi || 'N/A'}, rc: ${rc}). error_type: ${error_type}. ${updatedRows} app_success_rate entries updated.`,
+        getClientIp(request),
+        getUserAgent(request)
+      )
 
       return NextResponse.json({
         success: true,
@@ -102,6 +118,17 @@ export async function POST(request: NextRequest) {
       connection.release()
     }
   } catch (error: any) {
+    // Handle authentication errors
+    if (error.message?.includes('Unauthorized') || error.message?.includes('Forbidden')) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        } as ApiResponse,
+        { status: 403 }
+      )
+    }
+    
     console.error('Error submitting RC mapping:', error)
     return NextResponse.json(
       {

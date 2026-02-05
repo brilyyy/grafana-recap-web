@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
+import { requireAuth } from '@/lib/auth'
+import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
 import * as XLSX from 'xlsx'
 
@@ -72,6 +74,8 @@ function parseCSV(text: string): string[][] {
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication
+    const session = requireAuth(request)
     const formData = await request.formData()
     const file = formData.get('dictionaryFile') as File
     const selectedApplicationId = formData.get('selectedApplicationId') as string
@@ -468,54 +472,30 @@ export async function POST(request: NextRequest) {
       let remappedCount = 0
       for (const unmappedRc of unmappedRcs) {
         // Check if this RC now exists in the dictionary
-        let dictionaryMatch: any[] = []
-        
-        if (unmappedRc.jenis_transaksi && unmappedRc.jenis_transaksi !== '') {
-          // Try to find exact match with jenis_transaksi
-          const [exactMatch]: any = await connection.execute(
-            `SELECT error_type FROM response_code_dictionary 
-             WHERE id_app_identifier = ? AND jenis_transaksi = ? AND rc = ?`,
-            [applicationId, unmappedRc.jenis_transaksi, unmappedRc.rc]
-          )
-          dictionaryMatch = exactMatch
+        if (!unmappedRc.jenis_transaksi || unmappedRc.jenis_transaksi === '') {
+          continue
         }
         
-        // If no exact match, try to find by RC only
-        if (dictionaryMatch.length === 0) {
-          const [rcOnlyMatch]: any = await connection.execute(
-            `SELECT error_type FROM response_code_dictionary 
-             WHERE id_app_identifier = ? AND rc = ? LIMIT 1`,
-            [applicationId, unmappedRc.rc]
-          )
-          dictionaryMatch = rcOnlyMatch
-        }
+        const [dictionaryMatch]: any = await connection.execute(
+          `SELECT error_type FROM response_code_dictionary 
+           WHERE id_app_identifier = ? AND jenis_transaksi = ? AND rc = ?`,
+          [applicationId, unmappedRc.jenis_transaksi, unmappedRc.rc]
+        )
         
         // If found in dictionary, update app_success_rate and remove from unmapped_rc
         if (dictionaryMatch.length > 0) {
           const error_type = dictionaryMatch[0].error_type
           
           // Update all app_success_rate entries that match this RC
-          let updateQuery: string
-          let updateParams: any[]
+          // Exact match: id_app_identifier + jenis_transaksi + rc
+          const updateQuery = `UPDATE app_success_rate 
+           SET error_type = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id_app_identifier = ? 
+           AND rc = ? 
+           AND jenis_transaksi = ?
+           AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
           
-          if (unmappedRc.jenis_transaksi && unmappedRc.jenis_transaksi !== '') {
-            updateQuery = `UPDATE app_success_rate 
-             SET error_type = ?, updated_at = CURRENT_TIMESTAMP
-             WHERE id_app_identifier = ? 
-             AND rc = ? 
-             AND jenis_transaksi = ?
-             AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
-            updateParams = [error_type, applicationId, unmappedRc.rc, unmappedRc.jenis_transaksi]
-          } else {
-            updateQuery = `UPDATE app_success_rate 
-             SET error_type = ?, updated_at = CURRENT_TIMESTAMP
-             WHERE id_app_identifier = ? 
-             AND rc = ?
-             AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
-            updateParams = [error_type, applicationId, unmappedRc.rc]
-          }
-          
-          await connection.execute(updateQuery, updateParams)
+          await connection.execute(updateQuery, [error_type, applicationId, unmappedRc.rc, unmappedRc.jenis_transaksi])
           
           // Delete from unmapped_rc
           await connection.execute(
@@ -526,6 +506,18 @@ export async function POST(request: NextRequest) {
           remappedCount++
         }
       }
+
+      // Log audit event
+      await logAuditEvent(
+        session.userId,
+        session.username,
+        'DICTIONARY_UPLOADED',
+        'response_code_dictionary',
+        applicationId.toString(),
+        `Uploaded dictionary for application: ${applicationName}. ${dictionaryData.length} entries processed.${remappedCount > 0 ? ` ${remappedCount} unmapped RC(s) auto-remapped.` : ''}`,
+        getClientIp(request),
+        getUserAgent(request)
+      )
 
       return NextResponse.json({
         success: true,
@@ -541,6 +533,17 @@ export async function POST(request: NextRequest) {
         connection.release()
     }
   } catch (error: any) {
+    // Handle authentication errors
+    if (error.message?.includes('Unauthorized') || error.message?.includes('Forbidden')) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        } as ApiResponse,
+        { status: 403 }
+      )
+    }
+    
     console.error('Error uploading dictionary:', error)
       return NextResponse.json(
         {
