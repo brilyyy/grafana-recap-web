@@ -45,7 +45,7 @@ interface AuditStats {
   topUsers: Array<{ username: string; count: number }>
 }
 
-type TabType = 'users' | 'audit-logs'
+type TabType = 'users' | 'audit-logs' | 'app-processing'
 
 export default function SuperadminPage() {
   const router = useRouter()
@@ -87,6 +87,14 @@ export default function SuperadminPage() {
     end_date: '',
   })
 
+  // Application Data Processing State
+  const [applications, setApplications] = useState<Array<{ id: number; app_name: string }>>([])
+  const [applicationsLoading, setApplicationsLoading] = useState(true)
+  const [processingStates, setProcessingStates] = useState<{
+    [appName: string]: { loading: boolean; result: any; error: string | null }
+  }>({})
+  const [processingDates, setProcessingDates] = useState<{ [appName: string]: string }>({})
+
   useEffect(() => {
     let isMounted = true
 
@@ -126,9 +134,11 @@ export default function SuperadminPage() {
       if (activeTab === 'users') {
         fetchUsers()
         fetchPendingRequests()
-      } else {
+      } else if (activeTab === 'audit-logs') {
         fetchAuditLogs()
         fetchStats()
+      } else if (activeTab === 'app-processing') {
+        fetchApplications()
       }
     }
   }, [isAuthenticated, userRole, activeTab, usersPage, usersFilters, auditPage, auditFilters])
@@ -305,6 +315,69 @@ export default function SuperadminPage() {
     })
   }
 
+  // Application Data Processing Functions
+  const fetchApplications = async () => {
+    try {
+      setApplicationsLoading(true)
+      const response = await fetch('/api/applications')
+      const data = await response.json()
+
+      if (data.success) {
+        setApplications(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error)
+    } finally {
+      setApplicationsLoading(false)
+    }
+  }
+
+  const hasProcessingCapability = (appName: string): boolean => {
+    return appName.toLowerCase() === 'bale'
+  }
+
+  const handleApplicationProcessingTrigger = async (appName: string, date?: string) => {
+    if (!hasProcessingCapability(appName)) {
+      return
+    }
+
+    // Initialize processing state for this application
+    setProcessingStates((prev) => ({
+      ...prev,
+      [appName]: { loading: true, result: null, error: null },
+    }))
+
+    try {
+      // Determine API endpoint based on app name
+      const appNameLower = appName.toLowerCase()
+      const endpoint = `/api/${appNameLower}/process-manual${date ? `?date=${date}` : ''}`
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setProcessingStates((prev) => ({
+          ...prev,
+          [appName]: { loading: false, result: data.data, error: null },
+        }))
+      } else {
+        setProcessingStates((prev) => ({
+          ...prev,
+          [appName]: { loading: false, result: null, error: data.message || 'Processing failed' },
+        }))
+      }
+    } catch (error: any) {
+      setProcessingStates((prev) => ({
+        ...prev,
+        [appName]: { loading: false, result: null, error: error.message || 'Error triggering processing' },
+      }))
+    }
+  }
+
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -363,6 +436,16 @@ export default function SuperadminPage() {
             }`}
           >
             Audit Logs
+          </button>
+          <button
+            onClick={() => setActiveTab('app-processing')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'app-processing'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Application Data Processing
           </button>
         </div>
 
@@ -567,7 +650,7 @@ export default function SuperadminPage() {
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <p className="text-white/70 text-sm mb-1">Top Action</p>
-                  <p className="text-xl font-bold text-white">
+                  <p className="text-xl font-bold text-white break-words overflow-hidden">
                     {stats.actionCounts[0]?.action || 'N/A'}
                   </p>
                   <p className="text-xs text-white/50 mt-1">
@@ -576,7 +659,7 @@ export default function SuperadminPage() {
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <p className="text-white/70 text-sm mb-1">Top Resource</p>
-                  <p className="text-xl font-bold text-white">
+                  <p className="text-xl font-bold text-white break-words overflow-hidden">
                     {stats.resourceTypeCounts[0]?.resource_type || 'N/A'}
                   </p>
                   <p className="text-xs text-white/50 mt-1">
@@ -603,9 +686,9 @@ export default function SuperadminPage() {
                   <div className="space-y-3">
                     {stats.actionCounts.slice(0, 5).map((item, idx) => (
                       <div key={idx}>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-white/90">{item.action}</span>
-                          <span className="text-white/70">{item.count}</span>
+                        <div className="flex justify-between text-sm mb-1 gap-2">
+                          <span className="text-white/90 break-words overflow-hidden flex-1 min-w-0">{item.action}</span>
+                          <span className="text-white/70 flex-shrink-0">{item.count}</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
                           <div
@@ -803,6 +886,163 @@ export default function SuperadminPage() {
           </div>
         )}
 
+        {/* Application Data Processing Tab */}
+        {activeTab === 'app-processing' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-4">Application Data Processing</h3>
+              <p className="text-white/70 text-sm mb-4">
+                Manually trigger data processing for applications. Processing will aggregate transaction data and update success rate metrics.
+              </p>
+            </div>
+
+            {applicationsLoading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <p className="text-white/70">Loading applications...</p>
+              </div>
+            ) : applications.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-white/70">No applications found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {applications.map((app) => {
+                  const hasCapability = hasProcessingCapability(app.app_name)
+                  const processingState = processingStates[app.app_name] || { loading: false, result: null, error: null }
+                  const processingDate = processingDates[app.app_name] || ''
+
+                  return (
+                    <div
+                      key={app.id}
+                      className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden"
+                    >
+                      <div className="p-4 border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-lg font-semibold text-white">{app.app_name}</h4>
+                          {hasCapability ? (
+                            <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-medium">
+                              Available
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-gray-500/20 text-gray-300 rounded text-xs font-medium">
+                              Not Available
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-4">
+                        {hasCapability ? (
+                          <>
+                            <div>
+                              <label className="block text-sm text-white/70 mb-2">
+                                Processing Date (Optional)
+                              </label>
+                              <input
+                                type="date"
+                                value={processingDate}
+                                onChange={(e) => {
+                                  setProcessingDates((prev) => ({
+                                    ...prev,
+                                    [app.app_name]: e.target.value,
+                                  }))
+                                }}
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                placeholder="Leave empty for H-1 (yesterday)"
+                              />
+                              <p className="text-xs text-white/50 mt-1">
+                                Leave empty to process yesterday's data (H-1)
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => handleApplicationProcessingTrigger(app.app_name, processingDate || undefined)}
+                              disabled={processingState.loading}
+                              className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                            >
+                              {processingState.loading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                  Processing...
+                                </span>
+                              ) : (
+                                'Trigger Processing'
+                              )}
+                            </button>
+
+                            {processingState.error && (
+                              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                                <p className="text-sm text-red-300">{processingState.error}</p>
+                              </div>
+                            )}
+
+                            {processingState.result && (
+                              <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-lg space-y-2">
+                                <p className="text-sm font-semibold text-green-300">Processing Successful</p>
+                                {processingState.result.logEntry && (
+                                  <div className="text-xs text-white/70 space-y-1">
+                                    <p>
+                                      <span className="font-medium">Status:</span>{' '}
+                                      <span
+                                        className={`${
+                                          processingState.result.logEntry.status === 'success'
+                                            ? 'text-green-300'
+                                            : processingState.result.logEntry.status === 'failed'
+                                            ? 'text-red-300'
+                                            : 'text-yellow-300'
+                                        }`}
+                                      >
+                                        {processingState.result.logEntry.status}
+                                      </span>
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">Records Processed:</span>{' '}
+                                      {processingState.result.logEntry.recordsProcessed || 0}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">Records Inserted:</span>{' '}
+                                      {processingState.result.logEntry.recordsInserted || 0}
+                                    </p>
+                                    {processingState.result.logEntry.startTime && (
+                                      <p>
+                                        <span className="font-medium">Start Time:</span>{' '}
+                                        {formatDate(processingState.result.logEntry.startTime)}
+                                      </p>
+                                    )}
+                                    {processingState.result.logEntry.endTime && (
+                                      <p>
+                                        <span className="font-medium">End Time:</span>{' '}
+                                        {formatDate(processingState.result.logEntry.endTime)}
+                                      </p>
+                                    )}
+                                    {processingState.result.logEntry.errorMessage && (
+                                      <p className="text-red-300">
+                                        <span className="font-medium">Error:</span>{' '}
+                                        {processingState.result.logEntry.errorMessage}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="p-3 bg-gray-500/20 border border-gray-500/50 rounded-lg">
+                            <p className="text-sm text-gray-300">
+                              Processing capability not yet available for this application.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Modals */}
         {/* Approve Modal */}
         {showApproveModal && selectedRequest && (
@@ -817,11 +1057,12 @@ export default function SuperadminPage() {
                 <select
                   value={approvedRole}
                   onChange={(e) => setApprovedRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ colorScheme: 'dark' }}
                 >
-                  <option value="superadmin">Superadmin</option>
-                  <option value="admin">Admin</option>
-                  <option value="user">User</option>
+                  <option value="superadmin" className="bg-gray-700 text-white">Superadmin</option>
+                  <option value="admin" className="bg-gray-700 text-white">Admin</option>
+                  <option value="user" className="bg-gray-700 text-white">User</option>
                 </select>
               </div>
               <div className="flex gap-2 justify-end">
@@ -901,11 +1142,12 @@ export default function SuperadminPage() {
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ colorScheme: 'dark' }}
                 >
-                  <option value="superadmin">Superadmin</option>
-                  <option value="admin">Admin</option>
-                  <option value="user">User</option>
+                  <option value="superadmin" className="bg-gray-700 text-white">Superadmin</option>
+                  <option value="admin" className="bg-gray-700 text-white">Admin</option>
+                  <option value="user" className="bg-gray-700 text-white">User</option>
                 </select>
               </div>
               <div className="flex gap-2 justify-end">

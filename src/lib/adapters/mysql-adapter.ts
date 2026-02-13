@@ -38,7 +38,6 @@ export class MySQLAdapter implements DatabaseAdapter {
     // Set very long timeout for large file uploads (30 minutes)
     await connection.query('SET SESSION wait_timeout = 1800') // 30 minutes in seconds
     await connection.query('SET SESSION interactive_timeout = 1800') // 30 minutes in seconds
-    await connection.query('SET SESSION max_execution_time = 1800000') // 30 minutes in milliseconds (MySQL 5.7.4+)
     
     return {
       release: () => connection.release(),

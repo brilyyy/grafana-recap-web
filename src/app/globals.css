@@ -155,3 +155,18 @@ body {
   flex: 1;
 }
 
+/* Dark theme for select dropdowns */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #374151; /* gray-700 */
+  color: #ffffff;
+}
+
+select option:hover,
+select option:checked {
+  background-color: #4B5563; /* gray-600 */
+  color: #ffffff;
+}
