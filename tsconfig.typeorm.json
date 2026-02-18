@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
@@ -10,6 +10,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
@@ -26,14 +27,16 @@
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs",
-      "moduleResolution": "node"
+      "moduleResolution": "bundler"
     },
     "require": ["tsconfig-paths/register"]
   },
   "include": [
     "typeorm.config.ts",
+    "typeorm.config.postgresql.ts",
     "src/entities/**/*.ts",
-    "src/migrations/**/*.ts"
+    "src/migrations/**/*.ts",
+    "src/lib/**/*.ts"
   ],
   "exclude": [
     "node_modules"
