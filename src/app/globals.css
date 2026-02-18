@@ -155,18 +155,34 @@ body {
   flex: 1;
 }
 
-/* Dark theme for select dropdowns */
-select {
+/* Dark theme for select dropdowns - only in superadmin page */
+[data-page="superadmin"] select,
+.superadmin-page select {
   color-scheme: dark;
+  background-color: #1f2937 !important; /* gray-800 */
+  color: #ffffff !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1em 1em;
+  padding-right: 2.5rem;
 }
 
-select option {
-  background-color: #374151; /* gray-700 */
-  color: #ffffff;
+[data-page="superadmin"] select option,
+.superadmin-page select option {
+  background-color: #1f2937 !important; /* gray-800 */
+  color: #ffffff !important;
 }
 
-select option:hover,
-select option:checked {
-  background-color: #4B5563; /* gray-600 */
-  color: #ffffff;
+[data-page="superadmin"] select option:hover,
+[data-page="superadmin"] select option:checked,
+[data-page="superadmin"] select option:focus,
+.superadmin-page select option:hover,
+.superadmin-page select option:checked,
+.superadmin-page select option:focus {
+  background-color: #374151 !important; /* gray-700 */
+  color: #ffffff !important;
 }

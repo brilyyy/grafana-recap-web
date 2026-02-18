@@ -10,13 +10,6 @@ const PUBLIC_ROUTES = [
 ]
 
 /**
- * Admin-only routes
- */
-const ADMIN_ROUTES = [
-  '/api/restart-db',
-]
-
-/**
  * Rate limit configuration per route pattern
  */
 function getRateLimitConfig(pathname: string): RateLimitConfig {

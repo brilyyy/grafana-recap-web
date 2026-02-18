@@ -90,10 +90,26 @@ export default function SuperadminPage() {
   // Application Data Processing State
   const [applications, setApplications] = useState<Array<{ id: number; app_name: string }>>([])
   const [applicationsLoading, setApplicationsLoading] = useState(true)
+  const [processingLogs, setProcessingLogs] = useState<Array<{
+    id: number
+    app_name: string
+    processing_date: string
+    status: 'running' | 'success' | 'failed'
+    records_processed: number
+    records_inserted: number
+    start_time: string
+    end_time: string | null
+    error_message: string | null
+  }>>([])
+  const [processingLogsLoading, setProcessingLogsLoading] = useState(false)
+  const [processingFilters, setProcessingFilters] = useState({
+    app_name: '',
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+  })
   const [processingStates, setProcessingStates] = useState<{
-    [appName: string]: { loading: boolean; result: any; error: string | null }
+    [date: string]: { loading: boolean; error: string | null }
   }>({})
-  const [processingDates, setProcessingDates] = useState<{ [appName: string]: string }>({})
 
   useEffect(() => {
     let isMounted = true
@@ -332,29 +348,81 @@ export default function SuperadminPage() {
     }
   }
 
-  const hasProcessingCapability = (appName: string): boolean => {
-    return appName.toLowerCase() === 'bale'
-  }
-
-  const handleApplicationProcessingTrigger = async (appName: string, date?: string) => {
-    if (!hasProcessingCapability(appName)) {
+  const fetchProcessingLogs = async () => {
+    if (!processingFilters.app_name || !processingFilters.month || !processingFilters.year) {
       return
     }
 
-    // Initialize processing state for this application
+    try {
+      setProcessingLogsLoading(true)
+      const params = new URLSearchParams({
+        app_name: processingFilters.app_name,
+        month: processingFilters.month.toString(),
+        year: processingFilters.year.toString(),
+      })
+
+      const response = await fetch(`/api/processing-logs?${params}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setProcessingLogs(data.data || [])
+      } else {
+        alert(data.message || 'Failed to fetch processing logs')
+        setProcessingLogs([])
+      }
+    } catch (error) {
+      console.error('Error fetching processing logs:', error)
+      alert('Error fetching processing logs')
+      setProcessingLogs([])
+    } finally {
+      setProcessingLogsLoading(false)
+    }
+  }
+
+  const formatProcessingDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  const formatProcessingTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('id-ID', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const handleDateProcessing = async (appName: string, date: string) => {
+    // Validate date: cannot process future dates or current date
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const processingDate = new Date(date + 'T00:00:00')
+    processingDate.setHours(0, 0, 0, 0)
+
+    if (processingDate >= today) {
+      alert('Cannot process future dates. Only H-1 (yesterday) and earlier dates can be processed.')
+      return
+    }
+
+    // Initialize processing state for this date
     setProcessingStates((prev) => ({
       ...prev,
-      [appName]: { loading: true, result: null, error: null },
+      [date]: { loading: true, error: null },
     }))
 
     try {
-      // Determine API endpoint based on app name
-      const appNameLower = appName.toLowerCase()
-      const endpoint = `/api/${appNameLower}/process-manual${date ? `?date=${date}` : ''}`
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/processing/process-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_name: appName,
+          date: date,
+        }),
       })
 
       const data = await response.json()
@@ -362,21 +430,56 @@ export default function SuperadminPage() {
       if (data.success) {
         setProcessingStates((prev) => ({
           ...prev,
-          [appName]: { loading: false, result: data.data, error: null },
+          [date]: { loading: false, error: null },
         }))
+        // Show success message
+        if (data.data?.logEntry) {
+          const logEntry = data.data.logEntry
+          const statusMsg = logEntry.status === 'success' 
+            ? `Successfully processed ${logEntry.recordsProcessed || 0} records (${logEntry.recordsInserted || 0} inserted)`
+            : logEntry.status === 'failed'
+            ? `Processing failed: ${logEntry.errorMessage || 'Unknown error'}`
+            : 'Processing is running...'
+          alert(`Processing triggered for ${date}.\n${statusMsg}`)
+        } else {
+          alert(`Processing triggered successfully for ${date}`)
+        }
+        // Refresh processing logs after successful processing
+        // Add small delay to ensure stored procedure has finished writing to database
+        await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms for DB write to complete
+        await fetchProcessingLogs()
       } else {
         setProcessingStates((prev) => ({
           ...prev,
-          [appName]: { loading: false, result: null, error: data.message || 'Processing failed' },
+          [date]: { loading: false, error: data.message || 'Processing failed' },
         }))
+        alert(data.message || 'Failed to process data')
       }
     } catch (error: any) {
       setProcessingStates((prev) => ({
         ...prev,
-        [appName]: { loading: false, result: null, error: error.message || 'Error triggering processing' },
+        [date]: { loading: false, error: error.message || 'Error triggering processing' },
       }))
+      alert('Error triggering processing: ' + error.message)
     }
   }
+
+  // Generate all dates in the selected month
+  const getAllDatesInMonth = (month: number, year: number): string[] => {
+    const dates: string[] = []
+    const lastDay = new Date(year, month, 0).getDate()
+    for (let day = 1; day <= lastDay; day++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      dates.push(dateStr)
+    }
+    return dates
+  }
+
+  // Create a map of logs by date for easy lookup
+  const logsByDate = processingLogs.reduce((acc, log) => {
+    acc[log.processing_date] = log
+    return acc
+  }, {} as Record<string, typeof processingLogs[0]>)
 
   if (isAuthenticated === null) {
     return (
@@ -394,7 +497,7 @@ export default function SuperadminPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+    <main className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 superadmin-page" data-page="superadmin">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -892,154 +995,453 @@ export default function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Application Data Processing</h3>
               <p className="text-white/70 text-sm mb-4">
-                Manually trigger data processing for applications. Processing will aggregate transaction data and update success rate metrics.
+                View application data processing logs by selecting an application, month, and year.
               </p>
             </div>
 
-            {applicationsLoading ? (
+            {/* Filters */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-4">Filters</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">App Name</label>
+                  {applicationsLoading ? (
+                    <div className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white/50 text-sm">
+                      Loading...
+                    </div>
+                  ) : (
+                    <select
+                      value={processingFilters.app_name}
+                      onChange={(e) => {
+                        setProcessingFilters((prev) => ({ ...prev, app_name: e.target.value }))
+                      }}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ colorScheme: 'dark' }}
+                    >
+                      <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                        Select Application
+                      </option>
+                      {applications.map((app) => (
+                        <option 
+                          key={app.id} 
+                          value={app.app_name} 
+                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
+                        >
+                          {app.app_name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Month</label>
+                  <select
+                    value={processingFilters.month}
+                    onChange={(e) => {
+                      setProcessingFilters((prev) => ({ ...prev, month: parseInt(e.target.value) }))
+                    }}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="1" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>January</option>
+                    <option value="2" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>February</option>
+                    <option value="3" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>March</option>
+                    <option value="4" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>April</option>
+                    <option value="5" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>May</option>
+                    <option value="6" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>June</option>
+                    <option value="7" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>July</option>
+                    <option value="8" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>August</option>
+                    <option value="9" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>September</option>
+                    <option value="10" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>October</option>
+                    <option value="11" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>November</option>
+                    <option value="12" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>December</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Year</label>
+                  <select
+                    value={processingFilters.year}
+                    onChange={(e) => {
+                      setProcessingFilters((prev) => ({ ...prev, year: parseInt(e.target.value) }))
+                    }}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const year = new Date().getFullYear() - i
+                      return (
+                        <option 
+                          key={year} 
+                          value={year} 
+                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
+                        >
+                          {year}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={fetchProcessingLogs}
+                  disabled={!processingFilters.app_name || processingLogsLoading}
+                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {processingLogsLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Loading...
+                    </span>
+                  ) : (
+                    'Search'
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Processing Results */}
+            {processingLogsLoading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                <p className="text-white/70">Loading applications...</p>
+                <p className="text-white/70">Loading processing logs...</p>
               </div>
-            ) : applications.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-white/70">No applications found</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {applications.map((app) => {
-                  const hasCapability = hasProcessingCapability(app.app_name)
-                  const processingState = processingStates[app.app_name] || { loading: false, result: null, error: null }
-                  const processingDate = processingDates[app.app_name] || ''
+            ) : processingFilters.app_name ? (
+              (() => {
+                const allDates = getAllDatesInMonth(processingFilters.month, processingFilters.year)
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
 
-                  return (
-                    <div
-                      key={app.id}
-                      className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden"
-                    >
-                      <div className="p-4 border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-lg font-semibold text-white">{app.app_name}</h4>
-                          {hasCapability ? (
-                            <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-medium">
-                              Available
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 bg-gray-500/20 text-gray-300 rounded text-xs font-medium">
-                              Not Available
-                            </span>
-                          )}
+                // Calculate statistics
+                const stats = {
+                  total: allDates.length,
+                  success: allDates.filter(d => logsByDate[d]?.status === 'success').length,
+                  failed: allDates.filter(d => logsByDate[d]?.status === 'failed').length,
+                  processing: allDates.filter(d => logsByDate[d]?.status === 'running').length,
+                  notProcessed: allDates.filter(d => !logsByDate[d]).length,
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {/* Summary Statistics */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs font-medium text-green-300">Success</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.success}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-red-500/20 to-red-600/10 backdrop-blur-sm rounded-lg p-3 border border-red-500/30">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-4 h-4 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs font-medium text-red-300">Failed</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.failed}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 backdrop-blur-sm rounded-lg p-3 border border-yellow-500/30">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs font-medium text-yellow-300">Processing</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.processing}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/10 backdrop-blur-sm rounded-lg p-3 border border-gray-500/30">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                          <span className="text-xs font-medium text-gray-300">Not Processed</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.notProcessed}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
+                        <div className="flex items-center gap-2 mb-1">
+                          <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          <span className="text-xs font-medium text-blue-300">Total</span>
+                        </div>
+                        <p className="text-xl font-bold text-white">{stats.total}</p>
+                      </div>
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-white">
+                          {new Date(processingFilters.year, processingFilters.month - 1, 1).toLocaleDateString('id-ID', { 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-white/70">
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded bg-green-500/50"></div>
+                            <span>Success</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded bg-red-500/50"></div>
+                            <span>Failed</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded bg-gray-500/50"></div>
+                            <span>Not Processed</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="grid grid-cols-7 gap-2 mb-2">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                          <div key={day} className="text-center text-xs font-semibold text-white/50 py-1">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-2">
+                        {(() => {
+                          const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
+                          const emptyDays = Array(firstDay).fill(null)
+                          return [...emptyDays, ...allDates].map((dateStr, idx) => {
+                            if (!dateStr) {
+                              return <div key={`empty-${idx}`} className="aspect-square"></div>
+                            }
 
-                      <div className="p-4 space-y-4">
-                        {hasCapability ? (
-                          <>
-                            <div>
-                              <label className="block text-sm text-white/70 mb-2">
-                                Processing Date (Optional)
-                              </label>
-                              <input
-                                type="date"
-                                value={processingDate}
-                                onChange={(e) => {
-                                  setProcessingDates((prev) => ({
-                                    ...prev,
-                                    [app.app_name]: e.target.value,
-                                  }))
-                                }}
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                placeholder="Leave empty for H-1 (yesterday)"
-                              />
-                              <p className="text-xs text-white/50 mt-1">
-                                Leave empty to process yesterday&apos;s data (H-1)
-                              </p>
-                            </div>
+                            const log = logsByDate[dateStr]
+                            const date = new Date(dateStr + 'T00:00:00')
+                            date.setHours(0, 0, 0, 0)
+                            const canProcess = date < today
+                            const processingState = processingStates[dateStr] || { loading: false, error: null }
+                            const status = log?.status || null
+                            const isToday = dateStr === today.toISOString().split('T')[0]
+                            
+                            // Check if it's a simple success (only tick, no other important info)
+                            const isSimpleSuccess = status === 'success' && (!log || (!log.error_message && log.records_processed === null))
 
-                            <button
-                              onClick={() => handleApplicationProcessingTrigger(app.app_name, processingDate || undefined)}
-                              disabled={processingState.loading}
-                              className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                            >
-                              {processingState.loading ? (
-                                <span className="flex items-center justify-center gap-2">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                  Processing...
-                                </span>
-                              ) : (
-                                'Trigger Processing'
-                              )}
-                            </button>
+                            // Determine card styling based on status
+                            let cardClasses = "aspect-square bg-white/10 backdrop-blur-sm rounded-lg border flex flex-col transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer"
+                            let borderColor = "border-white/20"
+                            let bgGradient = ""
+                            let paddingClass = "p-2"
 
-                            {processingState.error && (
-                              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
-                                <p className="text-sm text-red-300">{processingState.error}</p>
-                              </div>
-                            )}
+                            if (status === 'success') {
+                              borderColor = "border-green-500/50"
+                              bgGradient = "bg-gradient-to-br from-green-500/20 to-green-600/10"
+                              // Make it more compact if it's simple success
+                              if (isSimpleSuccess) {
+                                paddingClass = "p-1.5"
+                              }
+                            } else if (status === 'failed') {
+                              borderColor = "border-red-500/50"
+                              bgGradient = "bg-gradient-to-br from-red-500/20 to-red-600/10"
+                            } else if (status === 'running') {
+                              borderColor = "border-yellow-500/50"
+                              bgGradient = "bg-gradient-to-br from-yellow-500/20 to-yellow-600/10"
+                            } else {
+                              borderColor = "border-gray-500/30"
+                              bgGradient = "bg-gradient-to-br from-gray-500/10 to-gray-600/5"
+                            }
 
-                            {processingState.result && (
-                              <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-lg space-y-2">
-                                <p className="text-sm font-semibold text-green-300">Processing Successful</p>
-                                {processingState.result.logEntry && (
-                                  <div className="text-xs text-white/70 space-y-1">
-                                    <p>
-                                      <span className="font-medium">Status:</span>{' '}
-                                      <span
-                                        className={`${
-                                          processingState.result.logEntry.status === 'success'
-                                            ? 'text-green-300'
-                                            : processingState.result.logEntry.status === 'failed'
-                                            ? 'text-red-300'
-                                            : 'text-yellow-300'
-                                        }`}
-                                      >
-                                        {processingState.result.logEntry.status}
-                                      </span>
-                                    </p>
-                                    <p>
-                                      <span className="font-medium">Records Processed:</span>{' '}
-                                      {processingState.result.logEntry.recordsProcessed || 0}
-                                    </p>
-                                    <p>
-                                      <span className="font-medium">Records Inserted:</span>{' '}
-                                      {processingState.result.logEntry.recordsInserted || 0}
-                                    </p>
-                                    {processingState.result.logEntry.startTime && (
-                                      <p>
-                                        <span className="font-medium">Start Time:</span>{' '}
-                                        {formatDate(processingState.result.logEntry.startTime)}
-                                      </p>
+                            if (isToday) {
+                              borderColor = "border-blue-400/70 border-2"
+                            }
+
+                            return (
+                              <div
+                                key={dateStr}
+                                className={`${cardClasses} ${bgGradient} ${borderColor} ${paddingClass} ${!canProcess ? 'opacity-50' : ''}`}
+                                title={isToday ? 'Today' : ''}
+                              >
+                                {/* Date Number */}
+                                <div className={`flex items-center justify-between ${isSimpleSuccess ? 'mb-0.5' : 'mb-1'}`}>
+                                  <span className={`${isSimpleSuccess ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-blue-300' : 'text-white'}`}>
+                                    {new Date(dateStr).getDate()}
+                                  </span>
+                                  {isToday && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
+                                  )}
+                                </div>
+
+                                {/* Status Icon - Smaller for simple success */}
+                                {!isSimpleSuccess && (
+                                  <div className="flex-1 flex items-center justify-center mb-1">
+                                    {status === 'success' && (
+                                      <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
                                     )}
-                                    {processingState.result.logEntry.endTime && (
-                                      <p>
-                                        <span className="font-medium">End Time:</span>{' '}
-                                        {formatDate(processingState.result.logEntry.endTime)}
-                                      </p>
+                                    {status === 'failed' && (
+                                      <svg className="w-5 h-5 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
                                     )}
-                                    {processingState.result.logEntry.errorMessage && (
-                                      <p className="text-red-300">
-                                        <span className="font-medium">Error:</span>{' '}
-                                        {processingState.result.logEntry.errorMessage}
-                                      </p>
+                                    {status === 'running' && (
+                                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-yellow-300 border-t-transparent"></div>
+                                    )}
+                                    {!status && (
+                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                      </svg>
                                     )}
                                   </div>
                                 )}
+
+                                {/* Simple Success - Just show small icon */}
+                                {isSimpleSuccess && (
+                                  <div className="flex-1 flex items-center justify-center mb-0.5">
+                                    <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                )}
+
+                                {/* Quick Stats - Only show if not simple success */}
+                                {log && !isSimpleSuccess && (
+                                  <div className="text-[10px] text-white/70 space-y-0.5">
+                                    {log.records_processed !== null && (
+                                      <div className="flex items-center gap-1">
+                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span className="truncate">{log.records_processed || 0}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Process Button - Larger for simple success */}
+                                {canProcess && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDateProcessing(processingFilters.app_name, dateStr)
+                                    }}
+                                    disabled={processingState.loading}
+                                    className={`w-full bg-gradient-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
+                                      isSimpleSuccess 
+                                        ? 'px-2 py-2 text-xs' 
+                                        : 'mt-1 px-1.5 py-1 text-[10px]'
+                                    }`}
+                                  >
+                                    {processingState.loading ? (
+                                      <>
+                                        <div className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isSimpleSuccess ? 'h-3 w-3' : 'h-2.5 w-2.5'}`}></div>
+                                        <span>Processing</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className={isSimpleSuccess ? 'w-3 h-3' : 'w-2.5 h-2.5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Process</span>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
                               </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="p-3 bg-gray-500/20 border border-gray-500/50 rounded-lg">
-                            <p className="text-sm text-gray-300">
-                              Processing capability not yet available for this application.
-                            </p>
-                          </div>
-                        )}
+                            )
+                          })
+                        })()}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+
+                    {/* Detailed View Toggle */}
+                    <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                      <details className="group">
+                        <summary className="cursor-pointer flex items-center justify-between text-white font-medium hover:text-blue-300 transition-colors">
+                          <span>View Detailed Information</span>
+                          <svg className="w-5 h-5 transform group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </summary>
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {allDates.map((dateStr) => {
+                            const log = logsByDate[dateStr]
+                            if (!log) return null
+
+                            return (
+                              <div
+                                key={dateStr}
+                                className={`bg-white/10 backdrop-blur-sm rounded-lg p-3 border ${
+                                  log.status === 'success'
+                                    ? 'border-green-500/30'
+                                    : log.status === 'failed'
+                                    ? 'border-red-500/30'
+                                    : 'border-yellow-500/30'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="text-sm font-semibold text-white">
+                                    {new Date(dateStr).toLocaleDateString('id-ID', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
+                                  </h4>
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                      log.status === 'success'
+                                        ? 'bg-green-500/20 text-green-300'
+                                        : log.status === 'failed'
+                                        ? 'bg-red-500/20 text-red-300'
+                                        : 'bg-yellow-500/20 text-yellow-300'
+                                    }`}
+                                  >
+                                    {log.status}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-white/70 space-y-1.5">
+                                  <div className="flex justify-between">
+                                    <span className="font-medium">Records Processed:</span>
+                                    <span className="text-white">{log.records_processed || 0}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-medium">Records Inserted:</span>
+                                    <span className="text-white">{log.records_inserted || 0}</span>
+                                  </div>
+                                  {log.start_time && (
+                                    <div>
+                                      <span className="font-medium">Start:</span>{' '}
+                                      <span className="text-white/90">
+                                        {new Date(log.start_time).toLocaleString('id-ID', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {log.end_time && (
+                                    <div>
+                                      <span className="font-medium">End:</span>{' '}
+                                      <span className="text-white/90">
+                                        {new Date(log.end_time).toLocaleString('id-ID', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {log.error_message && (
+                                    <div className="mt-2 p-2 bg-red-500/10 rounded border border-red-500/20">
+                                      <p className="text-red-300 text-xs break-words">{log.error_message}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                )
+              })()
+            ) : null}
           </div>
         )}
 
