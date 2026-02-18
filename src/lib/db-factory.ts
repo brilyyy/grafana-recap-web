@@ -1,6 +1,6 @@
-import type { DatabaseAdapter } from './db-adapter'
-import { MySQLAdapter } from './adapters/mysql-adapter'
-import { PostgreSQLAdapter } from './adapters/postgresql-adapter'
+import type { DatabaseAdapter } from './db-adapter.ts'
+import { MySQLAdapter } from './adapters/mysql-adapter.ts'
+import { PostgreSQLAdapter } from './adapters/postgresql-adapter.ts'
 
 /**
  * Extend global type

@@ -1,19 +1,16 @@
 import type { Metadata } from 'next'
 import './globals.css'
 
-import { startServer } from '../../server/startup'
-
 export const metadata: Metadata = {
   title: 'Setup Data Success Rate Grafana',
   description: 'Dashboard untuk manage data success rate Grafana',
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  await startServer()
 
   return (
     <html lang="id">
@@ -28,4 +25,5 @@ export default async function RootLayout({
       </body>
     </html>
   )
+
 }

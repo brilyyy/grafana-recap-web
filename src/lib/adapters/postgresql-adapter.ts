@@ -1,5 +1,6 @@
-import { Pool, PoolClient } from 'pg'
-import type { DatabaseAdapter, DatabaseConnection, DatabaseError } from '../db-adapter'
+import { Pool } from 'pg'
+import type { PoolClient } from 'pg'
+import type { DatabaseAdapter, DatabaseConnection, DatabaseError } from '../db-adapter.ts'
 
 /**
  * PostgreSQL Database Adapter

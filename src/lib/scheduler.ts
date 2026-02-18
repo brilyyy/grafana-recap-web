@@ -9,7 +9,7 @@ let baleProcessingTask: any = null
  */
 async function getDatabaseModules() {
   // Dynamic import to prevent static analysis by webpack
-  const { default: pool, getDb } = await import('./db')
+  const { default: pool, getDb } = await import('./db.ts')
   return {
     pool,
     adapter: getDb(),
@@ -20,6 +20,7 @@ async function getDatabaseModules() {
  * Check if application-level scheduler should be used
  */
 function shouldUseAppLevelScheduler(): boolean {
+  console.log('USE_APP_LEVEL_SCHEDULER : ', process.env.USE_APP_LEVEL_SCHEDULER)
   return process.env.USE_APP_LEVEL_SCHEDULER === 'true'
 }
 

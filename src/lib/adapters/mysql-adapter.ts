@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise'
-import type { DatabaseAdapter, DatabaseConnection, DatabaseError } from '../db-adapter'
+import type { DatabaseAdapter, DatabaseConnection, DatabaseError } from '../db-adapter.ts'
 
 /**
  * MySQL Database Adapter

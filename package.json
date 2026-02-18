@@ -3,9 +3,9 @@
   "version": "2.0.0",
   "description": "Dashboard Grafana - Migrated to Next.js",
   "scripts": {
-    "dev": "node node_modules/next/dist/bin/next dev",
+    "dev": "node server-dev.js",
     "build": "node node_modules/next/dist/bin/next build",
-    "start": "node node_modules/next/dist/bin/next start",
+    "start": "node server.js",
     "lint": "node node_modules/next/dist/bin/next lint",
     "type-check": "tsc --noEmit",
     "migration:generate": "cross-env TS_NODE_PROJECT=tsconfig.typeorm.json npx typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts",

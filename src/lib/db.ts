@@ -1,5 +1,5 @@
-import { getDatabaseAdapter } from './db-factory'
-import type { DatabaseAdapter } from './db-adapter'
+import { getDatabaseAdapter } from './db-factory.ts'
+import type { DatabaseAdapter } from './db-adapter.ts'
 
 let adapter: DatabaseAdapter | null = null
 

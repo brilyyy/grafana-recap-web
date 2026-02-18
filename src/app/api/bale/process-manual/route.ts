@@ -58,8 +58,18 @@ export async function POST(request: NextRequest) {
 
     const connection = await pool.getConnection()
     try {
-      const dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null
-      await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
+      const dbType = getDb().getDatabaseType()
+      let dateParamForDB = null
+      if (dbType === 'postgresql') {
+        dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null
+      } else {
+        dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null
+      }
+      if (dbType === 'postgresql') {
+        await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
+      } else {
+        await connection.execute('CALL sp_process_bale_daily(?)', [dateParamForDB])
+      }
 
       // Get the latest processing log entry
       const [logResult]: any = await connection.execute(
