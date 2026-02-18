@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import pool, { getDb } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
@@ -58,18 +58,8 @@ export async function POST(request: NextRequest) {
 
     const connection = await pool.getConnection()
     try {
-      const adapter = await import('@/lib/db').then(m => m.adapter)
-      const isPostgres = adapter.getDatabaseType() === 'postgresql'
-
-      const dateParamForDB = processingDate 
-        ? processingDate.toISOString().split('T')[0]
-        : null
-
-      if (isPostgres) {
-        await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
-      } else {
-        await connection.execute('CALL sp_process_bale_daily(?)', [dateParamForDB])
-      }
+      const dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null
+      await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
 
       // Get the latest processing log entry
       const [logResult]: any = await connection.execute(

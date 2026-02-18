@@ -9,10 +9,10 @@ let baleProcessingTask: any = null
  */
 async function getDatabaseModules() {
   // Dynamic import to prevent static analysis by webpack
-  const dbModule = await import('./db')
+  const { default: pool, getDb } = await import('./db')
   return {
-    pool: dbModule.default,
-    adapter: dbModule.adapter,
+    pool,
+    adapter: getDb(),
   }
 }
 

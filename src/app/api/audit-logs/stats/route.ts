@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
-import { adapter } from '@/lib/db'
+import pool, { getDb } from '@/lib/db'
 import { requireSuperAdmin } from '@/lib/auth'
 import type { ApiResponse } from '@/types'
 
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
     const connection = await pool.getConnection()
     try {
       // Build date filter based on database type
-      const dbType = adapter.getDatabaseType()
+      const dbType = getDb().getDatabaseType()
       let dateFilter: string
       let dateParams: any[] = []
       

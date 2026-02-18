@@ -3,43 +3,56 @@ import { MySQLAdapter } from './adapters/mysql-adapter'
 import { PostgreSQLAdapter } from './adapters/postgresql-adapter'
 
 /**
- * Database Factory
- * Creates appropriate database adapter based on DB_TYPE environment variable
+ * Extend global type
  */
-let adapterInstance: DatabaseAdapter | null = null
+declare global {
 
-export function createDatabaseAdapter(): DatabaseAdapter {
-  // Return cached instance if exists
-  if (adapterInstance) {
-    return adapterInstance
-  }
+  // eslint-disable-next-line no-var
+  var __databaseAdapter: DatabaseAdapter | undefined
+
+}
+
+/**
+ * Create new adapter instance
+ */
+function createAdapter(): DatabaseAdapter {
 
   const dbType = (process.env.DB_TYPE || 'mysql').toLowerCase()
 
   if (dbType === 'postgresql' || dbType === 'postgres') {
-    adapterInstance = new PostgreSQLAdapter()
+
     console.log('✅ Using PostgreSQL adapter')
-  } else {
-    adapterInstance = new MySQLAdapter()
-    console.log('✅ Using MySQL adapter')
+
+    return new PostgreSQLAdapter()
+
   }
 
-  return adapterInstance
+  console.log('✅ Using MySQL adapter')
+
+  return new MySQLAdapter()
+
 }
 
 /**
- * Get current database adapter instance
+ * Get singleton adapter instance (GLOBAL SAFE)
  */
 export function getDatabaseAdapter(): DatabaseAdapter {
-  if (!adapterInstance) {
-    return createDatabaseAdapter()
+
+  if (!global.__databaseAdapter) {
+
+    global.__databaseAdapter = createAdapter()
+
   }
-  return adapterInstance
+
+  return global.__databaseAdapter
+
 }
 
 /**
- * Reset adapter instance (useful for testing)
+ * Reset adapter (testing only)
  */
 export function resetDatabaseAdapter(): void {
-  adapterInstance = null
+
+  global.__databaseAdapter = undefined
+
 }

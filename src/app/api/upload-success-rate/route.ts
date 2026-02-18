@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import pool, { getDb } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse, SuccessRateEntry } from '@/types'
@@ -717,10 +717,9 @@ export async function POST(request: NextRequest) {
             // RC tidak ada di dictionary → Masuk ke unmapped_rc
             if (!foundInDictionary) {
               // Use database-agnostic INSERT IGNORE / ON CONFLICT DO NOTHING
-              const { adapter } = await import('@/lib/db')
               let insertUnmappedQuery: string
               
-              if (adapter.getDatabaseType() === 'postgresql') {
+              if (getDb().getDatabaseType() === 'postgresql') {
                 // PostgreSQL: Use ON CONFLICT DO NOTHING (connection.execute will convert ? to $1, $2, etc.)
                 insertUnmappedQuery = `
                   INSERT INTO unmapped_rc 

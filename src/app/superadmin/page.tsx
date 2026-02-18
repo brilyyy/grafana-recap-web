@@ -952,7 +952,7 @@ export default function SuperadminPage() {
                                 placeholder="Leave empty for H-1 (yesterday)"
                               />
                               <p className="text-xs text-white/50 mt-1">
-                                Leave empty to process yesterday's data (H-1)
+                                Leave empty to process yesterday&apos;s data (H-1)
                               </p>
                             </div>
 

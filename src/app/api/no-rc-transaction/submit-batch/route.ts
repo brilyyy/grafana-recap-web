@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
-import { adapter } from '@/lib/db'
+import pool, { getDb } from '@/lib/db'
 import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
 import type { ApiResponse } from '@/types'
 
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
 
           // Use upsert query
           const upsertQuery = buildSimpleUpsertQuery(
-            adapter,
+            getDb(),
             'unmapped_rc',
             ['id_app_identifier', 'jenis_transaksi', 'rc', 'rc_description', 'status_transaksi', 'error_type'],
             ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
