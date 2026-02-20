@@ -84,6 +84,29 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
   }
 
   /**
+   * Get list of databases that need cron jobs
+   * These databases will have cron jobs created in the default PostgreSQL database
+   */
+  private getTargetDatabases(): string[] {
+    return ['platform_db', 'platform_db_dev']
+  }
+
+  /**
+   * Check if we're running in the default PostgreSQL database (where pg_cron is installed)
+   * This database should only create cron jobs, not tables/procedures
+   */
+  private async isDefaultCronDatabase(queryRunner: QueryRunner): Promise<boolean> {
+    try {
+      const [result]: any = await queryRunner.query(`
+        SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
+      `)
+      return result && result[0]?.exists === true
+    } catch (error) {
+      return false
+    }
+  }
+
+  /**
    * Get cron schedule from environment variable or use default
    * Default: '1 0 * * *' (00:01 every day)
    * Format: minute hour day month dayOfWeek
@@ -189,6 +212,22 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
   public async up(queryRunner: QueryRunner): Promise<void> {
     const adapter = this.getAdapter()
     const isPostgres = adapter.getDatabaseType() === 'postgresql'
+    
+    // Check if we're in the default PostgreSQL database (where pg_cron is installed)
+    // If so, only create cron jobs, skip table/procedure creation
+    const isDefaultCronDb = isPostgres && await this.isDefaultCronDatabase(queryRunner)
+    
+    if (isDefaultCronDb) {
+      console.log('ℹ️  Running in default PostgreSQL database (with pg_cron)')
+      console.log('   Skipping table and procedure creation - only creating cron jobs')
+      
+      // Only create cron jobs in the default database
+      await this.createCronJobs(queryRunner)
+      return
+    }
+    
+    // For target databases (platform_db, platform_db_dev) or MySQL:
+    // Create tables and stored procedures
     const timestamps = buildTimestampColumns(adapter)
     const engineClause = isPostgres ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     
@@ -260,53 +299,11 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
       await this.createMySQLProcedure(queryRunner)
     }
 
+    // For target databases, don't create cron jobs here
+    // Cron jobs are only created in the default PostgreSQL database
     if (isPostgres) {
-      const useAppLevelScheduler = process.env.USE_APP_LEVEL_SCHEDULER === 'true'
-      
-      if (useAppLevelScheduler) {
-        console.log('ℹ️  Using application-level scheduler (node-cron)')
-        console.log('   Skipping database scheduler setup for PostgreSQL')
-        console.log('   Scheduler will be initialized when application starts')
-        return
-      }
-      
-      const [pgCronCheck]: any = await queryRunner.query(`
-        SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
-      `)
-      
-      if (pgCronCheck && pgCronCheck[0]?.exists) {
-        try {
-          const cronSchedule = this.getCronSchedule()
-          const escapedSchedule = cronSchedule.replace(/'/g, "''")
-          await queryRunner.query(`
-            SELECT cron.schedule(
-              'process-bale-daily',
-              '${escapedSchedule}',  -- Schedule from BALE_PROCESSING_SCHEDULE env var
-              $$SELECT sp_process_bale_daily(NULL)$$
-            );
-          `)
-          console.log(`✅ pg_cron job created successfully with schedule: ${cronSchedule}`)
-        } catch (error: any) {
-          console.warn('⚠️  Failed to create pg_cron job. Trying pgAgent...')
-          // Fallback to pgAgent
-          const pgAgentAvailable = await this.checkPgAgentAvailable(queryRunner)
-          if (pgAgentAvailable) {
-            await this.createPgAgentJob(queryRunner)
-          } else {
-            console.warn('⚠️  pgAgent not available. Please setup external cron job manually.')
-            console.warn('   Run: SELECT sp_process_bale_daily(NULL); at 00:01 daily')
-          }
-        }
-      } else {
-        console.log('ℹ️  pg_cron not available, checking pgAgent...')
-        const pgAgentAvailable = await this.checkPgAgentAvailable(queryRunner)
-        if (pgAgentAvailable) {
-          await this.createPgAgentJob(queryRunner)
-        } else {
-          console.warn('⚠️  Neither pg_cron nor pgAgent available. Please setup external cron job manually.')
-          console.warn('   Run: SELECT sp_process_bale_daily(NULL); at 00:01 daily')
-        }
-      }
+      console.log('ℹ️  Running in target database - cron jobs will be created in default PostgreSQL database')
+      console.log('   Tables and stored procedure created successfully')
     } else {
       await queryRunner.query(`SET GLOBAL event_scheduler = ON;`)
       
@@ -322,6 +319,76 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
       `)
       
       console.log(`✅ MySQL event created successfully with schedule: ${cronSchedule}`)
+    }
+  }
+
+  /**
+   * Create cron jobs in the default PostgreSQL database
+   * This method is only called when running in the default database (where pg_cron is installed)
+   */
+  private async createCronJobs(queryRunner: QueryRunner): Promise<void> {
+    const useAppLevelScheduler = process.env.USE_APP_LEVEL_SCHEDULER === 'true'
+    
+    if (useAppLevelScheduler) {
+      console.log('ℹ️  Using application-level scheduler (node-cron)')
+      console.log('   Skipping database scheduler setup for PostgreSQL')
+      console.log('   Scheduler will be initialized when application starts')
+      return
+    }
+    
+    const [pgCronCheck]: any = await queryRunner.query(`
+      SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
+    `)
+    
+    if (pgCronCheck && pgCronCheck[0]?.exists) {
+      try {
+        const cronSchedule = this.getCronSchedule()
+        const escapedSchedule = cronSchedule.replace(/'/g, "''")
+        const targetDatabases = this.getTargetDatabases()
+        
+        // Create separate pg_cron jobs for each target database
+        for (const dbName of targetDatabases) {
+          const jobName = `process-bale-daily-${dbName}`
+          const escapedDbName = dbName.replace(/'/g, "''")
+          
+          try {
+            await queryRunner.query(`
+              SELECT cron.schedule(
+                '${jobName}',
+                '${escapedSchedule}',  -- Schedule from BALE_PROCESSING_SCHEDULE env var
+                $$SELECT sp_process_bale_daily(NULL)$$,
+                '${escapedDbName}',  -- Database parameter: execute in this database
+                NULL  -- Use current user
+              );
+            `)
+            console.log(`✅ pg_cron job created for database '${dbName}' with schedule: ${cronSchedule}`)
+          } catch (dbError: any) {
+            console.warn(`⚠️  Failed to create pg_cron job for database '${dbName}':`, dbError.message)
+            // Continue with other databases even if one fails
+          }
+        }
+        
+        console.log(`✅ pg_cron jobs created successfully for ${targetDatabases.length} database(s)`)
+      } catch (error: any) {
+        console.warn('⚠️  Failed to create pg_cron jobs. Trying pgAgent...')
+        // Fallback to pgAgent
+        const pgAgentAvailable = await this.checkPgAgentAvailable(queryRunner)
+        if (pgAgentAvailable) {
+          await this.createPgAgentJobs(queryRunner)
+        } else {
+          console.warn('⚠️  pgAgent not available. Please setup external cron job manually.')
+          console.warn('   Run: SELECT sp_process_bale_daily(NULL); at 00:01 daily for each database')
+        }
+      }
+    } else {
+      console.log('ℹ️  pg_cron not available, checking pgAgent...')
+      const pgAgentAvailable = await this.checkPgAgentAvailable(queryRunner)
+      if (pgAgentAvailable) {
+        await this.createPgAgentJobs(queryRunner)
+      } else {
+        console.warn('⚠️  Neither pg_cron nor pgAgent available. Please setup external cron job manually.')
+        console.warn('   Run: SELECT sp_process_bale_daily(NULL); at 00:01 daily for each database')
+      }
     }
   }
 
@@ -923,98 +990,120 @@ $$ LANGUAGE plpgsql;
     await queryRunner.query(procedureSQL)
   }
 
-  private async createPgAgentJob(queryRunner: QueryRunner): Promise<void> {
-    try {
-      // Check if job already exists
-      const [existingJob]: any = await queryRunner.query(`
-        SELECT j.jobid 
-        FROM pgagent.pga_job j
-        WHERE j.jobname = 'process-bale-daily'
-        LIMIT 1
-      `)
-      
-      if (existingJob && existingJob.length > 0) {
-        console.log('ℹ️  pgAgent job already exists, skipping creation')
-        return
-      }
-      
-      const cronSchedule = this.getCronSchedule()
-      const schedule = this.parseCronForPgAgent(cronSchedule)
-      
-      const formatArray = (arr: number[]): string => {
-        if (arr.length === 0) return 'ARRAY[]::INTEGER[]'
-        return `ARRAY[${arr.join(',')}]`
-      }
-      
-      // Use parsed values, empty array means "all" in pgAgent
-      const minutesArray = formatArray(schedule.minutes)
-      const hoursArray = formatArray(schedule.hours)
-      const weekdaysArray = formatArray(schedule.weekdays)
-      const monthdaysArray = formatArray(schedule.monthdays)
-      const monthsArray = formatArray(schedule.months)
-      
-      // Create pgAgent job
-      await queryRunner.query(`
-        DO $$
-        DECLARE
-          v_jobid INTEGER;
-        BEGIN
-          -- Insert job
-          INSERT INTO pgagent.pga_job (jobjclid, jobname, jobdesc, jobhostagent, jobenabled)
-          VALUES (1, 'process-bale-daily', 'BALE processing (schedule: ${cronSchedule.replace(/'/g, "''")})', '', true)
-          RETURNING jobid INTO v_jobid;
-          
-          -- Insert schedule (from BALE_PROCESSING_SCHEDULE env var)
-          INSERT INTO pgagent.pga_schedule (
-            jscjobid, jscname, jscdesc, jscenabled,
-            jscstart, jscminutes, jschours, jscweekdays, 
-            jscmonthdays, jscmonths
-          ) VALUES (
-            v_jobid, 'bale-daily-schedule', 'BALE processing schedule', true,
-            NOW(), -- Start immediately
-            ${minutesArray}, -- Minutes from schedule
-            ${hoursArray}, -- Hours from schedule
-            ${weekdaysArray}, -- Days of week from schedule
-            ${monthdaysArray}, -- Days of month from schedule (empty = all)
-            ${monthsArray} -- Months from schedule (empty = all)
-          );
-          
-          -- Insert step (the actual SQL to execute)
-          INSERT INTO pgagent.pga_jobstep (
-            jstjobid, jstname, jstkind, jstcode, jstdbname, jstenabled
-          ) VALUES (
-            v_jobid, 'execute-procedure', 's', 
-            'SELECT sp_process_bale_daily(NULL);',
-            current_database(),
-            true
-          );
-        END $$;
-      `)
-      
-      console.log(`✅ pgAgent job created successfully with schedule: ${cronSchedule}`)
-    } catch (error: any) {
-      console.warn('⚠️  Failed to create pgAgent job:', error.message)
-      console.warn('   Please setup external cron job manually.')
-      console.warn('   Run: SELECT sp_process_bale_daily(NULL); at 00:01 daily')
+  private async createPgAgentJobs(queryRunner: QueryRunner): Promise<void> {
+    const targetDatabases = this.getTargetDatabases()
+    const cronSchedule = this.getCronSchedule()
+    const schedule = this.parseCronForPgAgent(cronSchedule)
+    
+    const formatArray = (arr: number[]): string => {
+      if (arr.length === 0) return 'ARRAY[]::INTEGER[]'
+      return `ARRAY[${arr.join(',')}]`
     }
+    
+    // Use parsed values, empty array means "all" in pgAgent
+    const minutesArray = formatArray(schedule.minutes)
+    const hoursArray = formatArray(schedule.hours)
+    const weekdaysArray = formatArray(schedule.weekdays)
+    const monthdaysArray = formatArray(schedule.monthdays)
+    const monthsArray = formatArray(schedule.months)
+    
+    // Create separate pgAgent jobs for each target database
+    for (const dbName of targetDatabases) {
+      try {
+        const jobName = `process-bale-daily-${dbName}`
+        const escapedJobName = jobName.replace(/'/g, "''")
+        const escapedDbName = dbName.replace(/'/g, "''")
+        const escapedSchedule = cronSchedule.replace(/'/g, "''")
+        
+        // Check if job already exists
+        const [existingJob]: any = await queryRunner.query(`
+          SELECT j.jobid 
+          FROM pgagent.pga_job j
+          WHERE j.jobname = '${escapedJobName}'
+          LIMIT 1
+        `)
+        
+        if (existingJob && existingJob.length > 0) {
+          console.log(`ℹ️  pgAgent job '${jobName}' already exists, skipping creation`)
+          continue
+        }
+        
+        // Create pgAgent job for this database
+        await queryRunner.query(`
+          DO $$
+          DECLARE
+            v_jobid INTEGER;
+          BEGIN
+            -- Insert job
+            INSERT INTO pgagent.pga_job (jobjclid, jobname, jobdesc, jobhostagent, jobenabled)
+            VALUES (1, '${escapedJobName}', 'BALE processing for ${escapedDbName} (schedule: ${escapedSchedule})', '', true)
+            RETURNING jobid INTO v_jobid;
+            
+            -- Insert schedule (from BALE_PROCESSING_SCHEDULE env var)
+            INSERT INTO pgagent.pga_schedule (
+              jscjobid, jscname, jscdesc, jscenabled,
+              jscstart, jscminutes, jschours, jscweekdays, 
+              jscmonthdays, jscmonths
+            ) VALUES (
+              v_jobid, 'bale-daily-schedule-${escapedDbName}', 'BALE processing schedule for ${escapedDbName}', true,
+              NOW(), -- Start immediately
+              ${minutesArray}, -- Minutes from schedule
+              ${hoursArray}, -- Hours from schedule
+              ${weekdaysArray}, -- Days of week from schedule
+              ${monthdaysArray}, -- Days of month from schedule (empty = all)
+              ${monthsArray} -- Months from schedule (empty = all)
+            );
+            
+            -- Insert step (the actual SQL to execute in target database)
+            INSERT INTO pgagent.pga_jobstep (
+              jstjobid, jstname, jstkind, jstcode, jstdbname, jstenabled
+            ) VALUES (
+              v_jobid, 'execute-procedure', 's', 
+              'SELECT sp_process_bale_daily(NULL);',
+              '${escapedDbName}',  -- Target database name
+              true
+            );
+          END $$;
+        `)
+        
+        console.log(`✅ pgAgent job created for database '${dbName}' with schedule: ${cronSchedule}`)
+      } catch (error: any) {
+        console.warn(`⚠️  Failed to create pgAgent job for database '${dbName}':`, error.message)
+        // Continue with other databases even if one fails
+      }
+    }
+    
+    console.log(`✅ pgAgent jobs created successfully for ${targetDatabases.length} database(s)`)
   }
 
-  private async removePgAgentJob(queryRunner: QueryRunner): Promise<void> {
+  private async removePgAgentJobs(queryRunner: QueryRunner): Promise<void> {
     try {
       const isAvailable = await this.checkPgAgentAvailable(queryRunner)
       if (!isAvailable) {
         return
       }
       
-      await queryRunner.query(`
-        DELETE FROM pgagent.pga_job 
-        WHERE jobname = 'process-bale-daily'
-      `)
+      const targetDatabases = this.getTargetDatabases()
       
-      console.log('✅ pgAgent job removed successfully')
+      // Remove pgAgent jobs for each target database
+      for (const dbName of targetDatabases) {
+        const jobName = `process-bale-daily-${dbName}`
+        const escapedJobName = jobName.replace(/'/g, "''")
+        
+        try {
+          await queryRunner.query(`
+            DELETE FROM pgagent.pga_job 
+            WHERE jobname = '${escapedJobName}'
+          `)
+          console.log(`✅ pgAgent job '${jobName}' removed successfully`)
+        } catch (error: any) {
+          // Ignore if job doesn't exist
+          console.warn(`⚠️  Failed to remove pgAgent job '${jobName}':`, error.message)
+        }
+      }
     } catch (error: any) {
-      // Ignore if job doesn't exist or pgAgent not available
-      console.warn('⚠️  Failed to remove pgAgent job:', error.message)
+      // Ignore if pgAgent not available
+      console.warn('⚠️  Failed to remove pgAgent jobs:', error.message)
     }
   }
 
@@ -1022,23 +1111,46 @@ $$ LANGUAGE plpgsql;
     const adapter = this.getAdapter()
     const isPostgres = adapter.getDatabaseType() === 'postgresql'
     
-    // Drop event scheduler (MySQL) or scheduler jobs (PostgreSQL: pg_cron or pgAgent)
-    if (isPostgres) {
-      // Try to remove pg_cron job first
+    // Check if we're in the default PostgreSQL database (where pg_cron is installed)
+    // If so, only remove cron jobs, skip dropping tables/procedures
+    const isDefaultCronDb = isPostgres && await this.isDefaultCronDatabase(queryRunner)
+    
+    if (isDefaultCronDb) {
+      console.log('ℹ️  Running in default PostgreSQL database (with pg_cron)')
+      console.log('   Only removing cron jobs - not dropping tables/procedures')
+      
+      // Remove pg_cron jobs for all target databases
       const [pgCronCheck]: any = await queryRunner.query(`
         SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
       `)
       
       if (pgCronCheck && pgCronCheck[0]?.exists) {
-        try {
-          await queryRunner.query(`SELECT cron.unschedule('process-bale-daily');`)
-        } catch (error) {
-          // Ignore if job doesn't exist
+        const targetDatabases = this.getTargetDatabases()
+        
+        // Remove pg_cron jobs for each target database
+        for (const dbName of targetDatabases) {
+          const jobName = `process-bale-daily-${dbName}`
+          const escapedJobName = jobName.replace(/'/g, "''")
+          
+          try {
+            await queryRunner.query(`SELECT cron.unschedule('${escapedJobName}');`)
+            console.log(`✅ pg_cron job '${jobName}' removed successfully`)
+          } catch (error) {
+            // Ignore if job doesn't exist
+          }
         }
       }
       
-      // Try to remove pgAgent job
-      await this.removePgAgentJob(queryRunner)
+      // Try to remove pgAgent jobs
+      await this.removePgAgentJobs(queryRunner)
+      return
+    }
+    
+    // For target databases: drop event scheduler (MySQL) or nothing for PostgreSQL target databases
+    // (PostgreSQL target databases don't have cron jobs - they're in the default database)
+    if (isPostgres) {
+      // Target databases don't have cron jobs to remove
+      console.log('ℹ️  Running in target database - cron jobs are in default PostgreSQL database')
     } else {
       await queryRunner.query(`DROP EVENT IF EXISTS ${this.quoteIdentifier('evt_process_bale_daily')};`)
     }
