@@ -178,31 +178,45 @@ Migration akan otomatis mencoba menggunakan scheduler yang tersedia dengan uruta
 
 **Catatan**: pg_cron menggunakan environment variable `BALE_PROCESSING_SCHEDULE` untuk konfigurasi schedule. Default: `1 0 * * *` (00:01 setiap hari).
 
+**Penting**: Semua setup (table, procedure, dan job pg_cron) dilakukan oleh **satu file migration** (`CreateBaleProcessingProcedure`). Perilakuan tergantung database yang dikoneksi saat migration dijalankan:
+- **DB_NAME=platform_db** (atau platform_db_dev): migration membuat table + procedure di database tersebut; job cron **tidak** dibuat (karena pg_cron biasanya tidak di-install di sana).
+- **DB_NAME=postgres** (database yang punya extension pg_cron): migration **hanya** mendaftarkan job pg_cron di `cron.job`; table/procedure tidak dibuat di postgres.
+
+Jadi untuk setup lengkap: jalankan migration sekali ke database target (procedure), lalu sekali ke database postgres (job cron).
+
 1. **Set environment variable** (optional, untuk custom schedule):
    ```env
    BALE_PROCESSING_SCHEDULE=1 0 * * *  # Default: 00:01 setiap hari
    ```
 
-2. **Install pg_cron Extension** (if not already installed):
+2. **Install pg_cron Extension** (if not already installed), di database yang dipakai untuk scheduler (biasanya `postgres`):
    ```sql
    CREATE EXTENSION IF NOT EXISTS pg_cron;
    ```
-   Note: Requires PostgreSQL restart and `shared_preload_libraries = 'pg_cron'` in postgresql.conf
+   Note: Requires PostgreSQL restart and `shared_preload_libraries = 'pg_cron'` in postgresql.conf.
+   Migration uses `cron.schedule_in_database()` to run jobs in target databases; **pg_cron 1.4+** is required.
 
-3. **Run Migration**:
-   ```bash
-   npm run migration:postgres:run
-   ```
+3. **Jalankan migration** (semua dari satu file migration):
+   - Buat table + procedure di database target:
+     ```bash
+     DB_NAME=platform_db npm run migration:postgres:run
+     ```
+   - Daftarkan job pg_cron di database yang punya pg_cron:
+     ```bash
+     DB_NAME=postgres npm run migration:postgres:run
+     ```
+   **Catatan**: Migration sekarang selalu membuat job pg_cron ketika dijalankan ke database yang punya pg_cron (tidak lagi bergantung pada `USE_APP_LEVEL_SCHEDULER`). Jika Anda pernah menjalankan migration ke postgres saat `USE_APP_LEVEL_SCHEDULER=true` dulu sehingga job tidak terbentuk, lakukan sekali: `DB_NAME=postgres npm run migration:postgres:revert`, lalu `DB_NAME=postgres npm run migration:postgres:run` lagi.
 
-4. **Verify Function Created**:
+4. **Verify Function Created** (di database target, mis. platform_db):
    ```sql
    SELECT proname FROM pg_proc WHERE proname = 'sp_process_bale_daily';
    ```
 
-5. **Verify Cron Job**:
+5. **Verify Cron Job** (di database yang punya pg_cron, mis. postgres):
    ```sql
-   SELECT * FROM cron.job WHERE jobname = 'process-bale-daily';
+   SELECT jobid, jobname, schedule, database FROM cron.job WHERE jobname LIKE 'process-bale-daily-%';
    ```
+   **Penting**: pg_cron memakai Row-Level Security (RLS) pada `cron.job`. Anda hanya melihat job yang dibuat oleh **user yang sama** dengan yang sedang login. Jadi pastikan koneksi ke database `postgres` memakai **user yang sama dengan DB_USER** saat menjalankan migration (bukan user lain, mis. postgres vs app_user). Jika Anda login sebagai superuser (mis. postgres), Anda akan melihat job yang dibuat oleh user tersebut.
 
 #### Option 3: Using pgAgent (Cross-platform, including Windows)
 

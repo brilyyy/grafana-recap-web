@@ -1,6 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm'
 import { getDatabaseAdapter } from '../lib/db-factory'
-import { buildSimpleUpsertQuery } from '../lib/sql-helpers'
 
 export class SeedDefaultApps1770030366140 implements MigrationInterface {
   name = 'SeedDefaultApps1770030366140'
@@ -13,11 +12,38 @@ export class SeedDefaultApps1770030366140 implements MigrationInterface {
     return this.getAdapter().quoteIdentifier(name)
   }
 
+  /**
+   * Returns true if running in the default PostgreSQL database
+   * (identified by the presence of the pg_cron extension).
+   * Seed data must only be inserted into target databases.
+   */
+  private async isDefaultCronDatabase(queryRunner: QueryRunner): Promise<boolean> {
+    try {
+      const raw: any = await queryRunner.query(`
+        SELECT EXISTS(
+          SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
+        ) AS exists
+      `)
+      const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0] ?? raw
+      return row != null && (row.exists === true || row.exists === 't')
+    } catch {
+      return false
+    }
+  }
+
   public async up(queryRunner: QueryRunner): Promise<void> {
     const adapter = this.getAdapter()
+    const isPostgres = adapter.getDatabaseType() === 'postgresql'
+
+    // Skip seeding in the default PostgreSQL database (pg_cron host).
+    // The app_identifier table only exists in target databases.
+    if (isPostgres && await this.isDefaultCronDatabase(queryRunner)) {
+      console.log('ℹ️  SeedDefaultApps: default cron database detected — skipping seed')
+      return
+    }
+
     const tableName = this.quoteIdentifier('app_identifier')
     const appNameCol = this.quoteIdentifier('app_name')
-    const isPostgres = adapter.getDatabaseType() === 'postgresql'
 
     const defaultApps = [
       'Bale',
@@ -50,6 +76,15 @@ export class SeedDefaultApps1770030366140 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    const adapter = this.getAdapter()
+    const isPostgres = adapter.getDatabaseType() === 'postgresql'
+
+    // Nothing to remove in the default cron database — seed was never inserted there
+    if (isPostgres && await this.isDefaultCronDatabase(queryRunner)) {
+      console.log('ℹ️  SeedDefaultApps: default cron database detected — skipping down')
+      return
+    }
+
     const tableName = this.quoteIdentifier('app_identifier')
     const appNameCol = this.quoteIdentifier('app_name')
     
@@ -64,9 +99,6 @@ export class SeedDefaultApps1770030366140 implements MigrationInterface {
       'Bale Korpora'
     ]
 
-    const adapter = this.getAdapter()
-    const isPostgres = adapter.getDatabaseType() === 'postgresql'
-    
     if (isPostgres) {
       // PostgreSQL: Use parameterized query
       const placeholders = defaultApps.map((_, i) => `$${i + 1}`).join(', ')

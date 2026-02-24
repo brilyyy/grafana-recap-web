@@ -17,6 +17,26 @@ export class AddPerformanceIndexes1771402669476 implements MigrationInterface {
   }
 
   /**
+   * Returns true if running in the default PostgreSQL database
+   * (identified by the presence of the pg_cron extension).
+   * The default database only manages scheduling — application tables
+   * do NOT exist there, so index creation must be skipped.
+   */
+  private async isDefaultCronDatabase(queryRunner: QueryRunner): Promise<boolean> {
+    try {
+      const raw: any = await queryRunner.query(`
+        SELECT EXISTS(
+          SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
+        ) AS exists
+      `)
+      const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0] ?? raw
+      return row != null && (row.exists === true || row.exists === 't')
+    } catch {
+      return false
+    }
+  }
+
+  /**
    * Create index safely - check if exists first for MySQL 8.4 compatibility
    * MySQL 8.4 doesn't support IF NOT EXISTS for CREATE INDEX
    */
@@ -48,6 +68,17 @@ export class AddPerformanceIndexes1771402669476 implements MigrationInterface {
   }
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    const adapter = this.getAdapter()
+    const isPostgres = adapter.getDatabaseType() === 'postgresql'
+
+    // Skip index creation in the default PostgreSQL database (pg_cron host).
+    // Application tables (app_success_rate, app_processing_log, etc.) only exist
+    // in target databases (e.g. platform_db, platform_db_dev).
+    if (isPostgres && await this.isDefaultCronDatabase(queryRunner)) {
+      console.log('ℹ️  AddPerformanceIndexes: default cron database detected — skipping index creation')
+      return
+    }
+
     // 1. app_success_rate table indexes
     await this.createIndexSafely(
       queryRunner,
@@ -119,6 +150,12 @@ export class AddPerformanceIndexes1771402669476 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     const adapter = this.getAdapter()
     const isPostgres = adapter.getDatabaseType() === 'postgresql'
+
+    // Nothing to drop in the default cron database — indexes were never created there
+    if (isPostgres && await this.isDefaultCronDatabase(queryRunner)) {
+      console.log('ℹ️  AddPerformanceIndexes: default cron database detected — skipping index drops')
+      return
+    }
     
     // List of all indexes to drop
     const indexes = [

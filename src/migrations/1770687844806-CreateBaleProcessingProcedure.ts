@@ -84,11 +84,16 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
   }
 
   /**
-   * Get list of databases that need cron jobs
-   * These databases will have cron jobs created in the default PostgreSQL database
+   * Get list of databases that need cron jobs (from .env TARGET_DATABASES).
+   * These databases will have cron jobs created in the default PostgreSQL database.
+   * Format: comma-separated, e.g. TARGET_DATABASES=platform_db,platform_db_dev
    */
   private getTargetDatabases(): string[] {
-    return ['platform_db', 'platform_db_dev']
+    const raw = process.env.TARGET_DATABASES?.trim()
+    if (!raw) {
+      return ['platform_db', 'platform_db_dev']
+    }
+    return raw.split(',').map((db) => db.trim()).filter(Boolean)
   }
 
   /**
@@ -97,10 +102,12 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
    */
   private async isDefaultCronDatabase(queryRunner: QueryRunner): Promise<boolean> {
     try {
-      const [result]: any = await queryRunner.query(`
+      const raw: any = await queryRunner.query(`
         SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
       `)
-      return result && result[0]?.exists === true
+      // TypeORM/pg can return: array of rows, or { rows: [...] }; first row may be at raw[0] or raw.rows[0]
+      const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0] ?? raw
+      return row != null && (row.exists === true || row.exists === 't')
     } catch (error) {
       return false
     }
@@ -336,11 +343,12 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
       return
     }
     
-    const [pgCronCheck]: any = await queryRunner.query(`
+    const pgCronCheckRaw: any = await queryRunner.query(`
       SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
     `)
-    
-    if (pgCronCheck && pgCronCheck[0]?.exists) {
+    const pgCronRow = Array.isArray(pgCronCheckRaw) ? pgCronCheckRaw[0] : pgCronCheckRaw?.rows?.[0] ?? pgCronCheckRaw
+    const hasPgCron = pgCronRow != null && (pgCronRow.exists === true || pgCronRow.exists === 't')
+    if (hasPgCron) {
       try {
         const cronSchedule = this.getCronSchedule()
         const escapedSchedule = cronSchedule.replace(/'/g, "''")
@@ -353,12 +361,13 @@ export class CreateBaleProcessingProcedure1770687844806 implements MigrationInte
           
           try {
             await queryRunner.query(`
-              SELECT cron.schedule(
+              SELECT cron.schedule_in_database(
                 '${jobName}',
                 '${escapedSchedule}',  -- Schedule from BALE_PROCESSING_SCHEDULE env var
                 $$SELECT sp_process_bale_daily(NULL)$$,
-                '${escapedDbName}',  -- Database parameter: execute in this database
-                NULL  -- Use current user
+                '${escapedDbName}',  -- Target database (pg_cron 1.4+)
+                NULL,  -- username: NULL = current user
+                true   -- active
               );
             `)
             console.log(`✅ pg_cron job created for database '${dbName}' with schedule: ${cronSchedule}`)
@@ -1120,11 +1129,12 @@ $$ LANGUAGE plpgsql;
       console.log('   Only removing cron jobs - not dropping tables/procedures')
       
       // Remove pg_cron jobs for all target databases
-      const [pgCronCheck]: any = await queryRunner.query(`
+      const pgCronCheckRaw: any = await queryRunner.query(`
         SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists
       `)
-      
-      if (pgCronCheck && pgCronCheck[0]?.exists) {
+      const pgCronRowDown = Array.isArray(pgCronCheckRaw) ? pgCronCheckRaw[0] : pgCronCheckRaw?.rows?.[0] ?? pgCronCheckRaw
+      const hasPgCronDown = pgCronRowDown != null && (pgCronRowDown.exists === true || pgCronRowDown.exists === 't')
+      if (hasPgCronDown) {
         const targetDatabases = this.getTargetDatabases()
         
         // Remove pg_cron jobs for each target database

@@ -21,6 +21,26 @@ export class InitialSchema1770030366139 implements MigrationInterface {
   }
 
   /**
+   * Returns true if running in the default PostgreSQL database
+   * (identified by the presence of the pg_cron extension).
+   * The default database only handles cron job scheduling —
+   * application tables must NOT be created there.
+   */
+  private async isDefaultCronDatabase(queryRunner: QueryRunner): Promise<boolean> {
+    try {
+      const raw: any = await queryRunner.query(`
+        SELECT EXISTS(
+          SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
+        ) AS exists
+      `)
+      const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0] ?? raw
+      return row != null && (row.exists === true || row.exists === 't')
+    } catch {
+      return false
+    }
+  }
+
+  /**
    * Create index safely - check if exists first for MySQL 8.4 compatibility
    * MySQL 8.4 doesn't support IF NOT EXISTS for CREATE INDEX
    */
@@ -54,6 +74,14 @@ export class InitialSchema1770030366139 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const adapter = this.getAdapter()
     const isPostgres = adapter.getDatabaseType() === 'postgresql'
+
+    // Skip table creation in the default PostgreSQL database (pg_cron host).
+    // That database only manages scheduling; application tables live in target databases.
+    if (isPostgres && await this.isDefaultCronDatabase(queryRunner)) {
+      console.log('ℹ️  InitialSchema: default cron database detected — skipping table creation')
+      return
+    }
+
     const timestamps = buildTimestampColumns(adapter)
     const engineClause = isPostgres ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     
@@ -65,7 +93,6 @@ export class InitialSchema1770030366139 implements MigrationInterface {
     // Create app_identifier table
     const appIdentifierTable = this.quoteIdentifier('app_identifier')
     const appNameCol = this.quoteIdentifier('app_name')
-    const idxAppName = this.quoteIdentifier('idx_app_name')
     
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS ${appIdentifierTable} (
@@ -177,11 +204,10 @@ export class InitialSchema1770030366139 implements MigrationInterface {
         ${this.quoteIdentifier('rc')} VARCHAR(50) NULL,
         ${this.quoteIdentifier('rc_description')} VARCHAR(500) NULL,
         ${this.quoteIdentifier('status_transaksi')} VARCHAR(255) NULL,
-        ${errorTypeColUnmapped},
-        ${timestamps.createdAt}
+        ${errorTypeColUnmapped}
       )${engineClause}
     `)
-    
+
     // Create foreign key
     await queryRunner.query(`
       ALTER TABLE ${unmappedRcTable}
@@ -190,16 +216,14 @@ export class InitialSchema1770030366139 implements MigrationInterface {
       REFERENCES ${appIdentifierTable}(${this.quoteIdentifier('id')})
       ON DELETE CASCADE
     `)
-    
-    // Create unique constraint (MySQL 8.4 compatible)
-    await this.createIndexSafely(queryRunner, 'unique_unmapped_entry', 'unmapped_rc', ['id_app_identifier', 'jenis_transaksi', 'rc'], true)
 
-    // Create users table with superadmin role
+    // Create unique constraint for unmapped_rc (MySQL 8.4 compatible)
+    await this.createIndexSafely(queryRunner, 'unique_unmapped_rc_entry', 'unmapped_rc', ['id_app_identifier', 'jenis_transaksi', 'rc'], true)
+
+    // Create users table
     const usersTable = this.quoteIdentifier('users')
-    const roleCol = buildEnumColumn(adapter, 'role', ['superadmin', 'admin', 'user'], false)
-    const defaultRole = "DEFAULT 'user'"
-    // Add DEFAULT to role column
-    const roleColWithDefault = roleCol.replace('NOT NULL', `NOT NULL ${defaultRole}`)
+    const roleColRaw = buildEnumColumn(adapter, 'role', ['superadmin', 'admin', 'user'], false)
+    const roleColWithDefault = roleColRaw.replace('NOT NULL', "NOT NULL DEFAULT 'user'")
     
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS ${usersTable} (
@@ -347,7 +371,16 @@ export class InitialSchema1770030366139 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const adapter = this.getAdapter()
-    
+    const isPostgres = adapter.getDatabaseType() === 'postgresql'
+
+    // Nothing to drop in the default cron database — tables were never created there
+    if (isPostgres && await this.isDefaultCronDatabase(queryRunner)) {
+      console.log('ℹ️  InitialSchema: default cron database detected — skipping table drops')
+      return
+    }
+
+    const appIdentifierTable = this.quoteIdentifier('app_identifier')
+
     // Drop tables in reverse order (respecting foreign keys)
     await queryRunner.query(buildDropTableQuery(adapter, 'pending_user_requests', true))
     await queryRunner.query(buildDropTableQuery(adapter, 'rate_limit_logs', true))
@@ -356,10 +389,27 @@ export class InitialSchema1770030366139 implements MigrationInterface {
     await queryRunner.query(buildDropTableQuery(adapter, 'unmapped_rc', true))
     await queryRunner.query(buildDropTableQuery(adapter, 'response_code_dictionary', true))
     await queryRunner.query(buildDropTableQuery(adapter, 'app_success_rate', true))
-    await queryRunner.query(buildDropTableQuery(adapter, 'app_identifier', true))
-    
+
+    // app_identifier may be referenced by app_processing_log (from CreateBaleProcessingProcedure).
+    // Drop that dependency so we can drop app_identifier.
+    if (isPostgres) {
+      await queryRunner.query(`DROP TABLE IF EXISTS ${appIdentifierTable} CASCADE`)
+    } else {
+      // MySQL: drop FK from app_processing_log if it exists (table created by later migration)
+      try {
+        const processingLogTable = this.quoteIdentifier('app_processing_log')
+        const fkName = this.quoteIdentifier('fk_app_processing_log_id_app_identifier')
+        await queryRunner.query(
+          `ALTER TABLE ${processingLogTable} DROP FOREIGN KEY ${fkName}`
+        )
+      } catch {
+        // Table or FK may not exist (e.g. CreateBaleProcessingProcedure not run)
+      }
+      await queryRunner.query(buildDropTableQuery(adapter, 'app_identifier', true))
+    }
+
     // Drop trigger function for PostgreSQL
-    if (adapter.getDatabaseType() === 'postgresql') {
+    if (isPostgres) {
       await queryRunner.query(`DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE`)
     }
   }
