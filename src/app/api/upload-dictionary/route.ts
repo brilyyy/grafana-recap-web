@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
+import { env } from '@/env'
 import type { ApiResponse } from '@/types'
 import * as XLSX from 'xlsx'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+// Upsert for response_code_dictionary with COALESCE to preserve existing rc_description
+const rcDictUpsertSql = isPostgres
+  ? `INSERT INTO "response_code_dictionary" ("id_app_identifier","jenis_transaksi","rc","rc_description","error_type") VALUES (?,?,?,?,?) ON CONFLICT ("id_app_identifier","jenis_transaksi","rc") DO UPDATE SET "error_type"=EXCLUDED."error_type","rc_description"=COALESCE(EXCLUDED."rc_description","response_code_dictionary"."rc_description")`
+  : 'INSERT INTO `response_code_dictionary` (`id_app_identifier`,`jenis_transaksi`,`rc`,`rc_description`,`error_type`) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE `error_type`=VALUES(`error_type`),`rc_description`=COALESCE(VALUES(`rc_description`),`rc_description`)'
 
 // Helper function to parse CSV
 function parseCSV(text: string): string[][] {
@@ -75,7 +83,7 @@ function parseCSV(text: string): string[][] {
 export async function POST(request: NextRequest) {
   try {
     // Require authentication
-    const session = requireAuth(request)
+    const session = await requireAuth(request)
     const formData = await request.formData()
     const file = formData.get('dictionaryFile') as File
     const selectedApplicationId = formData.get('selectedApplicationId') as string
@@ -421,32 +429,8 @@ export async function POST(request: NextRequest) {
 
       const applicationName = appResult[0].app_name
 
-      // Use upsert query to handle duplicates
-      const { buildSimpleUpsertQuery } = await import('@/lib/sql-helpers')
-      
-      let insertQuery = buildSimpleUpsertQuery(
-        getDb(),
-        'response_code_dictionary',
-        ['id_app_identifier', 'jenis_transaksi', 'rc', 'rc_description', 'error_type'],
-        ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
-        ['error_type', 'rc_description'] // update columns
-      )
-      
-      if (getDb().getDatabaseType() === 'mysql') {
-        insertQuery = insertQuery.replace(
-          /rc_description = VALUES\(rc_description\)/,
-          'rc_description = COALESCE(VALUES(rc_description), rc_description)'
-        )
-      } else {
-        const quotedTable = getDb().quoteIdentifier('response_code_dictionary')
-        insertQuery = insertQuery.replace(
-          /"rc_description" = EXCLUDED\."rc_description"/,
-          `"rc_description" = COALESCE(EXCLUDED."rc_description", ${quotedTable}."rc_description")`
-        )
-      }
-
       for (const entry of dictionaryData) {
-          await connection.execute(insertQuery, [
+          await connection.execute(rcDictUpsertSql, [
             applicationId,
             entry.jenis_transaksi,
             entry.rc,

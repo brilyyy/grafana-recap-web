@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 import { requireSuperAdmin } from '@/lib/auth'
 import type { ApiResponse } from '@/types'
 
@@ -18,7 +21,7 @@ interface ProcessingLog {
 // GET - Fetch processing logs by app name, month, and year
 export async function GET(request: NextRequest) {
   try {
-    const session = requireSuperAdmin(request)
+    const session = await requireSuperAdmin(request)
 
     const { searchParams } = new URL(request.url)
     const appName = searchParams.get('app_name')
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
       // Build query to get all processing logs for the specified month and year
       // We'll filter by app_name and date range (first day to last day of the month)
       const startDate = `${year}-${String(monthNum).padStart(2, '0')}-01`
-      const dbType = getDb().getDatabaseType()
+      const dbType = isPostgres ? 'postgresql' : 'mysql'
       
       // Calculate last day of month
       const lastDay = new Date(yearNum, monthNum, 0).getDate()

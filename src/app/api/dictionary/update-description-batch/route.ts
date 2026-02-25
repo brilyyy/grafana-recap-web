@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import type { ApiResponse } from '@/types'
 
 // POST - Update multiple dictionary entries rc_description (bulk)

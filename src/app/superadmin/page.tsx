@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import LogoutButton from '@/components/LogoutButton'
+import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
 
 interface User {
   id: number
@@ -111,39 +113,21 @@ export default function SuperadminPage() {
     [date: string]: { loading: boolean; error: string | null }
   }>({})
 
+  const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
+
   useEffect(() => {
-    let isMounted = true
-
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check')
-        if (!isMounted) return
-
-        const data = await response.json()
-
-        if (data.success && data.data.authenticated) {
-          setIsAuthenticated(true)
-          setUserRole(data.data.user.role)
-
-          if (data.data.user.role !== 'superadmin') {
-            router.replace('/')
-            return
-          }
-        } else {
-          router.replace('/login')
-        }
-      } catch (error) {
-        if (!isMounted) return
+    if (!authLoading && authCheck !== undefined) {
+      if (!authCheck?.data?.authenticated) {
         router.replace('/login')
+      } else {
+        const role = (authCheck.data as any)?.user?.role
+        setIsAuthenticated(true)
+        setUserRole(role)
+        if (role !== 'superadmin') router.replace('/')
       }
     }
+  }, [authCheck, authLoading, router])
 
-    checkAuth()
-
-    return () => {
-      isMounted = false
-    }
-  }, [router])
 
   useEffect(() => {
     if (isAuthenticated && userRole === 'superadmin') {
@@ -483,10 +467,10 @@ export default function SuperadminPage() {
 
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-white/70">Loading...</p>
         </div>
       </div>
     )
@@ -497,7 +481,7 @@ export default function SuperadminPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 superadmin-page" data-page="superadmin">
+    <main className="min-h-screen p-4 md:p-6 superadmin-page" data-page="superadmin">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -508,12 +492,14 @@ export default function SuperadminPage() {
             <p className="text-white/70 text-sm">Manage users and monitor system activities</p>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => router.push('/')}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="bg-gray-700/80 hover:bg-gray-600/80 text-white border-white/10"
             >
               Back to Dashboard
-            </button>
+            </Button>
             <LogoutButton />
           </div>
         </div>

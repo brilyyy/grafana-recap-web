@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireSuperAdmin } from '@/lib/auth'
 import type { ApiResponse } from '@/types'
 
@@ -16,7 +16,7 @@ export interface User {
 export async function GET(request: NextRequest) {
   try {
     // Require superadmin role
-    const session = requireSuperAdmin(request)
+    const session = await requireSuperAdmin(request)
 
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''

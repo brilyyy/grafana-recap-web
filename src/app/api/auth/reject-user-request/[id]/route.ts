@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireSuperAdmin } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
@@ -13,7 +13,7 @@ export async function POST(
 ) {
   try {
     // Require superadmin role
-    const session = requireSuperAdmin(request)
+    const session = await requireSuperAdmin(request)
 
     const { id } = await params
     const requestId = parseInt(id)

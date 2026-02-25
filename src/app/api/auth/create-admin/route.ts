@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
-import { normalizeDbError } from '@/lib/db-helpers'
 import type { ApiResponse } from '@/types'
+
+function isDuplicateError(error: any): boolean {
+  return error?.code === 'ER_DUP_ENTRY' || error?.code === 1062 || error?.code === '23505'
+}
 
 /**
  * Create admin user (first-time setup only)
@@ -118,10 +121,7 @@ export async function POST(request: NextRequest) {
       message: 'Admin user created successfully (first-time setup)',
     } as ApiResponse)
   } catch (error: any) {
-    // Normalize error for database-agnostic handling
-    const normalizedError = normalizeDbError(error)
-    
-    if (normalizedError.code === 'DUPLICATE_ENTRY') {
+    if (isDuplicateError(error)) {
       return NextResponse.json(
         {
           success: false,

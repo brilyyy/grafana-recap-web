@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
@@ -12,7 +15,7 @@ import type { ApiResponse } from '@/types'
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = requireAuth(request)
+    const session = await requireAuth(request)
     
     // Check if user has superadmin role
     if (session.role !== 'superadmin') {
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const connection = await pool.getConnection()
     try {
-      const dbType = getDb().getDatabaseType()
+      const dbType = isPostgres ? 'postgresql' : 'mysql'
       let dateParamForDB = null
       if (dbType === 'postgresql') {
         dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null

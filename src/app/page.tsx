@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AddAppCard from '@/components/AddAppCard'
 import AppListCard from '@/components/AppListCard'
@@ -10,57 +10,36 @@ import UnmappedRcCard from '@/components/UnmappedRcCard'
 import NoRcTransactionCard from '@/components/NoRcTransactionCard'
 import DictionaryCard from '@/components/DictionaryCard'
 import LogoutButton from '@/components/LogoutButton'
+import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
+import { Settings } from 'lucide-react'
 
 export default function Home() {
   const router = useRouter()
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const [userRole, setUserRole] = useState<string | null>(null)
+  const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
+  const isAuthenticated = authCheck?.data?.authenticated ?? null
+  const userRole = (authCheck?.data as any)?.user?.role ?? null
 
   useEffect(() => {
-    let isMounted = true
-    
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check')
-        if (!isMounted) return
-        
-        const data = await response.json()
-        
-        if (data.success && data.data.authenticated) {
-          setIsAuthenticated(true)
-          setUserRole(data.data.user.role)
-        } else {
-          // Not authenticated, redirect to login
-          router.replace('/login')
-        }
-      } catch (error) {
-        if (!isMounted) return
-        // Error checking auth, redirect to login
-        router.replace('/login')
-      }
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login')
     }
-    
-    checkAuth()
-    
-    return () => {
-      isMounted = false
-    }
-  }, []) // Remove router from dependencies
+  }, [isAuthenticated, authLoading, router])
 
   // Show loading state while checking authentication
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-white/70">Loading...</p>
         </div>
       </div>
     )
   }
 
   // If not authenticated, don't render (redirect will happen)
-  if (!isAuthenticated) {
+  if (authLoading || !isAuthenticated) {
     return null
   }
 
@@ -78,32 +57,15 @@ export default function Home() {
         </div>
         <div className="w-full flex justify-center gap-2">
           {userRole === 'superadmin' && (
-            <button
+            <Button
               onClick={() => router.push('/superadmin')}
-              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 border border-purple-400/30"
+              size="sm"
               title="Superadmin Dashboard"
+              className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white border-purple-400/30"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
+              <Settings className="w-4 h-4" />
               <span>Superadmin</span>
-            </button>
+            </Button>
           )}
           <LogoutButton />
         </div>

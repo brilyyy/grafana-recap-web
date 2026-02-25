@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
@@ -7,7 +7,7 @@ import type { ApiResponse } from '@/types'
 // PATCH - Update dictionary entry error_type
 export async function PATCH(request: NextRequest) {
   try {
-    const session = requireAuth(request)
+    const session = await requireAuth(request)
     const body = await request.json()
     const { id, error_type } = body
 

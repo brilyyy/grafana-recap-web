@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
-import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
 import type { ApiResponse } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+const rcDictUpsertSql = isPostgres
+  ? `INSERT INTO "response_code_dictionary" ("id_app_identifier","jenis_transaksi","rc","error_type") VALUES (?,?,?,?) ON CONFLICT ("id_app_identifier","jenis_transaksi","rc") DO UPDATE SET "error_type"=EXCLUDED."error_type"`
+  : 'INSERT INTO `response_code_dictionary` (`id_app_identifier`,`jenis_transaksi`,`rc`,`error_type`) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE `error_type`=VALUES(`error_type`)'
 
 // POST - Submit multiple mappings for unmapped RCs
 export async function POST(request: NextRequest) {
@@ -60,17 +66,7 @@ export async function POST(request: NextRequest) {
           const { id, id_app_identifier, jenis_transaksi, rc, error_type } = mapping
 
           // 1. Insert into response_code_dictionary with upsert
-          const upsertQuery = buildSimpleUpsertQuery(
-            getDb(),
-            'response_code_dictionary',
-            ['id_app_identifier', 'jenis_transaksi', 'rc', 'error_type'],
-            ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
-            ['error_type'] // update columns
-          )
-          await connection.execute(
-            upsertQuery,
-            [id_app_identifier, jenis_transaksi || '', rc, error_type]
-          )
+          await connection.execute(rcDictUpsertSql, [id_app_identifier, jenis_transaksi || '', rc, error_type])
 
           // 2. Update all app_success_rate entries that match this RC
           // This includes:

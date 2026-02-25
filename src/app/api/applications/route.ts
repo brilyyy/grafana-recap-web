@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
-import { getInsertId, normalizeDbError } from '@/lib/db-helpers'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
 import type { ApiResponse, Application } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+function isDuplicateError(error: any): boolean {
+  return error?.code === 'ER_DUP_ENTRY' || error?.code === 1062 || error?.code === '23505'
+}
 
 // GET - Fetch all applications
 export async function GET() {
@@ -42,12 +48,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const [rows, result] = await pool.execute(
-      'INSERT INTO app_identifier (app_name) VALUES (?)',
-      [appName.trim()]
-    )
-
-    const insertId = getInsertId(result)
+    const insertSql = isPostgres
+      ? 'INSERT INTO app_identifier (app_name) VALUES (?) RETURNING id'
+      : 'INSERT INTO app_identifier (app_name) VALUES (?)'
+    const [rows] = await pool.execute(insertSql, [appName.trim()])
+    const insertId = isPostgres
+      ? (rows[0] as any)?.id
+      : (rows[0] as any)?.insertId ?? 0
 
     return NextResponse.json({
       success: true,
@@ -60,11 +67,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error adding application:', error.message)
 
-    // Normalize error for database-agnostic handling
-    const normalizedError = normalizeDbError(error)
-    
-    // Check for duplicate entry
-    if (normalizedError.code === 'DUPLICATE_ENTRY') {
+    if (isDuplicateError(error)) {
       return NextResponse.json(
         {
           success: false,
@@ -83,4 +86,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

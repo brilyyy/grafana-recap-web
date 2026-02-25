@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse, SuccessRateEntry } from '@/types'
@@ -85,7 +88,7 @@ const optionalColumns = ['RC Description']
 
 export async function POST(request: NextRequest) {
   try {
-    const session = requireAuth(request)
+    const session = await requireAuth(request)
     const formData = await request.formData()
     const file = formData.get('successRateFile') as File
     const selectedApplicationId = formData.get('selectedApplicationId') as string
@@ -719,7 +722,7 @@ export async function POST(request: NextRequest) {
               // Use database-agnostic INSERT IGNORE / ON CONFLICT DO NOTHING
               let insertUnmappedQuery: string
               
-              if (getDb().getDatabaseType() === 'postgresql') {
+              if (isPostgres) {
                 // PostgreSQL: Use ON CONFLICT DO NOTHING (connection.execute will convert ? to $1, $2, etc.)
                 insertUnmappedQuery = `
                   INSERT INTO unmapped_rc 

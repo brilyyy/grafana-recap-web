@@ -6,7 +6,6 @@ const nextConfig = {
       'pg',
       'node-cron',
       'mysql2',
-      'typeorm',
     ],
   },
 }

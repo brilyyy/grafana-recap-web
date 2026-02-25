@@ -5,14 +5,42 @@
 let baleProcessingTask: any = null
 
 /**
- * Lazy load database modules to prevent webpack from bundling them in client
+ * Execute the Bale daily processing stored procedure.
+ * Uses raw driver imports (no @/ aliases) so this works in both
+ * the CJS server-dev.js context and the Next.js ESM context.
  */
-async function getDatabaseModules() {
-  // Dynamic import to prevent static analysis by webpack
-  const { default: pool, getDb } = await import('./db.ts')
-  return {
-    pool,
-    adapter: getDb(),
+async function executeBaleProcessing(): Promise<void> {
+  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
+  const isPostgres = dbType === 'postgresql' || dbType === 'postgres'
+
+  if (isPostgres) {
+    const { Pool } = await import('pg')
+    const pool = new Pool({
+      host:     process.env.DB_HOST,
+      port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    })
+    try {
+      await pool.query('SELECT sp_process_bale_daily($1)', [null])
+    } finally {
+      await pool.end()
+    }
+  } else {
+    const mysql = await import('mysql2/promise')
+    const connection = await mysql.createConnection({
+      host:     process.env.DB_HOST,
+      port:     parseInt(process.env.DB_PORT ?? '3306', 10),
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    })
+    try {
+      await connection.execute('CALL sp_process_bale_daily(?)', [null])
+    } finally {
+      await connection.end()
+    }
   }
 }
 
@@ -20,15 +48,16 @@ async function getDatabaseModules() {
  * Check if application-level scheduler should be used
  */
 function shouldUseAppLevelScheduler(): boolean {
-  console.log('USE_APP_LEVEL_SCHEDULER : ', process.env.USE_APP_LEVEL_SCHEDULER)
-  return process.env.USE_APP_LEVEL_SCHEDULER === 'true'
+  const value = process.env.USE_APP_LEVEL_SCHEDULER
+  console.log('USE_APP_LEVEL_SCHEDULER : ', value)
+  return value === 'true'
 }
 
 /**
  * Get scheduler timezone from environment or use default
  */
 function getSchedulerTimezone(): string {
-  return process.env.SCHEDULER_TIMEZONE || 'Asia/Jakarta'
+  return process.env.SCHEDULER_TIMEZONE ?? 'Asia/Jakarta'
 }
 
 /**
@@ -37,7 +66,7 @@ function getSchedulerTimezone(): string {
  * Format: minute hour day month dayOfWeek
  */
 function getCronSchedule(): string {
-  const schedule = process.env.BALE_PROCESSING_SCHEDULE || '1 0 * * *'
+  const schedule = process.env.BALE_PROCESSING_SCHEDULE ?? '1 0 * * *'
   
   // Validate cron format (basic validation)
   const cronPattern = /^(\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([12]?\d|3[01])) (\*|([1-9]|1[0-2])) (\*|([0-6]))$/
@@ -95,29 +124,10 @@ async function setupBaleProcessingScheduler(): Promise<void> {
     async () => {
       try {
         console.log('🔄 Starting scheduled BALE processing...')
-        
-        // Lazy load database modules only when needed (at runtime)
-        const { pool, adapter } = await getDatabaseModules()
-        const isPostgres = adapter.getDatabaseType() === 'postgresql'
-        const connection = await pool.getConnection()
-        
-        try {
-          const dateParamForDB = null // NULL means H-1 (yesterday)
-          
-          if (isPostgres) {
-            await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
-          } else {
-            await connection.execute('CALL sp_process_bale_daily(?)', [dateParamForDB])
-          }
-          
-          console.log('✅ Scheduled BALE processing completed successfully')
-        } catch (error: any) {
-          console.error('❌ Scheduled BALE processing failed:', error.message)
-        } finally {
-          connection.release()
-        }
+        await executeBaleProcessing()
+        console.log('✅ Scheduled BALE processing completed successfully')
       } catch (error: any) {
-        console.error('❌ Error in scheduled BALE processing:', error.message)
+        console.error('❌ Scheduled BALE processing failed:', error.message)
       }
     },
     {
@@ -157,13 +167,12 @@ export async function initializeScheduler(): Promise<void> {
     return
   }
 
-  // Lazy load adapter to check database type
-  const { adapter } = await getDatabaseModules()
-  const dbType = adapter.getDatabaseType()
-  
+  // Check DB type directly from env — no @/ import needed
+  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
+
   // Only setup for PostgreSQL when app-level scheduler is enabled
   // MySQL should continue using Event Scheduler
-  if (dbType === 'postgresql') {
+  if (dbType === 'postgresql' || dbType === 'postgres') {
     console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
     await setupBaleProcessingScheduler()
   } else {
