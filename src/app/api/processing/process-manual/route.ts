@@ -76,18 +76,28 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate: date must be < current date (only H-1 and earlier can be processed)
-      // Compare date strings directly (YYYY-MM-DD format) to avoid timezone issues
-      const today = new Date()
-      const todayStr = today.toISOString().split('T')[0]
-      
-      if (date >= todayStr) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Cannot process future dates. Only H-1 (yesterday) and earlier dates can be processed.',
-          } as ApiResponse,
-          { status: 400 }
-        )
+      // Use database's current date to avoid timezone mismatch: server may be UTC while DB uses
+      // e.g. Asia/Jakarta. If server says "2026-02-26" (UTC) but DB says "2026-02-27", we would
+      // wrongly reject processing 2026-02-26 (yesterday in DB timezone).
+      const connection = await pool.getConnection()
+      try {
+        const [todayRows]: any = isPostgres
+          ? await connection.execute(`SELECT CURRENT_DATE::text AS today`)
+          : await connection.execute(`SELECT DATE(NOW()) AS today`)
+        const todayStr = String(todayRows?.[0]?.today ?? '').split('T')[0].slice(0, 10)
+        connection.release()
+        if (date >= todayStr) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Cannot process future dates. Only H-1 (yesterday) and earlier dates can be processed.',
+            } as ApiResponse,
+            { status: 400 }
+          )
+        }
+      } catch (e) {
+        connection.release()
+        throw e
       }
     }
 
