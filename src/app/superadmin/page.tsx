@@ -49,7 +49,7 @@ interface AuditStats {
   topUsers: Array<{ username: string; count: number }>
 }
 
-type TabType = 'users' | 'audit-logs' | 'app-processing'
+type TabType = 'users' | 'audit-logs' | 'app-processing' | 'app-config'
 
 export default function SuperadminPage() {
   const router = useRouter()
@@ -114,8 +114,11 @@ export default function SuperadminPage() {
   const [processingStates, setProcessingStates] = useState<{
     [date: string]: { loading: boolean; error: string | null }
   }>({})
+  const [editingAppConfig, setEditingAppConfig] = useState<{ id: number; db_name: string; raw_table_name: string } | null>(null)
 
   const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
+  const { data: appsWithConfig, refetch: refetchAppsConfig } = trpc.applications.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
+  const updateConfigMutation = trpc.applications.updateConfig.useMutation({ onSuccess: () => refetchAppsConfig() })
 
   useEffect(() => {
     if (!authLoading && authCheck !== undefined) {
@@ -140,6 +143,8 @@ export default function SuperadminPage() {
         fetchAuditLogs()
         fetchStats()
       } else if (activeTab === 'app-processing') {
+        fetchApplications()
+      } else if (activeTab === 'app-config') {
         fetchApplications()
       }
     }
@@ -537,6 +542,16 @@ export default function SuperadminPage() {
             }`}
           >
             Application Data Processing
+          </button>
+          <button
+            onClick={() => setActiveTab('app-config')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'app-config'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            App Config
           </button>
         </div>
 
@@ -1430,6 +1445,100 @@ export default function SuperadminPage() {
                 )
               })()
             ) : null}
+          </div>
+        )}
+
+        {/* App Config Tab */}
+        {activeTab === 'app-config' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-4">Application Config (Cross-DB)</h3>
+              <p className="text-white/70 text-sm mb-4">
+                Configure db_name and raw_table_name for each app. CDC creates raw tables in db_{'{app_name}'}. Update these when adding new apps or changing CDC targets.
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-white/5">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">App Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">db_name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">raw_table_name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {appsWithConfig?.data?.applications?.map((app: { id: number; app_name: string; db_name?: string | null; raw_table_name?: string | null }) => (
+                      <tr key={app.id} className="hover:bg-white/5">
+                        <td className="px-4 py-3 text-sm text-white/90">{app.app_name}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {editingAppConfig?.id === app.id ? (
+                            <input
+                              type="text"
+                              value={editingAppConfig.db_name}
+                              onChange={(e) => setEditingAppConfig((p) => p ? { ...p, db_name: e.target.value } : null)}
+                              className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                            />
+                          ) : (
+                            <span className="text-white/90">{app.db_name || '-'}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {editingAppConfig?.id === app.id ? (
+                            <input
+                              type="text"
+                              value={editingAppConfig.raw_table_name}
+                              onChange={(e) => setEditingAppConfig((p) => p ? { ...p, raw_table_name: e.target.value } : null)}
+                              className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                            />
+                          ) : (
+                            <span className="text-white/90">{app.raw_table_name || '-'}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {editingAppConfig?.id === app.id ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  updateConfigMutation.mutate(
+                                    { id: app.id, db_name: editingAppConfig.db_name, raw_table_name: editingAppConfig.raw_table_name },
+                                    { onSuccess: () => setEditingAppConfig(null) }
+                                  )
+                                }}
+                                disabled={updateConfigMutation.isPending}
+                                className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
+                              >
+                                {updateConfigMutation.isPending ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={() => setEditingAppConfig(null)}
+                                className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setEditingAppConfig({ id: app.id, db_name: app.db_name || '', raw_table_name: app.raw_table_name || '' })}
+                              className="px-2 py-1 bg-blue-600/80 hover:bg-blue-500 text-white rounded text-xs"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )) ?? []}
+                  </tbody>
+                </table>
+              </div>
+              {(!appsWithConfig?.data?.applications?.length) && !appsWithConfig && (
+                <div className="p-8 text-center text-white/50">Loading...</div>
+              )}
+              {appsWithConfig?.data?.applications?.length === 0 && (
+                <div className="p-8 text-center text-white/50">No applications configured.</div>
+              )}
+            </div>
           </div>
         )}
 

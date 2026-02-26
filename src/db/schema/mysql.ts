@@ -85,6 +85,8 @@ export const verifications = mysqlTable('verification', {
 export const appIdentifier = mysqlTable('app_identifier', {
   id: int('id').primaryKey().autoincrement(),
   appName: varchar('app_name', { length: 255 }).notNull().unique(),
+  dbName: varchar('db_name', { length: 255 }),
+  rawTableName: varchar('raw_table_name', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().onUpdateNow().notNull(),
 })

@@ -172,10 +172,11 @@ export async function POST(request: NextRequest) {
       // Relation missing (e.g. raw_bale) – procedure runs but table doesn't exist
       if (errMsg.includes('relation') && errMsg.includes('does not exist')) {
         console.error('[process-manual] Missing table:', errMsg)
+        const dbName = `db_${app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'}`
         return NextResponse.json(
           {
             success: false,
-            message: 'raw_bale table does not exist in the database. Ensure the raw_bale table exists (typically created by CDC).',
+            message: `Raw table does not exist. Ensure the raw table (e.g., raw_${app_name.toLowerCase().replace(/\s/g, '_')}) exists in ${dbName} (created by CDC). If using PostgreSQL, verify postgres_fdw is set up and the foreign table exists in platform_db.`,
             detail: errMsg,
           } as ApiResponse,
           { status: 404 }

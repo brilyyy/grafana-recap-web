@@ -48,7 +48,8 @@ const ONLY_SCHEMA = args.includes('--schema-only')
 const ONLY_PROCEDURES = args.includes('--procedures-only')
 const ONLY_CRON = args.includes('--cron-only')
 const ONLY_SEED = args.includes('--seed-only')
-const RUN_ALL = !ONLY_SCHEMA && !ONLY_PROCEDURES && !ONLY_CRON && !ONLY_SEED
+const ONLY_FDW = args.includes('--fdw-only')
+const RUN_ALL = !ONLY_SCHEMA && !ONLY_PROCEDURES && !ONLY_CRON && !ONLY_SEED && !ONLY_FDW
 
 // ─── Database connection helpers ────────────────────────────────────────────
 
@@ -82,6 +83,18 @@ function parseCronForMySQL(schedule: string): string {
   const hh = hour.padStart(2, '0')
   const mm = minute.padStart(2, '0')
   return `EVERY 1 DAY STARTS DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), '%Y-%m-%d ${hh}:${mm}:00')`
+}
+
+/** Derive db_name from app_name: db_ + lowercase, spaces/special -> underscore */
+function deriveDbName(appName: string): string {
+  const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
+  return `db_${base || 'unknown'}`
+}
+
+/** Derive raw_table_name from app_name: raw_ + same as db_name base */
+function deriveRawTableName(appName: string): string {
+  const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
+  return `raw_${base || 'unknown'}`
 }
 
 function parseCronForPgAgent(schedule: string): {
@@ -264,10 +277,12 @@ async function runCoreSchema() {
     if (IS_PG) {
       await exec(`
         CREATE TABLE "app_identifier" (
-          "id"         SERIAL PRIMARY KEY,
-          "app_name"   VARCHAR(255) NOT NULL UNIQUE,
-          "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
-          "updated_at" TIMESTAMP DEFAULT NOW() NOT NULL
+          "id"              SERIAL PRIMARY KEY,
+          "app_name"        VARCHAR(255) NOT NULL UNIQUE,
+          "db_name"         VARCHAR(255),
+          "raw_table_name"  VARCHAR(255),
+          "created_at"      TIMESTAMP DEFAULT NOW() NOT NULL,
+          "updated_at"      TIMESTAMP DEFAULT NOW() NOT NULL
         )${ENG}
       `)
       await exec(`
@@ -278,16 +293,53 @@ async function runCoreSchema() {
     } else {
       await exec(`
         CREATE TABLE \`app_identifier\` (
-          \`id\`         INT AUTO_INCREMENT PRIMARY KEY,
-          \`app_name\`   VARCHAR(255) NOT NULL UNIQUE,
-          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-          \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
+          \`id\`              INT AUTO_INCREMENT PRIMARY KEY,
+          \`app_name\`        VARCHAR(255) NOT NULL UNIQUE,
+          \`db_name\`        VARCHAR(255) NULL,
+          \`raw_table_name\`  VARCHAR(255) NULL,
+          \`created_at\`     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          \`updated_at\`     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
         )${ENG}
       `)
     }
     console.log('  ✅ app_identifier created')
   } else {
     console.log('  ⏭  app_identifier exists')
+    // Add db_name and raw_table_name if missing (cross-db migration)
+    if (!(await columnExists('app_identifier', 'db_name'))) {
+      if (IS_PG) {
+        await exec(`ALTER TABLE "app_identifier" ADD COLUMN "db_name" VARCHAR(255)`)
+      } else {
+        await exec('ALTER TABLE `app_identifier` ADD COLUMN `db_name` VARCHAR(255) NULL')
+      }
+      console.log('  ✅ app_identifier.db_name added')
+    }
+    if (!(await columnExists('app_identifier', 'raw_table_name'))) {
+      if (IS_PG) {
+        await exec(`ALTER TABLE "app_identifier" ADD COLUMN "raw_table_name" VARCHAR(255)`)
+      } else {
+        await exec('ALTER TABLE `app_identifier` ADD COLUMN `raw_table_name` VARCHAR(255) NULL')
+      }
+      console.log('  ✅ app_identifier.raw_table_name added')
+    }
+    // Backfill db_name/raw_table_name for existing rows (so FDW/procedures have config)
+    if (IS_PG) {
+      const rows = await exec('SELECT id, app_name FROM "app_identifier" WHERE "db_name" IS NULL OR "raw_table_name" IS NULL')
+      for (const row of rows as { id: number; app_name: string }[]) {
+        const dbName = deriveDbName(row.app_name)
+        const rawTableName = deriveRawTableName(row.app_name)
+        await exec('UPDATE "app_identifier" SET "db_name"=$1, "raw_table_name"=$2 WHERE "id"=$3', [dbName, rawTableName, row.id])
+      }
+      if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
+    } else {
+      const rows = await exec('SELECT id, app_name FROM `app_identifier` WHERE `db_name` IS NULL OR `raw_table_name` IS NULL')
+      for (const row of rows as { id: number; app_name: string }[]) {
+        const dbName = deriveDbName(row.app_name)
+        const rawTableName = deriveRawTableName(row.app_name)
+        await exec('UPDATE `app_identifier` SET `db_name`=?, `raw_table_name`=? WHERE `id`=?', [dbName, rawTableName, row.id])
+      }
+      if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
+    }
   }
   await createIndexSafely('idx_app_name', 'app_identifier', ['app_name'])
 
@@ -794,6 +846,60 @@ async function runPerformanceIndexes() {
   console.log('  ✅ Phase 4 done')
 }
 
+// ─── Phase 4b: PostgreSQL FDW (postgres_fdw) ──────────────────────────────────
+
+async function runFdwSetup() {
+  if (!IS_PG) return
+  console.log('\n🔗 Phase 4b: postgres_fdw setup')
+
+  try {
+    await exec('CREATE EXTENSION IF NOT EXISTS postgres_fdw')
+    console.log('  ✅ postgres_fdw extension ready')
+  } catch (e: unknown) {
+    console.warn('  ⚠️  Could not create postgres_fdw extension:', (e as Error).message)
+    console.warn('     Ensure superuser or CREATE privilege. FDW setup skipped.')
+    return
+  }
+
+  const rows = await exec(
+    `SELECT id, app_name, db_name, raw_table_name FROM "app_identifier" WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`
+  ) as { id: number; app_name: string; db_name: string; raw_table_name: string }[]
+
+  const esc = (s: string) => s.replace(/'/g, "''")
+  for (const row of rows) {
+    const { db_name, raw_table_name } = row
+    const serverName = `${db_name}_server`
+    try {
+      await exec(`
+        DROP SERVER IF EXISTS "${serverName}" CASCADE
+      `)
+      await exec(`
+        CREATE SERVER "${serverName}"
+        FOREIGN DATA WRAPPER postgres_fdw
+        OPTIONS (host '${esc(DB_HOST)}', dbname '${esc(db_name)}', port '${DB_PORT}')
+      `)
+      await exec(`
+        CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
+        SERVER "${serverName}"
+        OPTIONS (user '${esc(DB_USER)}', password '${esc(DB_PASSWORD)}')
+      `)
+      await exec(`
+        DROP FOREIGN TABLE IF EXISTS "${raw_table_name}"
+      `)
+      await exec(`
+        IMPORT FOREIGN SCHEMA public
+        LIMIT TO ("${raw_table_name}")
+        FROM SERVER "${serverName}"
+        INTO public
+      `)
+      console.log(`  ✅ FDW: ${raw_table_name} <- ${db_name}.${raw_table_name}`)
+    } catch (e: unknown) {
+      console.warn(`  ⚠️  FDW for ${db_name}.${raw_table_name} failed:`, (e as Error).message)
+    }
+  }
+  console.log('  ✅ Phase 4b done')
+}
+
 // ─── Phase 5: Stored procedures ──────────────────────────────────────────────
 
 async function runStoredProcedures() {
@@ -964,7 +1070,7 @@ $$ LANGUAGE plpgsql
     `)
     console.log('  ✅ PostgreSQL sp_process_bale_daily created/replaced')
   } else {
-    // MySQL stored procedure
+    // MySQL stored procedure (config-driven cross-db: reads db_name, raw_table_name from app_identifier)
     await exec('DROP PROCEDURE IF EXISTS sp_process_bale_daily')
     await exec(`
 CREATE PROCEDURE sp_process_bale_daily(IN p_processing_date DATE)
@@ -1090,7 +1196,7 @@ BEGIN
         WHEN rb.transaction_status = 8 THEN 'REVERSAL'
         ELSE 'Status Tidak Dikenal'
       END AS \`Status Transaksi\`
-    FROM raw_bale rb
+    FROM \`db_bale\`.\`raw_bale\` rb
     JOIN categories c ON rb.transaction_category COLLATE utf8mb4_unicode_ci = c.category COLLATE utf8mb4_unicode_ci
     WHERE rb.transaction_state IN ('1','9','8')
       AND rb.transaction_date BETWEEN v_start_timestamp AND v_end_timestamp
@@ -1323,14 +1429,41 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
 async function runSeeds() {
   console.log('\n🌱 Phase 7: Seeds')
 
-  // Default app identifiers
+  // Default app identifiers (with db_name, raw_table_name for cross-db)
   const defaultApps = ['Bale', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agent', 'Bale Korpora']
   for (const appName of defaultApps) {
+    const dbName = deriveDbName(appName)
+    const rawTableName = deriveRawTableName(appName)
     if (IS_PG) {
-      await exec(`INSERT INTO "app_identifier" ("app_name") VALUES ($1) ON CONFLICT ("app_name") DO NOTHING`, [appName])
+      await exec(
+        `INSERT INTO "app_identifier" ("app_name","db_name","raw_table_name") VALUES ($1,$2,$3)
+         ON CONFLICT ("app_name") DO UPDATE SET "db_name"=COALESCE("app_identifier"."db_name",EXCLUDED."db_name"), "raw_table_name"=COALESCE("app_identifier"."raw_table_name",EXCLUDED."raw_table_name")`,
+        [appName, dbName, rawTableName],
+      )
     } else {
-      await exec('INSERT INTO `app_identifier` (`app_name`) VALUES (?) ON DUPLICATE KEY UPDATE `app_name`=`app_name`', [appName])
+      await exec(
+        'INSERT INTO `app_identifier` (`app_name`,`db_name`,`raw_table_name`) VALUES (?,?,?) ON DUPLICATE KEY UPDATE `db_name`=COALESCE(`app_identifier`.`db_name`,VALUES(`db_name`)), `raw_table_name`=COALESCE(`app_identifier`.`raw_table_name`,VALUES(`raw_table_name`))',
+        [appName, dbName, rawTableName],
+      )
     }
+  }
+  // Backfill db_name/raw_table_name for any existing rows where NULL
+  if (IS_PG) {
+    const rows = await exec('SELECT id, app_name FROM "app_identifier" WHERE "db_name" IS NULL OR "raw_table_name" IS NULL')
+    for (const row of rows as { id: number; app_name: string }[]) {
+      const dbName = deriveDbName(row.app_name)
+      const rawTableName = deriveRawTableName(row.app_name)
+      await exec('UPDATE "app_identifier" SET "db_name"=$1, "raw_table_name"=$2 WHERE "id"=$3', [dbName, rawTableName, row.id])
+    }
+    if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
+  } else {
+    const rows = await exec('SELECT id, app_name FROM `app_identifier` WHERE `db_name` IS NULL OR `raw_table_name` IS NULL')
+    for (const row of rows as { id: number; app_name: string }[]) {
+      const dbName = deriveDbName(row.app_name)
+      const rawTableName = deriveRawTableName(row.app_name)
+      await exec('UPDATE `app_identifier` SET `db_name`=?, `raw_table_name`=? WHERE `id`=?', [dbName, rawTableName, row.id])
+    }
+    if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
   }
   console.log(`  ✅ ${defaultApps.length} default app identifiers seeded`)
 
@@ -1506,6 +1639,9 @@ async function main() {
         await runBetterAuthSchema()
         await runProcessingLogSchema()
         await runPerformanceIndexes()
+      }
+      if (IS_PG && (RUN_ALL || ONLY_SCHEMA || ONLY_FDW)) {
+        await runFdwSetup()
       }
       if (RUN_ALL || ONLY_PROCEDURES) {
         await runStoredProcedures()

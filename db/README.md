@@ -26,6 +26,8 @@ db/
 
 These queries aggregate transaction data from `raw_bale` table and are used by the stored procedure `sp_process_bale_daily()`.
 
+**Cross-DB Architecture**: CDC creates raw tables in `db_{app_name}` (e.g., `db_bale`), not in `platform_db`. MySQL uses `db_bale.raw_bale` syntax. PostgreSQL uses postgres_fdw: a foreign table `raw_bale` in platform_db points to `db_bale.raw_bale`. Configure `db_name` and `raw_table_name` in `app_identifier` (Superadmin > App Config).
+
 ### Adding New Applications
 
 To add a new application:
@@ -368,6 +370,133 @@ POST /api/bale/process-manual?date=2024-01-15
   }
 }
 ```
+
+## How to Check Everything Working
+
+Complete verification checklist. Run these in order to confirm the full pipeline is operational.
+
+### 1. Migration
+
+```bash
+npm run db:migrate
+```
+
+Expect no errors. Phases 1–5 should complete.
+
+### 2. Cross-Database Access
+
+**MySQL** (`db_bale` is the app database; `platform_db` is the main DB):
+
+```sql
+-- Connect to platform_db
+SELECT COUNT(*) FROM db_bale.raw_bale;
+```
+
+Should return a row count (or 0 if CDC has not populated yet).
+
+**PostgreSQL** (FDW in `platform_db`):
+
+```sql
+-- Connect to platform_db
+SELECT COUNT(*) FROM raw_bale;
+```
+
+Should return a row count. If `ERROR: relation "raw_bale" does not exist`, FDW setup failed or app databases are missing.
+
+**PostgreSQL FDW details** (optional):
+
+```sql
+SELECT extname FROM pg_extension WHERE extname = 'postgres_fdw';
+SELECT srvname FROM pg_foreign_server WHERE srvname LIKE '%_server';
+SELECT foreign_table_name, foreign_server_name FROM information_schema.foreign_tables;
+SELECT s.srvname, um.umuser::regrole FROM pg_foreign_server s
+LEFT JOIN pg_user_mapping um ON um.umserver = s.oid WHERE s.srvname LIKE '%_server';
+```
+
+### 3. Stored Procedure
+
+**MySQL**:
+
+```sql
+SHOW PROCEDURE STATUS WHERE Name = 'sp_process_bale_daily';
+```
+
+**PostgreSQL**:
+
+```sql
+SELECT proname FROM pg_proc WHERE proname = 'sp_process_bale_daily';
+```
+
+### 4. Scheduler
+
+**MySQL**:
+
+```sql
+SHOW VARIABLES LIKE 'event_scheduler';   -- Should be ON
+SHOW EVENTS LIKE 'evt_process_bale_daily';
+```
+
+**PostgreSQL (app-level)**:
+
+Check application startup logs for:
+
+```
+✅ BALE processing scheduler configured: Schedule '1 0 * * *'
+```
+
+**PostgreSQL (pg_cron)**:
+
+```sql
+SELECT jobid, jobname, schedule, database FROM cron.job WHERE jobname LIKE 'process-bale%';
+```
+
+### 5. Manual Trigger (End-to-End)
+
+**MySQL**:
+
+```sql
+CALL sp_process_bale_daily();
+```
+
+**PostgreSQL**:
+
+```sql
+SELECT sp_process_bale_daily();
+```
+
+Then verify:
+
+```sql
+SELECT * FROM app_processing_log WHERE app_name = 'Bale' ORDER BY created_at DESC LIMIT 1;
+SELECT COUNT(*) FROM app_success_rate WHERE id_app_identifier = (SELECT id FROM app_identifier WHERE app_name = 'Bale');
+```
+
+### 6. API Manual Trigger
+
+```bash
+# Login first, then:
+curl -X POST http://localhost:3000/api/processing/process-manual \
+  -H "Content-Type: application/json" \
+  -H "Cookie: <your-session-cookie>" \
+  -d '{"app_name": "Bale"}'
+
+# Optional: process specific date
+curl -X POST http://localhost:3000/api/processing/process-manual \
+  -H "Content-Type: application/json" \
+  -H "Cookie: <your-session-cookie>" \
+  -d '{"app_name": "Bale", "date": "2024-01-15"}'
+```
+
+Or use the UI: Superadmin → Process Manual (if available).
+
+### 7. Application
+
+1. `npm run dev`
+2. Open `http://localhost:3000/login`
+3. Login with an approved user
+4. Navigate to Success Rate or Dashboard — data should load without errors
+
+If any step fails, see [Troubleshooting](#troubleshooting) below.
 
 ## Troubleshooting
 

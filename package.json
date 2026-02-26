@@ -21,6 +21,7 @@
     "db:migrate:procedures": "npx tsx src/db/migrate.ts --procedures-only",
     "db:migrate:cron": "npx tsx src/db/migrate.ts --cron-only",
     "db:migrate:seed": "npx tsx src/db/migrate.ts --seed-only",
+    "db:migrate:fdw": "npx tsx src/db/migrate.ts --fdw-only",
     "db:setup": "npm run db:migrate"
   },
   "keywords": [],

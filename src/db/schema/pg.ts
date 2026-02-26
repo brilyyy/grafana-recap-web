@@ -86,6 +86,8 @@ export const verifications = pgTable('verification', {
 export const appIdentifier = pgTable('app_identifier', {
   id: serial('id').primaryKey(),
   appName: varchar('app_name', { length: 255 }).notNull().unique(),
+  dbName: varchar('db_name', { length: 255 }),
+  rawTableName: varchar('raw_table_name', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

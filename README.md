@@ -29,27 +29,87 @@ npm run build
 npm start
 ```
 
-### Standalone Deployment (Production Server)
+### Production Deployment (Step-by-Step)
 
-The build produces a minimal standalone output in `.next/standalone/`. **You must deploy the entire folder contents** — `server.js` alone will fail with `Cannot find module 'next'` because it depends on the bundled `node_modules`.
+Complete procedure to deploy the dashboard to production.
 
-**On your build machine (after `npm run build`):**
+#### Prerequisites
+
+- Node.js 18+ on build machine and production server
+- MySQL or PostgreSQL database (accessible from production server)
+- Production `.env` values (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET, etc.)
+
+#### Step 1: Database Preparation
+
+**MySQL:**
+- Create platform database (e.g. `platform_db`)
+- Create app databases for CDC: `db_bale`, `db_cms`, etc.
+- Ensure `DB_USER` has access to all databases
+- Configure CDC to write raw tables to `db_{app_name}`
+
+**PostgreSQL:**
+- Create platform database (e.g. `platform_db`)
+- Create app databases: `CREATE DATABASE db_bale;` (repeat per app)
+- Install postgres_fdw in platform database:
+  ```sql
+  \c platform_db
+  CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+  ```
+- Configure CDC to write to `db_{app_name}`
+
+#### Step 2: Run Migration
+
+Migration creates tables, stored procedures, scheduler, and (PostgreSQL) FDW.
+
+**Option A — Build machine has DB access:**
+```bash
+# Set production .env or export variables
+export DB_HOST=prod-db.example.com
+export DB_NAME=platform_db
+# ... other DB_* vars
+
+npm run db:migrate
+```
+
+**Option B — Production server (or offline):** Use migration-kit. See [migration-kit/README.md](migration-kit/README.md).
 
 ```bash
-# 1. Create deploy folder
+cd migration-kit
+cp .env.example .env
+# Edit .env with production values
+npm run migrate
+```
+
+**PostgreSQL FDW only** (if migration ran but FDW failed, e.g. extension was missing):
+```bash
+DB_NAME=platform_db npm run db:migrate:fdw
+# Or with migration-kit:
+DB_NAME=platform_db npm run migrate:fdw
+```
+
+#### Step 3: Build Application
+
+On your build machine (same OS/arch as production if possible):
+
+```bash
+npm ci
+npm run build
+```
+
+#### Step 4: Prepare Deploy Folder
+
+The build produces standalone output in `.next/standalone/`. **Deploy the entire folder** — `server.js` alone will fail.
+
+**Linux/macOS:**
+```bash
 mkdir -p deploy
 cd deploy
-
-# 2. Copy the ENTIRE standalone output (server.js + node_modules + .next)
 cp -r ../.next/standalone/* .
-
-# 3. Copy static assets and public folder (required by Next.js)
 cp -r ../.next/static .next/
 cp -r ../public .
 ```
 
-**On Windows (PowerShell):**
-
+**Windows (PowerShell):**
 ```powershell
 mkdir deploy -Force
 Copy-Item -Path .\.next\standalone\* -Destination .\deploy\ -Recurse
@@ -57,17 +117,57 @@ Copy-Item -Path .\.next\static -Destination .\deploy\.next\ -Recurse
 Copy-Item -Path .\public -Destination .\deploy\ -Recurse
 ```
 
-**Deploy folder structure must include:**
+**Required deploy folder structure:**
 - `server.js`
 - `node_modules/` (from standalone — do not run `npm install` in deploy)
 - `.next/` (with `static/` inside)
 - `public/`
 
-Then copy the `deploy/` folder to your production server and run:
+#### Step 5: Copy to Production Server
+
+Copy the `deploy/` folder to the production server (e.g. `/app/dashboard-grafana`).
+
+#### Step 6: Configure Environment
+
+Create `.env` in the deploy folder with production values:
+
+```env
+NODE_ENV=production
+DB_TYPE=mysql
+DB_HOST=prod-db.example.com
+DB_PORT=3306
+DB_USER=app_user
+DB_PASSWORD=secure-password
+DB_NAME=platform_db
+JWT_SECRET=your-production-secret
+# ... other required vars (see .env.example)
+```
+
+#### Step 7: Start Application
 
 ```bash
+cd /app/dashboard-grafana
 node server.js
 ```
+
+**Recommended:** Use a process manager (PM2, systemd) for auto-restart:
+
+```bash
+# PM2
+pm2 start server.js --name dashboard-grafana
+
+# systemd (create /etc/systemd/system/dashboard-grafana.service)
+# ExecStart=/usr/bin/node /app/dashboard-grafana/server.js
+```
+
+#### Step 8: Verify Deployment
+
+1. Open `http://<server>:3000/login` (or your configured URL)
+2. Login with superadmin credentials
+3. Check Success Rate / Dashboard loads
+4. (Optional) Trigger manual processing: Superadmin → Process Manual
+
+See [How to Verify Everything Works](#how-to-verify-everything-works) for full checklist.
 
 ### Database Migration
 
@@ -89,9 +189,102 @@ npm run db:migrate:seed        # default apps + superadmin
 ```bash
 cd migration-kit
 npm run migrate
+# PostgreSQL FDW only (if needed): DB_NAME=platform_db npm run migrate:fdw
 ```
 
-See [`migration-kit/README.md`](migration-kit/README.md) for full offline deployment instructions.
+See [`migration-kit/README.md`](migration-kit/README.md) for full step-by-step deployment instructions.
+
+### PostgreSQL FDW (Cross-Database Setup)
+
+CDC creates raw tables in separate databases (`db_{app_name}`), not in `platform_db`. To query across databases:
+
+- **MySQL**: Uses native `database.table` syntax (e.g. `db_bale.raw_bale`). No extra setup.
+- **PostgreSQL**: Uses **postgres_fdw** to create foreign tables in `platform_db` that point to app databases.
+
+**Before running migration (PostgreSQL only):**
+
+1. **Install postgres_fdw extension** (requires superuser or `CREATE` privilege):
+   ```sql
+   -- Connect to platform_db
+   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+   ```
+
+2. **Create app databases** (CDC will create raw tables here):
+   ```sql
+   CREATE DATABASE db_bale;
+   -- Repeat for each app: db_cms, db_sms_notif, etc.
+   ```
+
+3. **Configure CDC** to write to `db_{app_name}` instead of `platform_db`.
+
+**Migration automatically:**
+- Adds `db_name` and `raw_table_name` to `app_identifier`
+- Creates FDW foreign server, user mapping, and foreign table for each app (Phase 4b)
+
+**If migration does not create FDW** (e.g. extension missing), run manually for each app:
+
+```sql
+-- Replace db_bale, raw_bale with your app's db_name and raw_table_name
+CREATE SERVER db_bale_server
+  FOREIGN DATA WRAPPER postgres_fdw
+  OPTIONS (host 'localhost', dbname 'db_bale', port '5432');
+
+CREATE USER MAPPING FOR CURRENT_USER
+  SERVER db_bale_server
+  OPTIONS (user 'your_db_user', password 'your_db_password');
+
+IMPORT FOREIGN SCHEMA public
+  LIMIT TO (raw_bale)
+  FROM SERVER db_bale_server
+  INTO public;
+```
+
+**App Config (Superadmin):** Use the **App Config** tab to set `db_name` and `raw_table_name` per app. When adding a new app, create its database, run FDW setup (or re-run migration with `--schema-only`), then add the stored procedure.
+
+**Run FDW setup only** (e.g. after fixing prerequisites):
+```bash
+DB_NAME=platform_db_local npm run db:migrate:fdw
+```
+Use `DB_NAME` = your platform database (where app_identifier lives). **Not** the cron database (e.g. `postgres`).
+
+**Troubleshooting:** If FDW did not run, check: (1) `DB_NAME` must point to your platform DB, not the pg_cron database; (2) `app_identifier` must have `db_name` and `raw_table_name` populated (run `--schema-only` first); (3) app databases (e.g. `db_bale`) must exist; (4) `postgres_fdw` extension requires superuser or `CREATE` privilege.
+
+**Verify FDW setup** (run in platform_db):
+```sql
+-- Extension
+SELECT extname FROM pg_extension WHERE extname = 'postgres_fdw';
+
+-- Foreign servers
+SELECT srvname FROM pg_foreign_server WHERE srvname LIKE '%_server';
+
+-- Foreign tables
+SELECT foreign_table_name, foreign_server_name FROM information_schema.foreign_tables;
+
+-- User mappings (uses pg_user_mapping; pg_user_mappings may differ by PG version)
+SELECT s.srvname, um.umuser::regrole FROM pg_foreign_server s
+LEFT JOIN pg_user_mapping um ON um.umserver = s.oid WHERE s.srvname LIKE '%_server';
+
+-- Test query
+SELECT COUNT(*) FROM raw_bale;
+```
+
+See [`db/README.md`](db/README.md) for more details on cross-db architecture.
+
+### How to Verify Everything Works
+
+After migration and setup, run these checks to confirm the system is working:
+
+| Check | MySQL | PostgreSQL |
+|-------|-------|------------|
+| **Migration** | `npm run db:migrate` completes without errors | Same |
+| **Cross-DB / FDW** | `SELECT COUNT(*) FROM db_bale.raw_bale;` returns rows | `SELECT COUNT(*) FROM raw_bale;` returns rows (foreign table in platform_db) |
+| **FDW details** | N/A | Extension: `SELECT extname FROM pg_extension WHERE extname = 'postgres_fdw';`<br>Servers: `SELECT srvname FROM pg_foreign_server WHERE srvname LIKE '%_server';`<br>Foreign tables: `SELECT foreign_table_name FROM information_schema.foreign_tables;` |
+| **Stored procedure** | `SHOW PROCEDURE STATUS WHERE Name = 'sp_process_bale_daily';` | `SELECT proname FROM pg_proc WHERE proname = 'sp_process_bale_daily';` |
+| **Scheduler** | `SHOW VARIABLES LIKE 'event_scheduler';` → ON<br>`SHOW EVENTS LIKE 'evt_process_bale_daily';` | App-level: check startup logs for scheduler init<br>pg_cron: `SELECT * FROM cron.job WHERE jobname LIKE 'process-bale%';` |
+| **Manual trigger** | `CALL sp_process_bale_daily();` | `SELECT sp_process_bale_daily();` |
+| **App & API** | `npm run dev` → login at `/login` → Success Rate page loads | Same |
+
+See [`db/README.md`](db/README.md) for the full verification checklist and troubleshooting.
 
 ### Available Scripts
 
@@ -921,8 +1114,8 @@ created_at
 ### Database Support
 
 Aplikasi mendukung **multi-database**:
-- **MySQL**: Primary database
-- **PostgreSQL**: Alternative database
+- **MySQL**: Primary database — cross-db via `db_name.table` (e.g. `db_bale.raw_bale`)
+- **PostgreSQL**: Alternative database — cross-db via **postgres_fdw** (see [PostgreSQL FDW](#postgresql-fdw-cross-database-setup))
 
 Database adapter di `src/lib/db.ts` menangani perbedaan syntax:
 - INSERT IGNORE (MySQL) vs ON CONFLICT DO NOTHING (PostgreSQL)

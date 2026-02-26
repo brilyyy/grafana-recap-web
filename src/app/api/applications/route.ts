@@ -13,7 +13,7 @@ function isDuplicateError(error: any): boolean {
 export async function GET() {
   try {
     const [rows] = await pool.execute(
-      'SELECT id, app_name FROM app_identifier ORDER BY app_name'
+      'SELECT id, app_name, db_name, raw_table_name FROM app_identifier ORDER BY app_name'
     )
     
     return NextResponse.json({
@@ -48,10 +48,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'
+    const dbName = `db_${base}`
+    const rawTableName = `raw_${base}`
     const insertSql = isPostgres
-      ? 'INSERT INTO app_identifier (app_name) VALUES (?) RETURNING id'
-      : 'INSERT INTO app_identifier (app_name) VALUES (?)'
-    const [rows] = await pool.execute(insertSql, [appName.trim()])
+      ? 'INSERT INTO app_identifier (app_name, db_name, raw_table_name) VALUES (?, ?, ?) RETURNING id'
+      : 'INSERT INTO app_identifier (app_name, db_name, raw_table_name) VALUES (?, ?, ?)'
+    const [rows] = await pool.execute(insertSql, [appName.trim(), dbName, rawTableName])
     const insertId = isPostgres
       ? (rows[0] as any)?.id
       : (rows[0] as any)?.insertId ?? 0
@@ -77,6 +80,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      } as ApiResponse,
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH - Update app config (db_name, raw_table_name)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, db_name, raw_table_name } = body
+
+    if (!id || !db_name || !raw_table_name) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'id, db_name, and raw_table_name are required',
+        } as ApiResponse,
+        { status: 400 }
+      )
+    }
+
+    await pool.execute(
+      'UPDATE app_identifier SET db_name = ?, raw_table_name = ? WHERE id = ?',
+      [db_name, raw_table_name, id]
+    )
+
+    return NextResponse.json({
+      success: true,
+      message: 'Application config updated',
+    } as ApiResponse)
+  } catch (error: any) {
+    console.error('Error updating application config:', error.message)
     return NextResponse.json(
       {
         success: false,
