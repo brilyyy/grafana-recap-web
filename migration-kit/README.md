@@ -65,25 +65,59 @@ Pastikan: (1) `postgres_fdw` extension sudah di-install di platform_db, (2) app 
 
 ## Deploy ke server tanpa akses internet (offline)
 
-Jika server production **tidak punya akses internet**, siapkan migration-kit di mesin yang **ada internet**, lalu copy seluruh folder (termasuk `node_modules`) ke server (USB, shared drive, atau dari jump host).
+Jika server production **tidak punya akses internet**, siapkan migration-kit di mesin yang **ada internet**, lalu copy seluruh folder (termasuk `node_modules`) ke server via SFTP, jump host, atau media fisik.
 
-1. **Di mesin yang ada internet** (usahakan **OS dan arsitektur sama** dengan server production, mis. sama-sama Linux x64):
-   ```bash
-   cd migration-kit
-   npm install
-   ```
-   (Opsi: buat `package-lock.json` dengan `npm install` sekali, lalu gunakan `npm ci` di kemudian hari agar versi dependency konsisten.)
+### Step 1: Prepare on machine with internet
 
-2. **Copy seluruh folder `migration-kit`** ke server (termasuk `node_modules` dan `.env`). Jangan lupa file `.env` berisi konfigurasi production.
+Use a machine with the **same OS and architecture** as production (e.g. Linux x64).
 
-3. **Di server** (tanpa perlu `npm install`):
-   ```bash
-   cd /path/to/migration-kit
-   node --version   # pastikan Node.js 18+ terpasang
-   npm run migrate
-   ```
+```bash
+cd migration-kit
+npm install
+# Or: npm ci
+```
 
-**Penting:** Modul native (`pg`, `mysql2`) dikompilasi per OS/arsitektur. Jika production adalah **Linux** dan Anda jalankan `npm install` di **Windows**, binary bisa tidak cocok. Solusi: jalankan `npm install` di lingkungan Linux (WSL2, VM, atau CI dengan image Linux) lalu copy hasilnya ke server.
+Create `.env` with production values before copying.
+
+**Penting:** Modul native (`pg`, `mysql2`) dikompilasi per OS/arsitektur. Jika production adalah **Linux** dan Anda jalankan `npm install` di **Windows**, binary bisa tidak cocok. Gunakan WSL2, VM, atau CI dengan image Linux.
+
+### Step 2: Copy to production server
+
+**Option A — SCP via jump host:**
+```bash
+# From your local machine (migration-kit folder is ready with node_modules)
+scp -r -o ProxyJump=user@jump-host ./migration-kit user@prod-server:/app/
+```
+
+**Option B — SFTP via jump host:**
+```bash
+# Connect to jump host first, then SFTP to prod
+sftp -o ProxyJump=user@jump-host user@prod-server:/app/
+
+# Or use a GUI tool (FileZilla, WinSCP) with jump host / proxy settings
+# Upload entire migration-kit folder to /app/migration-kit
+```
+
+**Option C — Two-step (jump host as staging):**
+```bash
+# 1. Copy to jump host
+scp -r ./migration-kit user@jump-host:/tmp/
+
+# 2. Copy from jump host to prod (run on jump host)
+scp -r /tmp/migration-kit user@prod-server:/app/
+```
+
+**Option D — USB / shared drive:** Copy entire `migration-kit` folder (including `node_modules` and `.env`) to the server.
+
+### Step 3: Run migration on server
+
+```bash
+cd /app/migration-kit
+node --version   # pastikan Node.js 18+ terpasang
+npm run migrate
+```
+
+No `npm install` needed — `node_modules` is already copied.
 
 ## Persyaratan
 

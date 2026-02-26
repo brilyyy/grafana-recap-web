@@ -92,40 +92,44 @@ DB_NAME=platform_db npm run migrate:fdw
 On your build machine (same OS/arch as production if possible):
 
 ```bash
+cd /path/to/dashboard-grafana
 npm ci
 npm run build
 ```
 
+This creates `.next/standalone/` and `.next/static/`. The standalone output does **not** include `static/` — you must copy it in the next step.
+
 #### Step 4: Prepare Deploy Folder
 
-The build produces standalone output in `.next/standalone/`. **Deploy the entire folder** — `server.js` alone will fail.
+Create a `deploy/` folder and copy all required files. **Deploy the entire folder** — `server.js` alone will fail.
 
-**Linux/macOS:**
-```bash
-mkdir -p deploy
-cd deploy
-cp -r ../.next/standalone/* .
-cp -r ../.next/static .next/
-cp -r ../public .
+
+
+**Resulting deploy folder structure:**
 ```
-
-**Windows (PowerShell):**
-```powershell
-mkdir deploy -Force
-Copy-Item -Path .\.next\standalone\* -Destination .\deploy\ -Recurse
-Copy-Item -Path .\.next\static -Destination .\deploy\.next\ -Recurse
-Copy-Item -Path .\public -Destination .\deploy\ -Recurse
+deploy/
+├── server.js
+├── node_modules/
+├── .next/
+│   └── static/      ← from .next/static
+└── public/          ← from ../public
 ```
-
-**Required deploy folder structure:**
-- `server.js`
-- `node_modules/` (from standalone — do not run `npm install` in deploy)
-- `.next/` (with `static/` inside)
-- `public/`
 
 #### Step 5: Copy to Production Server
 
 Copy the `deploy/` folder to the production server (e.g. `/app/dashboard-grafana`).
+
+**Using SCP (direct):**
+```bash
+scp -r deploy/* user@prod-server:/app/dashboard-grafana/
+```
+
+**Using SCP via jump host:**
+```bash
+scp -r -o ProxyJump=user@jump-host deploy/* user@prod-server:/app/dashboard-grafana/
+```
+
+**Using SFTP:** Upload the entire `deploy/` contents to `/app/dashboard-grafana/` on the server.
 
 #### Step 6: Configure Environment
 
