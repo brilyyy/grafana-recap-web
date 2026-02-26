@@ -23,7 +23,7 @@ async function executeBaleProcessing(): Promise<void> {
       database: process.env.DB_NAME,
     })
     try {
-      await pool.query('SELECT sp_process_bale_daily($1)', [null])
+      await pool.query('SELECT public.sp_process_bale_daily($1::date)', [null])
     } finally {
       await pool.end()
     }

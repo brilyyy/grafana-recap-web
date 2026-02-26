@@ -44,7 +44,7 @@ export const processingLogsRouter = router({
       try {
         const isPostgres = (connection as any).execute?.toString?.().includes('pg') ?? false
         if (isPostgres) {
-          await connection.execute(`SELECT sp_process_${appName}_daily($1)`, [dateParam])
+          await connection.execute(`SELECT public.sp_process_${appName}_daily($1::date)`, [dateParam])
         } else {
           await connection.execute(`CALL sp_process_${appName}_daily(?)`, [dateParam])
         }

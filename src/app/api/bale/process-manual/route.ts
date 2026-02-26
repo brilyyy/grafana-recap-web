@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null
       }
       if (dbType === 'postgresql') {
-        await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
+        await connection.execute('SELECT public.sp_process_bale_daily($1::date)', [dateParamForDB])
       } else {
         await connection.execute('CALL sp_process_bale_daily(?)', [dateParamForDB])
       }

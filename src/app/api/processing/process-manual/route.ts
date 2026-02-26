@@ -104,8 +104,10 @@ export async function POST(request: NextRequest) {
       let dateParamForDB = dateParam || null
 
       // Call stored procedure based on database type
+      // For PostgreSQL: use public. prefix (schema) and $1::date cast so the function is found
+      // and parameter type matches (avoids "function does not exist" when param is inferred as unknown/text)
       if (dbType === 'postgresql') {
-        await connection.execute(`SELECT ${procedureName}($1)`, [dateParamForDB])
+        await connection.execute(`SELECT public.${procedureName}($1::date)`, [dateParamForDB])
       } else {
         await connection.execute(`CALL ${procedureName}(?)`, [dateParamForDB])
       }
@@ -166,12 +168,27 @@ export async function POST(request: NextRequest) {
         },
       } as ApiResponse)
     } catch (error: any) {
-      // Check if error is about procedure not found
-      if (error.message?.includes('does not exist') || error.message?.includes('PROCEDURE') || error.message?.includes('function')) {
+      const errMsg = error.message ?? String(error)
+      // Relation missing (e.g. raw_bale) – procedure runs but table doesn't exist
+      if (errMsg.includes('relation') && errMsg.includes('does not exist')) {
+        console.error('[process-manual] Missing table:', errMsg)
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'raw_bale table does not exist in the database. Ensure the raw_bale table exists (typically created by CDC).',
+            detail: errMsg,
+          } as ApiResponse,
+          { status: 404 }
+        )
+      }
+      // Procedure/function not found
+      if (errMsg.includes('does not exist') || errMsg.includes('PROCEDURE') || errMsg.includes('function')) {
+        console.error('[process-manual] Procedure call failed:', errMsg)
         return NextResponse.json(
           {
             success: false,
             message: `Processing procedure not found for application: ${app_name}. Please ensure the stored procedure exists.`,
+            detail: errMsg,
           } as ApiResponse,
           { status: 404 }
         )

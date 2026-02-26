@@ -801,7 +801,7 @@ async function runStoredProcedures() {
 
   if (IS_PG) {
     await exec(`
-CREATE OR REPLACE FUNCTION sp_process_bale_daily(p_processing_date DATE DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.sp_process_bale_daily(p_processing_date DATE DEFAULT NULL)
 RETURNS void AS $$
 DECLARE
   v_app_id INT;
@@ -1249,7 +1249,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
           SELECT cron.schedule_in_database(
             '${esc(jobName)}',
             '${esc(CRON_SCHEDULE)}',
-            $$SELECT sp_process_bale_daily(NULL)$$,
+            $$SELECT public.sp_process_bale_daily(NULL)$$,
             '${esc(dbName)}',
             NULL,
             true
@@ -1301,7 +1301,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
             );
 
             INSERT INTO pgagent.pga_jobstep (jstjobid, jstname, jstkind, jstcode, jstdbname, jstenabled)
-            VALUES (v_jobid, 'execute-procedure', 's', 'SELECT sp_process_bale_daily(NULL);', '${esc(dbName)}', true);
+            VALUES (v_jobid, 'execute-procedure', 's', 'SELECT public.sp_process_bale_daily(NULL);', '${esc(dbName)}', true);
           END $$
         `)
         console.log(`  ✅ pgAgent job '${jobName}' → database '${dbName}' (${CRON_SCHEDULE})`)
@@ -1313,7 +1313,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
   }
 
   console.warn('  ⚠️  Neither pg_cron nor pgAgent found.')
-  console.warn(`     To run manually: SELECT sp_process_bale_daily(NULL); in each target DB at ${CRON_SCHEDULE}`)
+  console.warn(`     To run manually: SELECT public.sp_process_bale_daily(NULL); in each target DB at ${CRON_SCHEDULE}`)
   console.warn('     Or set USE_APP_LEVEL_SCHEDULER=true to use node-cron instead.')
   console.log('  ✅ Phase 6 done (no scheduler configured)')
 }
