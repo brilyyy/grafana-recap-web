@@ -1,5 +1,111 @@
 # Dashboard Grafana - Dokumentasi Logic Bisnis
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- MySQL or PostgreSQL database
+
+### Development
+
+```bash
+npm install
+npm run dev
+```
+
+`npm run dev` starts the Next.js development server on `http://localhost:3000`.  
+The scheduler (`instrumentation.ts`) is called automatically by Next.js on startup.
+
+> `server-dev.js` is deprecated and no longer used. Do not run it directly.
+
+### Build & Production
+
+```bash
+# Build
+npm run build
+
+# Start production server (includes scheduler via instrumentation.ts)
+npm start
+```
+
+### Standalone Deployment (Production Server)
+
+The build produces a minimal standalone output in `.next/standalone/`. **You must deploy the entire folder contents** — `server.js` alone will fail with `Cannot find module 'next'` because it depends on the bundled `node_modules`.
+
+**On your build machine (after `npm run build`):**
+
+```bash
+# 1. Create deploy folder
+mkdir -p deploy
+cd deploy
+
+# 2. Copy the ENTIRE standalone output (server.js + node_modules + .next)
+cp -r ../.next/standalone/* .
+
+# 3. Copy static assets and public folder (required by Next.js)
+cp -r ../.next/static .next/
+cp -r ../public .
+```
+
+**On Windows (PowerShell):**
+
+```powershell
+mkdir deploy -Force
+Copy-Item -Path .\.next\standalone\* -Destination .\deploy\ -Recurse
+Copy-Item -Path .\.next\static -Destination .\deploy\.next\ -Recurse
+Copy-Item -Path .\public -Destination .\deploy\ -Recurse
+```
+
+**Deploy folder structure must include:**
+- `server.js`
+- `node_modules/` (from standalone — do not run `npm install` in deploy)
+- `.next/` (with `static/` inside)
+- `public/`
+
+Then copy the `deploy/` folder to your production server and run:
+
+```bash
+node server.js
+```
+
+### Database Migration
+
+Migration is handled by the custom runner (`src/db/migrate.ts`), not Drizzle Kit automigrations.
+
+```bash
+# Full migration (all phases)
+npm run db:migrate
+
+# Per-phase
+npm run db:migrate:schema      # tables, indexes, BetterAuth columns
+npm run db:migrate:procedures  # stored procedures
+npm run db:migrate:cron        # cron/event scheduler
+npm run db:migrate:seed        # default apps + superadmin
+```
+
+**Production server (offline):** copy the `migration-kit/` folder (with `node_modules` pre-installed on the same OS/arch as the server) to the production server and run:
+
+```bash
+cd migration-kit
+npm run migrate
+```
+
+See [`migration-kit/README.md`](migration-kit/README.md) for full offline deployment instructions.
+
+### Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Build for production (standalone output) |
+| `npm start` | Start production server |
+| `npm run db:migrate` | Run full database migration |
+| `npm run drizzle:mysql:generate` | Generate Drizzle migration files (MySQL) |
+| `npm run drizzle:postgres:generate` | Generate Drizzle migration files (PostgreSQL) |
+
+---
+
 ## 📋 Daftar Isi
 
 1. [Overview](#overview)

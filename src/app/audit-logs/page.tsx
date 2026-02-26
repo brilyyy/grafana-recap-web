@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import LogoutButton from '@/components/LogoutButton'
@@ -62,7 +64,7 @@ export default function AuditLogsPage() {
 
   const auditLogs: AuditLogEntry[] = (logsData?.data?.logs ?? []) as AuditLogEntry[]
   const totalPages = Math.ceil(((logsData?.data?.total ?? 0) as number) / 50)
-  const stats = statsData?.data ?? null
+  const stats = (statsData?.data ?? null) as AuditStats | null
 
   useEffect(() => {
     if (!authLoading) {

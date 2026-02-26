@@ -59,13 +59,13 @@ function convertPgPlaceholders(query: string): string {
 export const pool = {
   async execute(query: string, params?: any[]): Promise<[any[], any]> {
     const sqlQuery = buildSql(query, params)
-    const result = await db.execute(sqlQuery)
+    const result = await (db as any).execute(sqlQuery)
     return normalizeResult(result)
   },
 
   async query(query: string, params?: any[]): Promise<[any[], any]> {
     const sqlQuery = buildSql(query, params)
-    const result = await db.execute(sqlQuery)
+    const result = await (db as any).execute(sqlQuery)
     return normalizeResult(result)
   },
 

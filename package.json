@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "Dashboard Grafana - Migrated to Next.js",
   "scripts": {
-    "dev": "node server-dev.js",
+    "dev": "node node_modules/next/dist/bin/next dev",
     "build": "node node_modules/next/dist/bin/next build",
     "start": "node server.js",
     "lint": "node node_modules/next/dist/bin/next lint",

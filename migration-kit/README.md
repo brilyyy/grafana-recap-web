@@ -66,6 +66,14 @@ Jika server production **tidak punya akses internet**, siapkan migration-kit di 
 - Akses jaringan dari server ke database (MySQL atau PostgreSQL)
 - Variabel environment yang benar (terutama DB_* dan optional DEFAULT_SU_*, TARGET_DATABASES, BALE_PROCESSING_SCHEDULE)
 
+## Cara kerja offline (tanpa internet)
+
+Script migration memakai `tsx` (TypeScript runner) yang sudah tercantum sebagai `dependency` (bukan `devDependency`), bukan `npx tsx`. Artinya:
+
+- `npm run migrate` → memanggil `node_modules/.bin/tsx src/db/migrate.ts` dari lokal.
+- **Tidak ada kontak ke npm registry saat menjalankan migration.**
+- Syaratnya: folder `node_modules` harus sudah ada (jalankan `npm install` sekali di mesin yang punya internet, lalu copy seluruh folder migration-kit beserta `node_modules` ke server).
+
 ## Catatan
 
 - Migration kit **tidak** menjalankan aplikasi Next.js; hanya untuk menjalankan `migrate.ts`.

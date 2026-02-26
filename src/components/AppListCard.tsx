@@ -97,7 +97,7 @@ export default function AppListCard() {
       <Button
         type="button"
         size="sm"
-        onClick={refreshApplications}
+        onClick={() => refreshApplications()}
         className="w-full mt-auto bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-xs border-0"
       >
         <RefreshCw className="w-3 h-3" />

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { TRPCProvider } from '@/components/providers/TRPCProvider'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Setup Data Success Rate Grafana',
   description: 'Dashboard untuk manage data success rate Grafana',

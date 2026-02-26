@@ -134,6 +134,9 @@ export const authRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { id, approvedRole } = input
 
+      const betterAuthRole: 'admin' | 'user' | ('admin' | 'user')[] | undefined =
+        approvedRole === 'superadmin' ? 'admin' : approvedRole
+
       const [requests]: any = await pool.execute(
         "SELECT * FROM pending_user_requests WHERE id = ? AND status = 'pending'",
         [id]
@@ -148,7 +151,7 @@ export const authRouter = router({
           name: pending.username,
           email: pending.email,
           password: undefined as any, // Use existing password_hash via direct insert below
-          role: approvedRole,
+          role: betterAuthRole,
         },
       }).catch(() => null) // Fallback to direct insert if admin API not set up yet
 

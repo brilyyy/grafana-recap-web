@@ -139,7 +139,7 @@ async function initConnection() {
       charset: 'utf8mb4',
     })
     exec = async (sql, params) => {
-      const [rows] = await pool.execute(sql, params as unknown[])
+      const [rows] = await pool.execute(sql, params as ({} | null)[])
       return Array.isArray(rows) ? rows : [rows]
     }
     closeDb = () => pool.end()
