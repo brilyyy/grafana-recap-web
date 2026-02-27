@@ -24,6 +24,7 @@ export const env = createEnv({
     USE_APP_LEVEL_SCHEDULER: z.enum(['true', 'false']).optional(),
     SCHEDULER_TIMEZONE: z.string().default('Asia/Jakarta'),
     BALE_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    BALE_BISNIS_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
 
     // Migrations / seeds (used by TypeORM CLI scripts, kept here for documentation)
     TARGET_DATABASES: z.string().optional(),
@@ -54,6 +55,7 @@ export const env = createEnv({
     USE_APP_LEVEL_SCHEDULER: process.env.USE_APP_LEVEL_SCHEDULER,
     SCHEDULER_TIMEZONE: process.env.SCHEDULER_TIMEZONE,
     BALE_PROCESSING_SCHEDULE: process.env.BALE_PROCESSING_SCHEDULE,
+    BALE_BISNIS_PROCESSING_SCHEDULE: process.env.BALE_BISNIS_PROCESSING_SCHEDULE,
 
     TARGET_DATABASES: process.env.TARGET_DATABASES,
     DEFAULT_SU_USERNAME: process.env.DEFAULT_SU_USERNAME,

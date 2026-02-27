@@ -1,48 +1,63 @@
 # Database Queries and Stored Procedures
 
-This directory contains database-specific queries and stored procedures for success rate processing.
+This directory contains raw aggregation queries and stored procedure definitions for success rate processing. All SQL and runner code live in one place.
 
-## Directory Structure
+> **Menambahkan aplikasi baru?** Lihat [ADD_NEW_APP.md](../ADD_NEW_APP.md) untuk urutan lengkap: frontend → success rate + raw table → stored procedures → migration-kit → production.
+
+## Directory Structure (Unified Convention)
 
 ```
-db/
-├── mysql/
-│   └── success-rate-queries/
-│       └── bale/
-│           └── bale.mysql.sql
-├── postgres/
-│   └── success-rate-queries/
-│       └── bale/
-│           └── bale.postgres.sql
-└── README.md (this file)
+scripts/success_rate/
+├── registry.ts              # Central list of apps with procedure metadata
+├── runProcedures.ts         # runStoredProcedures() logic - loads and executes procedures
+├── README.md
+├── bale/
+│   ├── raw.mysql.sql        # Raw aggregation query (SELECT from raw_bale)
+│   ├── raw.postgres.sql     # Raw aggregation query (SELECT from raw_bale)
+│   ├── procedure.mysql.sql  # Full CREATE PROCEDURE sp_process_bale_daily
+│   └── procedure.postgres.sql # Full CREATE OR REPLACE FUNCTION sp_process_bale_daily
+└── bale_bisnis/
+    ├── raw.mysql.sql        # Raw aggregation query
+    ├── raw.postgres.sql     # Raw aggregation query
+    ├── procedure.mysql.sql  # Full CREATE PROCEDURE sp_process_bale_bisnis_daily
+    └── procedure.postgres.sql # Full CREATE OR REPLACE FUNCTION sp_process_bale_bisnis_daily
 ```
+
+**File naming convention** (per-app folder):
+- `raw.{mysql|postgres}.sql` – Raw aggregation SELECT queries (reusable, ad-hoc)
+- `procedure.{mysql|postgres}.sql` – Full CREATE PROCEDURE/FUNCTION (used by migration)
 
 ## Success Rate Queries
 
 ### BALE Application
 
-- **MySQL**: `mysql/success-rate-queries/bale/bale.mysql.sql`
-- **PostgreSQL**: `postgres/success-rate-queries/bale/bale.postgres.sql`
+- **Raw queries**: `bale/raw.mysql.sql`, `bale/raw.postgres.sql`
+- **Stored procedures**: `bale/procedure.mysql.sql`, `bale/procedure.postgres.sql`
 
-These queries aggregate transaction data from `raw_bale` table and are used by the stored procedure `sp_process_bale_daily()`.
+These aggregate transaction data from `raw_bale` table. The procedure files embed the same logic as the raw queries.
 
 **Cross-DB Architecture**: CDC creates raw tables in `db_{app_name}` (e.g., `db_bale`), not in `platform_db`. MySQL uses `db_bale.raw_bale` syntax. PostgreSQL uses postgres_fdw: a foreign table `raw_bale` in platform_db points to `db_bale.raw_bale`. Configure `db_name` and `raw_table_name` in `app_identifier` (Superadmin > App Config).
 
+### BALE BISNIS Application
+
+- **Raw queries**: `bale_bisnis/raw.mysql.sql`, `bale_bisnis/raw.postgres.sql`
+- **Stored procedures**: `bale_bisnis/procedure.mysql.sql`, `bale_bisnis/procedure.postgres.sql`
+
+These aggregate transaction data from `raw_bale_bisnis` table. Uses `BALE_BISNIS_PROCESSING_SCHEDULE` env var (default: `1 0 * * *`). MySQL: `db_bale_bisnis.raw_bale_bisnis`. PostgreSQL: FDW `raw_bale_bisnis`.
+
 ### Adding New Applications
 
-To add a new application:
+1. Create `scripts/success_rate/{app_key}/` with:
+   - `raw.mysql.sql`, `raw.postgres.sql` (aggregation queries)
+   - `procedure.mysql.sql`, `procedure.postgres.sql` (stored procedures)
+2. Add `{ appKey: 'app_key', procedureName: 'sp_process_app_key_daily' }` to `registry.ts`
+3. No changes needed to `runProcedures.ts` or `migrate.ts`
 
-1. Create a new directory under `mysql/success-rate-queries/` and `postgres/success-rate-queries/`
-2. Add the SQL query file (e.g., `cms.mysql.sql` and `cms.postgres.sql`)
-3. Create a migration file in `src/migrations/` following the pattern:
-   - `{timestamp}-Create{AppName}ProcessingProcedure.ts`
-4. The migration should:
-   - Create stored procedure `sp_process_{app_name}_daily()`
-   - Setup event scheduler (MySQL) or scheduler job (PostgreSQL: app-level scheduler if enabled, otherwise pg_cron preferred, pgAgent fallback)
+**Note**: Only add to `registry.ts` when procedure files exist.
 
 ## Stored Procedures
 
-Stored procedures are created via TypeORM migrations in `src/migrations/`. They are not stored in this directory but are referenced here for documentation.
+Stored procedures are defined in this directory and executed by `src/db/migrate.ts` Phase 5. The migration imports `runProcedures` from `scripts/success_rate/runProcedures.ts`, which loads each app's `procedure.{mysql|postgres}.sql` and executes it.
 
 ### BALE Processing Procedure
 
@@ -70,14 +85,23 @@ Stored procedures are created via TypeORM migrations in `src/migrations/`. They 
 - Unmapped RC: If RC not in dictionary → insert into `unmapped_rc`
 - No RC Transaction: If RC is NULL/empty/'-' without success indicators → `error_type = NULL`
 
+### BALE BISNIS Processing Procedure
+
+**Procedure Name**: `sp_process_bale_bisnis_daily()`
+
+**Schedule**: Uses `BALE_BISNIS_PROCESSING_SCHEDULE` (default: 00:01 daily)
+
+**Functionality**: Same as Bale – aggregates from `raw_bale_bisnis`, inserts into `app_success_rate`. Uses CROSS JOIN structure (days × features × statuses × states) for full matrix output.
+
 ## Installation and Setup
 
 ### MySQL
 
 1. **Run Migration**:
    ```bash
-   npm run migration:run
+   npm run db:migrate
    ```
+   Or procedures only: `npm run db:migrate:procedures`
 
 2. **Verify Event Scheduler**:
    ```sql
@@ -88,14 +112,16 @@ Stored procedures are created via TypeORM migrations in `src/migrations/`. They 
    SET GLOBAL event_scheduler = ON;
    ```
 
-3. **Verify Event Created**:
+3. **Verify Events Created**:
    ```sql
    SHOW EVENTS LIKE 'evt_process_bale_daily';
+   SHOW EVENTS LIKE 'evt_process_bale_bisnis_daily';
    ```
 
 4. **Manual Trigger** (for testing):
    ```sql
    CALL sp_process_bale_daily();
+   CALL sp_process_bale_bisnis_daily();
    ```
 
 ### PostgreSQL
@@ -106,7 +132,9 @@ Migration akan otomatis mencoba menggunakan scheduler yang tersedia dengan uruta
 3. **pgAgent** (fallback) - jika pg_cron tidak tersedia
 4. **Manual setup** - jika keduanya tidak tersedia
 
-**Catatan**: Semua scheduler (app-level, pg_cron, pgAgent) menggunakan environment variable `BALE_PROCESSING_SCHEDULE` untuk konfigurasi schedule. Default: `1 0 * * *` (00:01 setiap hari).
+**Catatan**: Setiap app punya schedule terpisah:
+- **Bale**: `BALE_PROCESSING_SCHEDULE` (default: `1 0 * * *`)
+- **Bale Bisnis**: `BALE_BISNIS_PROCESSING_SCHEDULE` (default: `1 0 * * *`)
 
 #### Option 1: Application-Level Scheduler (Recommended for Windows)
 
@@ -128,10 +156,11 @@ Migration akan otomatis mencoba menggunakan scheduler yang tersedia dengan uruta
    ```env
    USE_APP_LEVEL_SCHEDULER=true
    SCHEDULER_TIMEZONE=Asia/Jakarta  # Optional, default: Asia/Jakarta
-   BALE_PROCESSING_SCHEDULE=1 0 * * *  # Optional, default: '1 0 * * *' (00:01 daily)
+   BALE_PROCESSING_SCHEDULE=1 0 * * *  # Bale (default: 00:01 daily)
+   BALE_BISNIS_PROCESSING_SCHEDULE=1 0 * * *  # Bale Bisnis (default: 00:01 daily)
    ```
    
-   **Cron Schedule Format** (`BALE_PROCESSING_SCHEDULE`):
+   **Cron Schedule Format** (per-app env vars):
    - Format: `minute hour day month dayOfWeek`
    - Default: `1 0 * * *` (runs at 00:01 every day)
    - **Digunakan oleh semua scheduler**: app-level (node-cron), pg_cron, pgAgent, dan MySQL events
@@ -144,7 +173,7 @@ Migration akan otomatis mencoba menggunakan scheduler yang tersedia dengan uruta
 
 3. **Run Migration** (will create stored procedure only, skip database scheduler):
    ```bash
-   npm run migration:postgres:run
+   DB_TYPE=postgresql npm run db:migrate
    ```
 
 4. **Start Application**:
@@ -202,13 +231,13 @@ Jadi untuk setup lengkap: jalankan migration sekali ke database target (procedur
 3. **Jalankan migration** (semua dari satu file migration):
    - Buat table + procedure di database target:
      ```bash
-     DB_NAME=platform_db npm run migration:postgres:run
+     DB_NAME=platform_db DB_TYPE=postgresql npm run db:migrate
      ```
    - Daftarkan job pg_cron di database yang punya pg_cron:
      ```bash
-     DB_NAME=postgres npm run migration:postgres:run
+     DB_NAME=postgres DB_TYPE=postgresql npm run db:migrate
      ```
-   **Catatan**: Migration sekarang selalu membuat job pg_cron ketika dijalankan ke database yang punya pg_cron (tidak lagi bergantung pada `USE_APP_LEVEL_SCHEDULER`). Jika Anda pernah menjalankan migration ke postgres saat `USE_APP_LEVEL_SCHEDULER=true` dulu sehingga job tidak terbentuk, lakukan sekali: `DB_NAME=postgres npm run migration:postgres:revert`, lalu `DB_NAME=postgres npm run migration:postgres:run` lagi.
+   **Catatan**: Migration sekarang selalu membuat job pg_cron ketika dijalankan ke database yang punya pg_cron (tidak lagi bergantung pada `USE_APP_LEVEL_SCHEDULER`). Jika Anda pernah menjalankan migration ke postgres saat `USE_APP_LEVEL_SCHEDULER=true` dulu sehingga job tidak terbentuk, lakukan sekali: `DB_NAME=postgres npm run db:migrate`, lalu `DB_NAME=postgres DB_TYPE=postgresql npm run db:migrate` lagi.
 
 4. **Verify Function Created** (di database target, mis. platform_db):
    ```sql
@@ -242,7 +271,7 @@ Jadi untuk setup lengkap: jalankan migration sekali ke database target (procedur
 
 3. **Run Migration**:
    ```bash
-   npm run migration:postgres:run
+   DB_TYPE=postgresql npm run db:migrate
    ```
    Migration akan otomatis menggunakan pgAgent jika pg_cron tidak tersedia.
 
@@ -268,7 +297,7 @@ Jadi untuk setup lengkap: jalankan migration sekali ke database target (procedur
 
 1. **Run Migration** (will create stored procedure only):
    ```bash
-   npm run migration:postgres:run
+   DB_TYPE=postgresql npm run db:migrate
    ```
 
 2. **Setup External Cron**:
@@ -625,23 +654,20 @@ If any step fails, see [Troubleshooting](#troubleshooting) below.
 3. **Lock Time**: DELETE + INSERT in transaction may lock tables
 4. **Execution Time**: Processing runs at 00:01 to minimize impact
 
-## Adding New Applications
+## Adding New Applications (detailed)
 
 To add processing for a new application (e.g., CMS):
 
-1. **Create Query Files**:
-   - `db/mysql/success-rate-queries/cms/cms.mysql.sql`
-   - `db/postgres/success-rate-queries/cms/cms.postgres.sql`
+1. **Create** `scripts/success_rate/cms/` with:
+   - `raw.mysql.sql`, `raw.postgres.sql` (aggregation queries)
+   - `procedure.mysql.sql`, `procedure.postgres.sql` (stored procedures)
 
-2. **Create Migration**:
-   - File: `src/migrations/{timestamp}-CreateCmsProcessingProcedure.ts`
-   - Follow the pattern from `CreateBaleProcessingProcedure.ts`
-   - Update procedure name: `sp_process_cms_daily()`
-   - Update app_name: 'CMS'
+2. **Register** in `scripts/success_rate/registry.ts`:
+   - Add `{ appKey: 'cms', procedureName: 'sp_process_cms_daily' }` to `PROCEDURE_APPS`
 
 3. **Run Migration**:
    ```bash
-   npm run migration:run
+   npm run db:migrate
    ```
 
 4. **Create API Endpoint** (optional):

@@ -7,6 +7,7 @@ Folder ini berisi script dan dependency untuk menjalankan migration database **d
 - `package.json` – dependency (dotenv, bcryptjs, pg, mysql2, tsx, typescript) dan script migration
 - `tsconfig.json` – konfigurasi TypeScript untuk menjalankan `src/db/migrate.ts`
 - `src/db/migrate.ts` – script migration lengkap (salinan dari project utama)
+- `scripts/success_rate/` – stored procedure SQL (bale, bale_bisnis). **Penting:** Jalankan `npm run copy-procedures` dari folder migration-kit (dengan project utama sebagai parent) untuk menyalin procedure files sebelum deploy.
 - `.env.example` – contoh variabel environment yang dibutuhkan
 
 ## Production Deployment (Step-by-Step)
@@ -17,9 +18,11 @@ Prosedur deploy migration ke server production. Lihat juga [README utama - Produ
 
 Copy folder `migration-kit` ke server (misalnya `/app/dashboard-grafana-migration-kit`).
 
-### Step 2: Sinkronkan migrate.ts
+### Step 2: Sinkronkan migrate.ts dan procedure files
 
 Pastikan `src/db/migrate.ts` sama dengan `src/db/migrate.ts` di project utama. Setiap kali migration diubah di repo, salin lagi ke `migration-kit/src/db/migrate.ts`.
+
+**Procedure files:** Jalankan `npm run copy-procedures` dari folder `migration-kit` (dengan project utama sebagai parent directory) untuk menyalin `scripts/success_rate/bale/` dan `scripts/success_rate/bale_bisnis/` dari project utama. Tanpa ini, phase procedures akan gagal.
 
 ### Step 3: Konfigurasi .env
 
@@ -123,7 +126,7 @@ No `npm install` needed — `node_modules` is already copied.
 
 - Node.js 18+ (atau sesuai yang dipakai project utama)
 - Akses jaringan dari server ke database (MySQL atau PostgreSQL)
-- Variabel environment yang benar (terutama DB_* dan optional DEFAULT_SU_*, TARGET_DATABASES, BALE_PROCESSING_SCHEDULE)
+- Variabel environment yang benar (terutama DB_* dan optional DEFAULT_SU_*, TARGET_DATABASES, BALE_PROCESSING_SCHEDULE, BALE_BISNIS_PROCESSING_SCHEDULE)
 
 ## Cara kerja offline (tanpa internet)
 

@@ -104,10 +104,10 @@ export async function POST(request: NextRequest) {
     const connection = await pool.getConnection()
     try {
       const dbType = isPostgres ? 'postgresql' : 'mysql'
-      const appNameLower = app_name.toLowerCase().trim()
-      
-      // Build stored procedure name: sp_process_{app_name}_daily
-      const procedureName = `sp_process_${appNameLower}_daily`
+      // Build stored procedure name: sp_process_{app_key}_daily
+      // e.g. "Bale Bisnis" -> sp_process_bale_bisnis_daily
+      const appKey = app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'
+      const procedureName = `sp_process_${appKey}_daily`
       
       // Prepare date parameter for database - use date string directly (YYYY-MM-DD)
       // This avoids timezone conversion issues
