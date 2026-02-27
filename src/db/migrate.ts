@@ -1361,7 +1361,14 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
             true
           )
         `)
-        console.log(`  ✅ pg_cron job '${jobName}' → database '${dbName}' (${CRON_SCHEDULE})`)
+        // schedule_in_database defaults to nodename='localhost'. When DB is on a remote host
+        // (DB_HOST), pg_cron must connect to that host. Update nodename/nodeport so jobs succeed.
+        await exec(`
+          UPDATE cron.job
+          SET nodename = '${esc(DB_HOST)}', nodeport = ${DB_PORT}
+          WHERE jobname = '${esc(jobName)}'
+        `)
+        console.log(`  ✅ pg_cron job '${jobName}' → database '${dbName}' @ ${DB_HOST}:${DB_PORT} (${CRON_SCHEDULE})`)
       } catch (e: unknown) {
         console.warn(`  ⚠️  pg_cron job for '${dbName}' failed:`, (e as Error).message)
       }

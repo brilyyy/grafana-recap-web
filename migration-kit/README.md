@@ -11,7 +11,7 @@ Folder ini berisi script dan dependency untuk menjalankan migration database **d
 
 ## Production Deployment (Step-by-Step)
 
-Prosedur deploy migration ke server production. Lihat juga [README utama - Production Deployment](../README.md#production-deployment-step-by-step) untuk alur lengkap (DB prep → migration → build → deploy).
+Prosedur deploy migration ke server production. Lihat juga [README utama - Production Deployment](../README.md#production-deployment-step-by-step) untuk alur lengkap (DB prep → migration → build → deploy). Untuk konfigurasi server PostgreSQL (pg_cron, postgresql.conf), lihat [SERVER_CONFIG.md](../SERVER_CONFIG.md).
 
 ### Step 1: Copy migration-kit ke server
 

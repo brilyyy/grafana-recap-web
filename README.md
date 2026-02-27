@@ -56,6 +56,7 @@ Complete procedure to deploy the dashboard to production.
   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
   ```
 - Configure CDC to write to `db_{app_name}`
+- If using pg_cron: configure server per [SERVER_CONFIG.md](SERVER_CONFIG.md) (`cron.use_background_workers`, etc.)
 
 #### Step 2: Run Migration
 
@@ -272,7 +273,7 @@ LEFT JOIN pg_user_mapping um ON um.umserver = s.oid WHERE s.srvname LIKE '%_serv
 SELECT COUNT(*) FROM raw_bale;
 ```
 
-See [`db/README.md`](db/README.md) for more details on cross-db architecture.
+See [`db/README.md`](db/README.md) for more details on cross-db architecture. See [`SERVER_CONFIG.md`](SERVER_CONFIG.md) for PostgreSQL server configuration (pg_cron, postgresql.conf).
 
 ### How to Verify Everything Works
 

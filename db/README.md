@@ -197,6 +197,7 @@ Jadi untuk setup lengkap: jalankan migration sekali ke database target (procedur
    ```
    Note: Requires PostgreSQL restart and `shared_preload_libraries = 'pg_cron'` in postgresql.conf.
    Migration uses `cron.schedule_in_database()` to run jobs in target databases; **pg_cron 1.4+** is required.
+   **Server config:** See [SERVER_CONFIG.md](../SERVER_CONFIG.md) for `postgresql.conf` (e.g. `cron.use_background_workers = on`) to avoid "connection failed".
 
 3. **Jalankan migration** (semua dari satu file migration):
    - Buat table + procedure di database target:
@@ -216,9 +217,11 @@ Jadi untuk setup lengkap: jalankan migration sekali ke database target (procedur
 
 5. **Verify Cron Job** (di database yang punya pg_cron, mis. postgres):
    ```sql
-   SELECT jobid, jobname, schedule, database FROM cron.job WHERE jobname LIKE 'process-bale-daily-%';
+   SELECT jobid, jobname, schedule, nodename, nodeport, database FROM cron.job WHERE jobname LIKE 'process-bale-daily-%';
    ```
    **Penting**: pg_cron memakai Row-Level Security (RLS) pada `cron.job`. Anda hanya melihat job yang dibuat oleh **user yang sama** dengan yang sedang login. Jadi pastikan koneksi ke database `postgres` memakai **user yang sama dengan DB_USER** saat menjalankan migration (bukan user lain, mis. postgres vs app_user). Jika Anda login sebagai superuser (mis. postgres), Anda akan melihat job yang dibuat oleh user tersebut.
+
+   **Connection failed**: Jika `cron.job_run_details` menampilkan `status='failed'` dan `return_message='connection failed'`, lihat [SERVER_CONFIG.md](../SERVER_CONFIG.md). Pastikan `cron.use_background_workers = on` di postgresql.conf; migration mengatur `nodename`/`nodeport` dari `DB_HOST`/`DB_PORT`.
 
 #### Option 3: Using pgAgent (Cross-platform, including Windows)
 
