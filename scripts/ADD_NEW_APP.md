@@ -89,9 +89,51 @@ Jalankan DDL ini di database `db_{app_name}` (atau sesuai konfigurasi CDC) sebel
 
 ---
 
-## 4. Re-copy Migration-Kit ke Production Server
+## 4. Update Scheduler dan Cron Setup
 
-Setelah menambah atau mengubah migration (termasuk stored procedures), salin ulang folder `migration-kit` ke server production:
+Stored procedure perlu dijadwalkan agar berjalan otomatis (mis. setiap hari jam 00:01). Ada dua mekanisme yang perlu di-update:
+
+### 4.1 `src/lib/scheduler.ts` (Application-Level Scheduler)
+
+**Untuk apa?** Digunakan ketika `USE_APP_LEVEL_SCHEDULER=true` — biasanya untuk **PostgreSQL di Windows** yang tidak punya pg_cron. Scheduler ini memakai **node-cron** di dalam aplikasi Next.js untuk memanggil stored procedure sesuai jadwal.
+
+**Yang perlu di-update:**
+1. Tambah variabel task (mis. `cmsProcessingTask`)
+2. Tambah fungsi execute (mis. `executeCmsProcessing()`) yang memanggil `sp_process_{app_key}_daily`
+3. Tambah blok di `setupProcessingSchedulers()` untuk mendaftarkan job node-cron
+4. Tambah ke `stopScheduler()` untuk membersihkan task saat shutdown
+5. Tambah env var: `{APP_KEY}_PROCESSING_SCHEDULE` (mis. `CMS_PROCESSING_SCHEDULE=1 0 * * *`)
+
+**Contoh pola** (ikuti struktur Bale/Bale Bisnis yang sudah ada).
+
+> **Catatan:** Perubahan `scheduler.ts` memengaruhi **aplikasi Next.js utama**. Setelah di-update, lakukan **rebuild dan redeploy** aplikasi production agar scheduler baru aktif. Migration-kit tidak berisi scheduler — hanya untuk menjalankan migration.
+
+### 4.2 `src/db/migrate.ts` (Database Scheduler)
+
+**Untuk apa?** Migration Phase 6 membuat job cron di database:
+- **MySQL**: EVENT scheduler (`evt_process_{app_key}_daily`)
+- **PostgreSQL**: pg_cron atau pgAgent (jika tersedia)
+
+**Yang perlu di-update:**
+1. Tambah konstanta schedule (mis. `CRON_SCHEDULE_CMS = process.env.CMS_PROCESSING_SCHEDULE ?? '1 0 * * *'`)
+2. **MySQL**: Tambah `CREATE EVENT evt_process_{app_key}_daily` yang memanggil `CALL sp_process_{app_key}_daily(NULL)`
+3. **PostgreSQL pg_cron**: Tambah ke array `cronJobs`
+4. **PostgreSQL pgAgent**: Tambah ke array `pgAgentJobs`
+
+### 4.3 Environment Variables
+
+Tambahkan ke `src/env.ts` (schema) dan `.env.example`:
+```
+{APP_KEY}_PROCESSING_SCHEDULE=1 0 * * *
+```
+
+Contoh: `CMS_PROCESSING_SCHEDULE=1 0 * * *`
+
+---
+
+## 5. Re-copy Migration-Kit ke Production Server
+
+Setelah menambah atau mengubah migration (termasuk stored procedures dan cron setup), salin ulang folder `migration-kit` ke server production:
 
 ```bash
 # Dari mesin build (dengan akses internet)
@@ -107,7 +149,7 @@ Pastikan `src/db/migrate.ts` di migration-kit sama dengan `src/db/migrate.ts` di
 
 ---
 
-## 5. Setup .env untuk Migration-Kit
+## 6. Setup .env untuk Migration-Kit
 
 Di server production, konfigurasi `.env` di dalam folder migration-kit:
 
@@ -129,7 +171,7 @@ cp .env.example .env
 
 ---
 
-## 6. Jalankan Migration untuk Cron
+## 7. Jalankan Migration untuk Cron
 
 Di root project migration-kit:
 
@@ -166,6 +208,14 @@ DB_NAME=postgres DB_TYPE=postgresql npm run migrate
 | 2a | Success rate queries (MySQL + PostgreSQL) | `scripts/success_rate/{app_key}/` |
 | 2b | Raw table DDL (MySQL + PostgreSQL) | `scripts/raw_table_creation/` |
 | 3 | Stored procedures + registry | `scripts/success_rate/{app_key}/` + `registry.ts` |
-| 4 | Re-copy migration-kit | Ke server production |
-| 5 | Setup .env (DB_NAME) | `migration-kit/.env` |
-| 6 | Run migration | `cd migration-kit && npm run migrate` |
+| 4 | Update scheduler & cron setup | `src/lib/scheduler.ts`, `src/db/migrate.ts`, `src/env.ts`, `.env.example` |
+| 5 | Re-copy migration-kit | Ke server production |
+| 6 | Setup .env (DB_NAME, schedule) | `migration-kit/.env` |
+| 7 | Run migration | `cd migration-kit && npm run migrate` |
+
+---
+
+## Langkah yang Tidak Perlu Diubah
+
+- **`/api/processing/process-manual`** — Endpoint manual trigger sudah generic; memanggil `sp_process_{app_key}_daily` berdasarkan `app_name` dari body. Tidak perlu endpoint baru per app.
+- **`app_identifier` seed** — Migration Phase 7 sudah menyertakan daftar default apps (Bale, Bale Bisnis, CMS, dll.). Jika app baru ada di daftar, akan ter-seed otomatis. Jika tidak, cukup tambah via frontend (langkah 1).
