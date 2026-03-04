@@ -6,7 +6,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const apps = ['bale', 'bale_bisnis']
+const apps = ['bale', 'bale_bisnis', 'olob']
 const files = ['procedure.mysql.sql', 'procedure.postgres.sql']
 
 for (const app of apps) {

@@ -10,4 +10,5 @@ export type ProcedureApp = {
 export const PROCEDURE_APPS: ProcedureApp[] = [
   { appKey: 'bale', procedureName: 'sp_process_bale_daily' },
   { appKey: 'bale_bisnis', procedureName: 'sp_process_bale_bisnis_daily' },
+  { appKey: 'olob', procedureName: 'sp_process_olob_daily' },
 ]
