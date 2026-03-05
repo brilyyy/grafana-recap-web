@@ -1072,7 +1072,7 @@ async function runSeeds() {
   console.log('\n🌱 Phase 7: Seeds')
 
   // Default app identifiers (with db_name, raw_table_name for cross-db)
-  const defaultApps = ['Bale', 'Bale Bisnis', 'OLOB', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agent', 'Bale Korpora']
+  const defaultApps = ['Bale', 'Bale Bisnis', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agent', 'Bale Korpora', 'OLOB']
   for (const appName of defaultApps) {
     const dbName = deriveDbName(appName)
     const rawTableName = appName === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(appName)
