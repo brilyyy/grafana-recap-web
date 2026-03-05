@@ -4,6 +4,7 @@
  */
 let baleProcessingTask: any = null
 let baleBisnisProcessingTask: any = null
+let olobProcessingTask: any = null
 
 /**
  * Execute the Bale daily processing stored procedure.
@@ -75,6 +76,44 @@ async function executeBaleBisnisProcessing(): Promise<void> {
     })
     try {
       await connection.execute('CALL sp_process_bale_bisnis_daily(?)', [null])
+    } finally {
+      await connection.end()
+    }
+  }
+}
+
+/**
+ * Execute the OLOB daily processing stored procedure.
+ */
+async function executeOlobProcessing(): Promise<void> {
+  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
+  const isPostgres = dbType === 'postgresql' || dbType === 'postgres'
+
+  if (isPostgres) {
+    const { Pool } = await import('pg')
+    const pool = new Pool({
+      host:     process.env.DB_HOST,
+      port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    })
+    try {
+      await pool.query('SELECT public.sp_process_olob_daily($1::date)', [null])
+    } finally {
+      await pool.end()
+    }
+  } else {
+    const mysql = await import('mysql2/promise')
+    const connection = await mysql.createConnection({
+      host:     process.env.DB_HOST,
+      port:     parseInt(process.env.DB_PORT ?? '3306', 10),
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    })
+    try {
+      await connection.execute('CALL sp_process_olob_daily(?)', [null])
     } finally {
       await connection.end()
     }
@@ -170,6 +209,26 @@ async function setupProcessingSchedulers(): Promise<void> {
     )
     console.log(`✅ Bale Bisnis processing scheduler configured: Schedule '${bisnisSchedule}' (timezone: ${timezone})`)
   }
+
+  // OLOB
+  if (!olobProcessingTask) {
+    let olobSchedule = getCronSchedule('OLOB_PROCESSING_SCHEDULE')
+    if (!cron.validate(olobSchedule)) olobSchedule = '1 0 * * *'
+    olobProcessingTask = cron.schedule(
+      olobSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled OLOB processing...')
+          await executeOlobProcessing()
+          console.log('✅ Scheduled OLOB processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled OLOB processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ OLOB processing scheduler configured: Schedule '${olobSchedule}' (timezone: ${timezone})`)
+  }
 }
 
 /**
@@ -183,6 +242,10 @@ export function stopScheduler(): void {
   if (baleBisnisProcessingTask) {
     baleBisnisProcessingTask.stop()
     baleBisnisProcessingTask = null
+  }
+  if (olobProcessingTask) {
+    olobProcessingTask.stop()
+    olobProcessingTask = null
   }
   console.log('✅ Scheduler stopped')
 }

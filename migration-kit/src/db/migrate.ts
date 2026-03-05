@@ -67,6 +67,7 @@ const DB_NAME = process.env.DB_NAME ?? 'platform_db'
 
 const CRON_SCHEDULE = process.env.BALE_PROCESSING_SCHEDULE ?? '1 0 * * *'
 const CRON_SCHEDULE_BALE_BISNIS = process.env.BALE_BISNIS_PROCESSING_SCHEDULE ?? '1 0 * * *'
+const CRON_SCHEDULE_OLOB = process.env.OLOB_PROCESSING_SCHEDULE ?? '1 0 * * *'
 const USE_APP_SCHEDULER = process.env.USE_APP_LEVEL_SCHEDULER === 'true'
 
 function getTargetDatabases(): string[] {
@@ -933,6 +934,15 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
       DO CALL sp_process_bale_bisnis_daily(NULL)
     `)
     console.log(`  ✅ MySQL event evt_process_bale_bisnis_daily created (${CRON_SCHEDULE_BALE_BISNIS})`)
+
+    await exec('DROP EVENT IF EXISTS `evt_process_olob_daily`')
+    const mysqlScheduleOlob = parseCronForMySQL(CRON_SCHEDULE_OLOB)
+    await exec(`
+      CREATE EVENT \`evt_process_olob_daily\`
+      ON SCHEDULE ${mysqlScheduleOlob}
+      DO CALL sp_process_olob_daily(NULL)
+    `)
+    console.log(`  ✅ MySQL event evt_process_olob_daily created (${CRON_SCHEDULE_OLOB})`)
     return
   }
 
@@ -964,6 +974,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
     const cronJobs: { jobName: string; schedule: string; sql: string }[] = [
       { jobName: `process-bale-daily`, schedule: CRON_SCHEDULE, sql: 'SELECT public.sp_process_bale_daily(NULL)' },
       { jobName: `process-bale-bisnis-daily`, schedule: CRON_SCHEDULE_BALE_BISNIS, sql: 'SELECT public.sp_process_bale_bisnis_daily(NULL)' },
+      { jobName: `process-olob-daily`, schedule: CRON_SCHEDULE_OLOB, sql: 'SELECT public.sp_process_olob_daily(NULL)' },
     ]
     for (const dbName of targetDbs) {
       for (const { jobName: base, schedule, sql } of cronJobs) {
@@ -1009,6 +1020,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
     const pgAgentJobs: { jobName: string; schedule: string; sql: string; desc: string }[] = [
       { jobName: 'process-bale-daily', schedule: CRON_SCHEDULE, sql: 'SELECT public.sp_process_bale_daily(NULL);', desc: 'Bale' },
       { jobName: 'process-bale-bisnis-daily', schedule: CRON_SCHEDULE_BALE_BISNIS, sql: 'SELECT public.sp_process_bale_bisnis_daily(NULL);', desc: 'Bale Bisnis' },
+      { jobName: 'process-olob-daily', schedule: CRON_SCHEDULE_OLOB, sql: 'SELECT public.sp_process_olob_daily(NULL);', desc: 'OLOB' },
     ]
 
     for (const dbName of targetDbs) {
@@ -1049,7 +1061,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
   }
 
   console.warn('  ⚠️  Neither pg_cron nor pgAgent found.')
-  console.warn(`     To run manually: SELECT public.sp_process_bale_daily(NULL); SELECT public.sp_process_bale_bisnis_daily(NULL); in each target DB`)
+  console.warn(`     To run manually: SELECT public.sp_process_bale_daily(NULL); SELECT public.sp_process_bale_bisnis_daily(NULL); SELECT public.sp_process_olob_daily(NULL); in each target DB`)
   console.warn('     Or set USE_APP_LEVEL_SCHEDULER=true to use node-cron instead.')
   console.log('  ✅ Phase 6 done (no scheduler configured)')
 }
@@ -1060,10 +1072,10 @@ async function runSeeds() {
   console.log('\n🌱 Phase 7: Seeds')
 
   // Default app identifiers (with db_name, raw_table_name for cross-db)
-  const defaultApps = ['Bale', 'Bale Bisnis', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agent', 'Bale Korpora']
+  const defaultApps = ['Bale', 'Bale Bisnis', 'OLOB', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agent', 'Bale Korpora']
   for (const appName of defaultApps) {
     const dbName = deriveDbName(appName)
-    const rawTableName = deriveRawTableName(appName)
+    const rawTableName = appName === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(appName)
     if (IS_PG) {
       await exec(
         `INSERT INTO "app_identifier" ("app_name","db_name","raw_table_name") VALUES ($1,$2,$3)
@@ -1081,7 +1093,7 @@ async function runSeeds() {
     const rows = await exec('SELECT id, app_name FROM "app_identifier" WHERE "db_name" IS NULL OR "raw_table_name" IS NULL')
     for (const row of rows as { id: number; app_name: string }[]) {
       const dbName = deriveDbName(row.app_name)
-      const rawTableName = deriveRawTableName(row.app_name)
+      const rawTableName = row.app_name === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(row.app_name)
       await exec('UPDATE "app_identifier" SET "db_name"=$1, "raw_table_name"=$2 WHERE "id"=$3', [dbName, rawTableName, row.id])
     }
     if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
@@ -1089,7 +1101,7 @@ async function runSeeds() {
     const rows = await exec('SELECT id, app_name FROM `app_identifier` WHERE `db_name` IS NULL OR `raw_table_name` IS NULL')
     for (const row of rows as { id: number; app_name: string }[]) {
       const dbName = deriveDbName(row.app_name)
-      const rawTableName = deriveRawTableName(row.app_name)
+      const rawTableName = row.app_name === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(row.app_name)
       await exec('UPDATE `app_identifier` SET `db_name`=?, `raw_table_name`=? WHERE `id`=?', [dbName, rawTableName, row.id])
     }
     if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
