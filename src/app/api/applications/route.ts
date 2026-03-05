@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'
-    const dbName = `db_${base}`
+    const dbName = `${base}_db`
     const rawTableName = `raw_${base}`
     const insertSql = isPostgres
       ? 'INSERT INTO app_identifier (app_name, db_name, raw_table_name) VALUES (?, ?, ?) RETURNING id'

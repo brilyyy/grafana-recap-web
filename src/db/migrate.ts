@@ -88,10 +88,10 @@ function parseCronForMySQL(schedule: string): string {
   return `EVERY 1 DAY STARTS DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 DAY), '%Y-%m-%d ${hh}:${mm}:00')`
 }
 
-/** Derive db_name from app_name: db_ + lowercase, spaces/special -> underscore */
+/** Derive db_name from app_name: lowercase + _db, spaces/special -> underscore */
 function deriveDbName(appName: string): string {
   const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
-  return `db_${base || 'unknown'}`
+  return `${base || 'unknown'}_db`
 }
 
 /** Derive raw_table_name from app_name: raw_ + same as db_name base */

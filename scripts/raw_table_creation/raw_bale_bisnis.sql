@@ -1,5 +1,5 @@
--- CDC creates raw tables in db_{app_name} (e.g., db_bale), not in platform_db.
--- Create database first: CREATE DATABASE db_bale;
+-- CDC creates raw tables in {app_name}_db (e.g., bale_bisnis_db), not in platform_db.
+-- Create database first: CREATE DATABASE bale_bisnis_db;
 --
 -- POSTGRES
 CREATE TABLE public.raw_bale_bisnis (
@@ -14,7 +14,7 @@ CREATE TABLE public.raw_bale_bisnis (
     transaction_state VARCHAR(10) NULL
 );
 
--- MYSQL (run in db_bale database)
+-- MYSQL (run in bale_bisnis_db database)
 CREATE TABLE raw_bale_bisnis (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     transaction_date DATETIME NOT NULL,

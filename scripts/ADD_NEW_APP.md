@@ -8,7 +8,7 @@ Panduan langkah demi langkah untuk menambahkan aplikasi baru ke Dashboard Grafan
 
 Tambahkan aplikasi baru melalui **Superadmin > App Config** di frontend. Pastikan aplikasi tercatat di tabel `app_identifier` dengan konfigurasi:
 - `app_name` – nama aplikasi (mis. Bale, CMS)
-- `db_name` – database raw aplikasi (mis. `db_bale`, `db_cms`)
+- `db_name` – database raw aplikasi (mis. `bale_db`, `cms_db`)
 - `raw_table_name` – nama tabel raw (mis. `raw_bale`, `raw_cms`)
 
 ---
@@ -50,8 +50,8 @@ Buat file DDL untuk raw table di `scripts/raw_table_creation/` untuk database ra
 **Contoh:** `scripts/raw_table_creation/raw_{app_name}.sql`
 
 ```sql
--- CDC creates raw tables in db_{app_name} (e.g., db_bale), not in platform_db.
--- Create database first: CREATE DATABASE db_{app_name};
+-- CDC creates raw tables in {app_name}_db (e.g., bale_db), not in platform_db.
+-- Create database first: CREATE DATABASE {app_name}_db;
 
 -- POSTGRES
 CREATE TABLE public.raw_{app_name} (
@@ -60,7 +60,7 @@ CREATE TABLE public.raw_{app_name} (
     -- ... kolom sesuai kebutuhan aplikasi
 );
 
--- MYSQL (run in db_{app_name} database)
+-- MYSQL (run in {app_name}_db database)
 CREATE TABLE raw_{app_name} (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     transaction_date DATETIME NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE raw_{app_name} (
 );
 ```
 
-Jalankan DDL ini di database `db_{app_name}` (atau sesuai konfigurasi CDC) sebelum migration.
+Jalankan DDL ini di database `{app_name}_db` (atau sesuai konfigurasi CDC) sebelum migration.
 
 ---
 

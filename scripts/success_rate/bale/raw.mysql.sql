@@ -90,7 +90,7 @@ SELECT
         WHEN rb.transaction_status = 8 THEN 'REVERSAL' 
         ELSE 'Status Tidak Dikenal' 
     END AS `Status Transaksi`
-FROM db_bale.raw_bale rb
+FROM bale_db.raw_bale rb
 JOIN categories c 
     ON rb.transaction_category = c.category
 WHERE 

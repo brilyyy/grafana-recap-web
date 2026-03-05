@@ -43,19 +43,19 @@ Complete procedure to deploy the dashboard to production.
 
 **MySQL:**
 - Create platform database (e.g. `platform_db`)
-- Create app databases for CDC: `db_bale`, `db_cms`, etc.
+- Create app databases for CDC: `bale_db`, `cms_db`, etc.
 - Ensure `DB_USER` has access to all databases
-- Configure CDC to write raw tables to `db_{app_name}`
+- Configure CDC to write raw tables to `{app_name}_db`
 
 **PostgreSQL:**
 - Create platform database (e.g. `platform_db`)
-- Create app databases: `CREATE DATABASE db_bale;` (repeat per app)
+- Create app databases: `CREATE DATABASE bale_db;` (repeat per app)
 - Install postgres_fdw in platform database:
   ```sql
   \c platform_db
   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
   ```
-- Configure CDC to write to `db_{app_name}`
+- Configure CDC to write to `{app_name}_db`
 - If using pg_cron: configure server per [SERVER_CONFIG.md](SERVER_CONFIG.md) (`cron.use_background_workers`, etc.)
 
 #### Step 2: Run Migration
@@ -201,9 +201,9 @@ See [`migration-kit/README.md`](migration-kit/README.md) for full step-by-step d
 
 ### PostgreSQL FDW (Cross-Database Setup)
 
-CDC creates raw tables in separate databases (`db_{app_name}`), not in `platform_db`. To query across databases:
+CDC creates raw tables in separate databases (`{app_name}_db`), not in `platform_db`. To query across databases:
 
-- **MySQL**: Uses native `database.table` syntax (e.g. `db_bale.raw_bale`). No extra setup.
+- **MySQL**: Uses native `database.table` syntax (e.g. `bale_db.raw_bale`). No extra setup.
 - **PostgreSQL**: Uses **postgres_fdw** to create foreign tables in `platform_db` that point to app databases.
 
 **Before running migration (PostgreSQL only):**
@@ -216,11 +216,11 @@ CDC creates raw tables in separate databases (`db_{app_name}`), not in `platform
 
 2. **Create app databases** (CDC will create raw tables here):
    ```sql
-   CREATE DATABASE db_bale;
-   -- Repeat for each app: db_cms, db_sms_notif, etc.
+   CREATE DATABASE bale_db;
+   -- Repeat for each app: cms_db, sms_notif_db, etc.
    ```
 
-3. **Configure CDC** to write to `db_{app_name}` instead of `platform_db`.
+3. **Configure CDC** to write to `{app_name}_db` instead of `platform_db`.
 
 **Migration automatically:**
 - Adds `db_name` and `raw_table_name` to `app_identifier`
@@ -229,18 +229,18 @@ CDC creates raw tables in separate databases (`db_{app_name}`), not in `platform
 **If migration does not create FDW** (e.g. extension missing), run manually for each app:
 
 ```sql
--- Replace db_bale, raw_bale with your app's db_name and raw_table_name
-CREATE SERVER db_bale_server
+-- Replace bale_db, raw_bale with your app's db_name and raw_table_name
+CREATE SERVER bale_db_server
   FOREIGN DATA WRAPPER postgres_fdw
-  OPTIONS (host 'localhost', dbname 'db_bale', port '5432');
+  OPTIONS (host 'localhost', dbname 'bale_db', port '5432');
 
 CREATE USER MAPPING FOR CURRENT_USER
-  SERVER db_bale_server
+  SERVER bale_db_server
   OPTIONS (user 'your_db_user', password 'your_db_password');
 
 IMPORT FOREIGN SCHEMA public
   LIMIT TO (raw_bale)
-  FROM SERVER db_bale_server
+  FROM SERVER bale_db_server
   INTO public;
 ```
 
@@ -252,7 +252,7 @@ DB_NAME=platform_db_local npm run db:migrate:fdw
 ```
 Use `DB_NAME` = your platform database (where app_identifier lives). **Not** the cron database (e.g. `postgres`).
 
-**Troubleshooting:** If FDW did not run, check: (1) `DB_NAME` must point to your platform DB, not the pg_cron database; (2) `app_identifier` must have `db_name` and `raw_table_name` populated (run `--schema-only` first); (3) app databases (e.g. `db_bale`) must exist; (4) `postgres_fdw` extension requires superuser or `CREATE` privilege.
+**Troubleshooting:** If FDW did not run, check: (1) `DB_NAME` must point to your platform DB, not the pg_cron database; (2) `app_identifier` must have `db_name` and `raw_table_name` populated (run `--schema-only` first); (3) app databases (e.g. `bale_db`) must exist; (4) `postgres_fdw` extension requires superuser or `CREATE` privilege.
 
 **Verify FDW setup** (run in platform_db):
 ```sql
@@ -282,7 +282,7 @@ After migration and setup, run these checks to confirm the system is working:
 | Check | MySQL | PostgreSQL |
 |-------|-------|------------|
 | **Migration** | `npm run db:migrate` completes without errors | Same |
-| **Cross-DB / FDW** | `SELECT COUNT(*) FROM db_bale.raw_bale;` returns rows | `SELECT COUNT(*) FROM raw_bale;` returns rows (foreign table in platform_db) |
+| **Cross-DB / FDW** | `SELECT COUNT(*) FROM bale_db.raw_bale;` returns rows | `SELECT COUNT(*) FROM raw_bale;` returns rows (foreign table in platform_db) |
 | **FDW details** | N/A | Extension: `SELECT extname FROM pg_extension WHERE extname = 'postgres_fdw';`<br>Servers: `SELECT srvname FROM pg_foreign_server WHERE srvname LIKE '%_server';`<br>Foreign tables: `SELECT foreign_table_name FROM information_schema.foreign_tables;` |
 | **Stored procedure** | `SHOW PROCEDURE STATUS WHERE Name = 'sp_process_bale_daily';` | `SELECT proname FROM pg_proc WHERE proname = 'sp_process_bale_daily';` |
 | **Scheduler** | `SHOW VARIABLES LIKE 'event_scheduler';` → ON<br>`SHOW EVENTS LIKE 'evt_process_bale_daily';` | App-level: check startup logs for scheduler init<br>pg_cron: `SELECT * FROM cron.job WHERE jobname LIKE 'process-bale%';` |
@@ -1119,7 +1119,7 @@ created_at
 ### Database Support
 
 Aplikasi mendukung **multi-database**:
-- **MySQL**: Primary database — cross-db via `db_name.table` (e.g. `db_bale.raw_bale`)
+- **MySQL**: Primary database — cross-db via `db_name.table` (e.g. `bale_db.raw_bale`)
 - **PostgreSQL**: Alternative database — cross-db via **postgres_fdw** (see [PostgreSQL FDW](#postgresql-fdw-cross-database-setup))
 
 Database adapter di `src/lib/db.ts` menangani perbedaan syntax:

@@ -18,7 +18,7 @@ export const applicationsRouter = router({
       const [existing]: any = await pool.execute('SELECT id FROM app_identifier WHERE app_name = ?', [input.app_name])
       if (existing.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Application already exists' })
       const base = input.app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'
-      const dbName = `db_${base}`
+      const dbName = `${base}_db`
       const rawTableName = `raw_${base}`
       await pool.execute(
         'INSERT INTO app_identifier (app_name, db_name, raw_table_name) VALUES (?, ?, ?)',

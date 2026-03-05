@@ -35,7 +35,7 @@ BEGIN
     ),
     features AS (
       SELECT DISTINCT rbb.transaction_category
-      FROM `db_bale_bisnis`.`raw_bale_bisnis` rbb
+      FROM `bale_bisnis_db`.`raw_bale_bisnis` rbb
       WHERE rbb.transaction_date >= v_start_timestamp
         AND rbb.transaction_date <  v_end_timestamp + INTERVAL 1 SECOND
     ),
@@ -64,7 +64,7 @@ BEGIN
           COUNT(*)                                AS transaction_count,
           COALESCE(SUM(rbb.transaction_amount),0) AS transaction_amount,
           COALESCE(SUM(rbb.admin_fee),0)          AS total_admin_fee
-      FROM `db_bale_bisnis`.`raw_bale_bisnis` rbb
+      FROM `bale_bisnis_db`.`raw_bale_bisnis` rbb
       WHERE rbb.transaction_date >= v_start_timestamp
         AND rbb.transaction_date <  v_end_timestamp + INTERVAL 1 SECOND
       GROUP BY 1,2,3,4,5,6

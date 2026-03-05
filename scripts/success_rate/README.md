@@ -36,14 +36,14 @@ scripts/success_rate/
 
 These aggregate transaction data from `raw_bale` table. The procedure files embed the same logic as the raw queries.
 
-**Cross-DB Architecture**: CDC creates raw tables in `db_{app_name}` (e.g., `db_bale`), not in `platform_db`. MySQL uses `db_bale.raw_bale` syntax. PostgreSQL uses postgres_fdw: a foreign table `raw_bale` in platform_db points to `db_bale.raw_bale`. Configure `db_name` and `raw_table_name` in `app_identifier` (Superadmin > App Config).
+**Cross-DB Architecture**: CDC creates raw tables in `{app_name}_db` (e.g., `bale_db`), not in `platform_db`. MySQL uses `bale_db.raw_bale` syntax. PostgreSQL uses postgres_fdw: a foreign table `raw_bale` in platform_db points to `bale_db.raw_bale`. Configure `db_name` and `raw_table_name` in `app_identifier` (Superadmin > App Config).
 
 ### BALE BISNIS Application
 
 - **Raw queries**: `bale_bisnis/raw.mysql.sql`, `bale_bisnis/raw.postgres.sql`
 - **Stored procedures**: `bale_bisnis/procedure.mysql.sql`, `bale_bisnis/procedure.postgres.sql`
 
-These aggregate transaction data from `raw_bale_bisnis` table. Uses `BALE_BISNIS_PROCESSING_SCHEDULE` env var (default: `1 0 * * *`). MySQL: `db_bale_bisnis.raw_bale_bisnis`. PostgreSQL: FDW `raw_bale_bisnis`.
+These aggregate transaction data from `raw_bale_bisnis` table. Uses `BALE_BISNIS_PROCESSING_SCHEDULE` env var (default: `1 0 * * *`). MySQL: `bale_bisnis_db.raw_bale_bisnis`. PostgreSQL: FDW `raw_bale_bisnis`.
 
 ### Adding New Applications
 
@@ -417,11 +417,11 @@ Expect no errors. Phases 1–5 should complete.
 
 ### 2. Cross-Database Access
 
-**MySQL** (`db_bale` is the app database; `platform_db` is the main DB):
+**MySQL** (`bale_db` is the app database; `platform_db` is the main DB):
 
 ```sql
 -- Connect to platform_db
-SELECT COUNT(*) FROM db_bale.raw_bale;
+SELECT COUNT(*) FROM bale_db.raw_bale;
 ```
 
 Should return a row count (or 0 if CDC has not populated yet).

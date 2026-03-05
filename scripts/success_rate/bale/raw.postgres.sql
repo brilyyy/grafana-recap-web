@@ -1,5 +1,5 @@
 -- Raw aggregation query for Bale (PostgreSQL).
--- Uses raw_bale (FDW to db_bale.raw_bale). Replace $1 and $2 with start/end timestamps.
+-- Uses raw_bale (FDW to bale_db.raw_bale). Replace $1 and $2 with start/end timestamps.
 WITH categories AS (
   SELECT unnest(ARRAY[
     'ACTIVATE_DORMANT','BILLPAYMENT_BANK_LOAN','BILLPAYMENT_BPJS_KESEHATAN','BILLPAYMENT_BPJS_TENAGA_KERJA',

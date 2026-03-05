@@ -121,7 +121,7 @@ BEGIN
         WHEN rb.transaction_status = 8 THEN 'REVERSAL'
         ELSE 'Status Tidak Dikenal'
       END AS `Status Transaksi`
-    FROM `db_bale`.`raw_bale` rb
+    FROM `bale_db`.`raw_bale` rb
     JOIN categories c ON rb.transaction_category COLLATE utf8mb4_unicode_ci = c.category COLLATE utf8mb4_unicode_ci
     WHERE rb.transaction_state IN ('1','9','8')
       AND rb.transaction_date BETWEEN v_start_timestamp AND v_end_timestamp

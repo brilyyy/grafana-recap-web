@@ -76,10 +76,10 @@ function getTargetDatabases(): string[] {
   return raw.split(',').map((d) => d.trim()).filter(Boolean)
 }
 
-/** Derive db_name from app_name: db_ + lowercase, spaces/special -> underscore */
+/** Derive db_name from app_name: lowercase + _db, spaces/special -> underscore */
 function deriveDbName(appName: string): string {
   const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
-  return `db_${base || 'unknown'}`
+  return `${base || 'unknown'}_db`
 }
 
 /** Derive raw_table_name from app_name: raw_ + same as db_name base */

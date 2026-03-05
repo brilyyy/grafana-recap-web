@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       // Relation missing (e.g. raw_bale) – procedure runs but table doesn't exist
       if (errMsg.includes('relation') && errMsg.includes('does not exist')) {
         console.error('[process-manual] Missing table:', errMsg)
-        const dbName = `db_${app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'}`
+        const dbName = `${app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'}_db`
         return NextResponse.json(
           {
             success: false,

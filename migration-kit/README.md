@@ -64,7 +64,7 @@ Jika migration gagal membuat FDW (mis. extension belum terpasang), selesaikan pr
 DB_NAME=platform_db npm run migrate:fdw
 ```
 
-Pastikan: (1) `postgres_fdw` extension sudah di-install di platform_db, (2) app databases (db_bale, dll.) sudah ada, (3) `app_identifier` punya `db_name` dan `raw_table_name` (jalankan `npm run migrate:schema` dulu jika belum).
+Pastikan: (1) `postgres_fdw` extension sudah di-install di platform_db, (2) app databases (bale_db, dll.) sudah ada, (3) `app_identifier` punya `db_name` dan `raw_table_name` (jalankan `npm run migrate:schema` dulu jika belum).
 
 ## Deploy ke server tanpa akses internet (offline)
 

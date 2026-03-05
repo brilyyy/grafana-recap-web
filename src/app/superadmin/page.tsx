@@ -1454,7 +1454,7 @@ export default function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Application Config (Cross-DB)</h3>
               <p className="text-white/70 text-sm mb-4">
-                Configure db_name and raw_table_name for each app. CDC creates raw tables in db_{'{app_name}'}. Update these when adding new apps or changing CDC targets.
+                Configure db_name and raw_table_name for each app. CDC creates raw tables in {'{app_name}'}_db. Update these when adding new apps or changing CDC targets.
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
