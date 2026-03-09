@@ -8,6 +8,7 @@ const isPostgres = dbType === 'postgresql' || dbType === 'postgres'
 
 // Each dialect gets its own snapshot folder so migrations for MySQL and
 // PostgreSQL never conflict when you switch DB_TYPE and run drizzle:generate.
+// MySQL is deprecated – use PostgreSQL + pg_cron.
 export default defineConfig({
   dialect: isPostgres ? 'postgresql' : 'mysql',
   schema: isPostgres

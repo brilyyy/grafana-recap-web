@@ -2,6 +2,8 @@
 
 This directory contains raw aggregation queries and stored procedure definitions for success rate processing. All SQL and runner code live in one place.
 
+> **Note:** MySQL and pgAgent are deprecated. Use PostgreSQL + pg_cron. See [SERVER_CONFIG.md](../../SERVER_CONFIG.md).
+
 > **Menambahkan aplikasi baru?** Lihat [ADD_NEW_APP.md](../ADD_NEW_APP.md) untuk urutan lengkap: frontend → success rate + raw table → stored procedures → migration-kit → production.
 
 ## Directory Structure (Unified Convention)

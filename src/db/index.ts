@@ -9,6 +9,9 @@ import * as pgSchema from './schema/pg'
 const isPostgres =
   env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 
+/**
+ * @deprecated MySQL is deprecated. Use PostgreSQL + pg_cron instead.
+ */
 function createMysqlDb() {
   const pool = mysql.createPool({
     host: env.DB_HOST,

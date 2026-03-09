@@ -910,7 +910,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
   console.log('\n⏰ Phase 6: Cron setup')
 
   if (!IS_PG) {
-    // MySQL event scheduler
+    // @deprecated MySQL event scheduler – use PostgreSQL + pg_cron instead
     try {
       await exec('SET GLOBAL event_scheduler = ON')
     } catch {
@@ -971,11 +971,16 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
   if (hasPgCron) {
     console.log('  pg_cron detected – creating jobs…')
     const esc = (s: string) => s.replace(/'/g, "''")
-    const cronJobs: { jobName: string; schedule: string; sql: string }[] = [
-      { jobName: `process-bale-daily`, schedule: CRON_SCHEDULE, sql: 'SELECT public.sp_process_bale_daily(NULL)' },
-      { jobName: `process-bale-bisnis-daily`, schedule: CRON_SCHEDULE_BALE_BISNIS, sql: 'SELECT public.sp_process_bale_bisnis_daily(NULL)' },
-      { jobName: `process-olob-daily`, schedule: CRON_SCHEDULE_OLOB, sql: 'SELECT public.sp_process_olob_daily(NULL)' },
-    ]
+    const { PROCEDURE_APPS } = await import('../../scripts/success_rate/registry.js')
+    const getSchedule = (appKey: string) =>
+      process.env[`${appKey.toUpperCase()}_PROCESSING_SCHEDULE`] ?? '1 0 * * *'
+    const cronJobs: { jobName: string; schedule: string; sql: string }[] = PROCEDURE_APPS.map(
+      ({ appKey, procedureName }: { appKey: string; procedureName: string }) => ({
+        jobName: `process-${appKey.replace(/_/g, '-')}-daily`,
+        schedule: getSchedule(appKey),
+        sql: `SELECT public.${procedureName}(NULL)`,
+      })
+    )
     for (const dbName of targetDbs) {
       for (const { jobName: base, schedule, sql } of cronJobs) {
         const jobName = `${base}-${dbName}`
@@ -1005,7 +1010,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
     return
   }
 
-  // Fallback: pgAgent
+  // Fallback: pgAgent (@deprecated – use pg_cron instead)
   const hasPgAgent = await (async () => {
     try {
       const r = await exec(`SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name='pgagent') AS exists`)
@@ -1017,11 +1022,19 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
   if (hasPgAgent) {
     console.log('  pgAgent detected – creating jobs…')
     const fmtArr = (arr: number[]) => arr.length === 0 ? 'ARRAY[]::INTEGER[]' : `ARRAY[${arr.join(',')}]`
-    const pgAgentJobs: { jobName: string; schedule: string; sql: string; desc: string }[] = [
-      { jobName: 'process-bale-daily', schedule: CRON_SCHEDULE, sql: 'SELECT public.sp_process_bale_daily(NULL);', desc: 'Bale' },
-      { jobName: 'process-bale-bisnis-daily', schedule: CRON_SCHEDULE_BALE_BISNIS, sql: 'SELECT public.sp_process_bale_bisnis_daily(NULL);', desc: 'Bale Bisnis' },
-      { jobName: 'process-olob-daily', schedule: CRON_SCHEDULE_OLOB, sql: 'SELECT public.sp_process_olob_daily(NULL);', desc: 'OLOB' },
-    ]
+    const { PROCEDURE_APPS } = await import('../../scripts/success_rate/registry.js')
+    const getSchedule = (appKey: string) =>
+      process.env[`${appKey.toUpperCase()}_PROCESSING_SCHEDULE`] ?? '1 0 * * *'
+    const toDesc = (appKey: string) =>
+      appKey.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    const pgAgentJobs: { jobName: string; schedule: string; sql: string; desc: string }[] = PROCEDURE_APPS.map(
+      ({ appKey, procedureName }: { appKey: string; procedureName: string }) => ({
+        jobName: `process-${appKey.replace(/_/g, '-')}-daily`,
+        schedule: getSchedule(appKey),
+        sql: `SELECT public.${procedureName}(NULL);`,
+        desc: toDesc(appKey),
+      })
+    )
 
     for (const dbName of targetDbs) {
       for (const { jobName: base, schedule, sql, desc } of pgAgentJobs) {

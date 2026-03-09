@@ -1,6 +1,8 @@
 /**
  * Scheduler instance storage
  * Using 'any' type because node-cron is dynamically imported
+ *
+ * Note: MySQL branches are deprecated. Use PostgreSQL + pg_cron instead.
  */
 let baleProcessingTask: any = null
 let baleBisnisProcessingTask: any = null
@@ -28,6 +30,7 @@ async function executeBaleProcessing(): Promise<void> {
       await pool.end()
     }
   } else {
+    // @deprecated MySQL – use PostgreSQL + pg_cron
     const mysql = await import('mysql2/promise')
     const connection = await mysql.createConnection({
       host:     process.env.DB_HOST,
@@ -66,6 +69,7 @@ async function executeBaleBisnisProcessing(): Promise<void> {
       await pool.end()
     }
   } else {
+    // @deprecated MySQL – use PostgreSQL + pg_cron
     const mysql = await import('mysql2/promise')
     const connection = await mysql.createConnection({
       host:     process.env.DB_HOST,
@@ -104,6 +108,7 @@ async function executeOlobProcessing(): Promise<void> {
       await pool.end()
     }
   } else {
+    // @deprecated MySQL – use PostgreSQL + pg_cron
     const mysql = await import('mysql2/promise')
     const connection = await mysql.createConnection({
       host:     process.env.DB_HOST,
@@ -276,6 +281,6 @@ export async function initializeScheduler(): Promise<void> {
     console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
     await setupProcessingSchedulers()
   } else {
-    console.log('ℹ️  Application-level scheduler only available for PostgreSQL. MySQL uses Event Scheduler.')
+    console.log('ℹ️  Application-level scheduler only available for PostgreSQL. MySQL is deprecated – use PostgreSQL + pg_cron.')
   }
 }

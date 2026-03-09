@@ -2,6 +2,8 @@
 
 Panduan langkah demi langkah untuk menambahkan aplikasi baru ke Dashboard Grafana, termasuk success rate queries, raw table, stored procedures, dan deployment ke production.
 
+> **Note:** MySQL dan pgAgent deprecated. Gunakan PostgreSQL + pg_cron. Lihat [SERVER_CONFIG.md](../SERVER_CONFIG.md).
+
 ---
 
 ## 1. Add New App melalui Frontend
@@ -111,14 +113,9 @@ Stored procedure perlu dijadwalkan agar berjalan otomatis (mis. setiap hari jam 
 ### 4.2 `src/db/migrate.ts` (Database Scheduler)
 
 **Untuk apa?** Migration Phase 6 membuat job cron di database:
-- **MySQL**: EVENT scheduler (`evt_process_{app_key}_daily`)
-- **PostgreSQL**: pg_cron atau pgAgent (jika tersedia)
-
-**Yang perlu di-update:**
-1. Tambah konstanta schedule (mis. `CRON_SCHEDULE_CMS = process.env.CMS_PROCESSING_SCHEDULE ?? '1 0 * * *'`)
-2. **MySQL**: Tambah `CREATE EVENT evt_process_{app_key}_daily` yang memanggil `CALL sp_process_{app_key}_daily(NULL)`
-3. **PostgreSQL pg_cron**: Tambah ke array `cronJobs`
-4. **PostgreSQL pgAgent**: Tambah ke array `pgAgentJobs`
+- **PostgreSQL pg_cron (recommended)**: Job cron otomatis diambil dari `registry.ts` — **tidak perlu edit migrate.ts**. Cukup tambah ke registry dan jalankan migration.
+- **PostgreSQL pgAgent (deprecated)**: Juga otomatis dari registry.
+- **MySQL (deprecated)**: EVENT scheduler — masih perlu edit migrate.ts untuk tiap app baru.
 
 ### 4.3 Environment Variables
 
@@ -208,7 +205,7 @@ DB_NAME=postgres DB_TYPE=postgresql npm run migrate
 | 2a | Success rate queries (MySQL + PostgreSQL) | `scripts/success_rate/{app_key}/` |
 | 2b | Raw table DDL (MySQL + PostgreSQL) | `scripts/raw_table_creation/` |
 | 3 | Stored procedures + registry | `scripts/success_rate/{app_key}/` + `registry.ts` |
-| 4 | Update scheduler & cron setup | `src/lib/scheduler.ts`, `src/db/migrate.ts`, `src/env.ts`, `.env.example` |
+| 4 | Update scheduler (jika USE_APP_LEVEL_SCHEDULER) atau env schedule | `src/lib/scheduler.ts` (opsional), `{APP_KEY}_PROCESSING_SCHEDULE` di .env |
 | 5 | Re-copy migration-kit | Ke server production |
 | 6 | Setup .env (DB_NAME, schedule) | `migration-kit/.env` |
 | 7 | Run migration | `cd migration-kit && npm run migrate` |

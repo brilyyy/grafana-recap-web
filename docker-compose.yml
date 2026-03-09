@@ -1,7 +1,9 @@
 version: '3.8'
 
+# MySQL is deprecated. Use PostgreSQL + pg_cron instead. See SERVER_CONFIG.md.
+
 services:
-  # MySQL Database
+  # MySQL Database (deprecated – use PostgreSQL + pg_cron)
   mysql:
     image: mysql:8.0
     container_name: dashboard-grafana-mysql

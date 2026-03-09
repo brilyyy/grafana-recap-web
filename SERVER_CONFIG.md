@@ -2,6 +2,8 @@
 
 This document describes how to configure the database server (PostgreSQL) for the Dashboard Grafana platform, especially for pg_cron scheduled jobs.
 
+> **Note:** MySQL and pgAgent are deprecated. Use PostgreSQL + pg_cron as the supported setup.
+
 ## PostgreSQL Server Setup (pg_cron)
 
 When using **pg_cron** for scheduled processing (e.g. Bale daily processing), the PostgreSQL server must be configured correctly. Otherwise jobs may fail with `connection failed` in `cron.job_run_details`.

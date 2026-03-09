@@ -5,7 +5,8 @@
 ### Prerequisites
 
 - Node.js 18+
-- MySQL or PostgreSQL database
+- PostgreSQL database (recommended, with pg_cron for scheduled jobs)
+- MySQL is deprecated – use PostgreSQL + pg_cron instead. See [SERVER_CONFIG.md](SERVER_CONFIG.md).
 
 ### Development
 
@@ -36,18 +37,18 @@ Complete procedure to deploy the dashboard to production.
 #### Prerequisites
 
 - Node.js 18+ on build machine and production server
-- MySQL or PostgreSQL database (accessible from production server)
+- PostgreSQL database (recommended; MySQL and pgAgent are deprecated – use PostgreSQL + pg_cron)
 - Production `.env` values (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET, etc.)
 
 #### Step 1: Database Preparation
 
-**MySQL:**
+**MySQL (deprecated – use PostgreSQL + pg_cron instead):**
 - Create platform database (e.g. `platform_db`)
 - Create app databases for CDC: `bale_db`, `cms_db`, etc.
 - Ensure `DB_USER` has access to all databases
 - Configure CDC to write raw tables to `{app_name}_db`
 
-**PostgreSQL:**
+**PostgreSQL (recommended):**
 - Create platform database (e.g. `platform_db`)
 - Create app databases: `CREATE DATABASE bale_db;` (repeat per app)
 - Install postgres_fdw in platform database:
