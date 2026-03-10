@@ -1,18 +1,18 @@
 SELECT 
     log_dt::date AS "Tanggal Transaksi",
-    SUBSTRING(log_msg FROM POSITION('status_code' IN log_msg) FOR 18) AS status_code,
-    COUNT(
-        SUBSTRING(log_msg FROM POSITION('status_code' IN log_msg) FOR 18)
-    ) AS jumlah
+    $3 AS "Jenis Transaksi",
+    SUBSTRING(log_msg FROM POSITION('status_code' IN log_msg) FOR 18) AS "RC",
+    COUNT(SUBSTRING(log_msg FROM POSITION('status_code' IN log_msg) FOR 18))::INT AS "Total Transaksi"
 FROM openaccount_syslog
-WHERE log_dt >= $1
-  AND log_dt < $2
-  AND log_msg LIKE '%@api_name%'
+WHERE log_dt >= $1::timestamp
+  AND log_dt < $2::timestamp
+  AND log_msg LIKE '%' || $3 || '%'
 GROUP BY 
-    log_dt::date,
-    SUBSTRING(log_msg FROM POSITION('status_code' IN log_msg) FOR 18)
+    "Tanggal Transaksi",
+    "Jenis Transaksi",
+    "RC"
 ORDER BY 
-    log_dt::date;
+    "Tanggal Transaksi";
 
 -- @api_name list
 -- SelectBankAccountType

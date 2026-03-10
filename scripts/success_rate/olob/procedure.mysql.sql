@@ -90,7 +90,8 @@ BEGIN
                  COUNT(substring(log_msg, POSITION('status_code' IN log_msg), 18)) AS jumlah
           FROM `olob_db`.`openaccount_syslog`
           WHERE log_dt >= @olob_start_date AND log_dt < @olob_end_date AND log_msg LIKE CONCAT('%', v_api_name, '%')
-          GROUP BY date(log_dt), substring(log_msg, POSITION('status_code' IN log_msg), 18);
+          GROUP BY date(log_dt), substring(log_msg, POSITION('status_code' IN log_msg), 18)
+          ORDER BY date(log_dt);
         DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_qdone = 1;
         SET v_qdone = 0;
         SET v_done = 0;
