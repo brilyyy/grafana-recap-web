@@ -12,38 +12,18 @@ let olobProcessingTask: any = null
  * Execute the Bale daily processing stored procedure.
  */
 async function executeBaleProcessing(): Promise<void> {
-  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
-  const isPostgres = dbType === 'postgresql' || dbType === 'postgres'
-
-  if (isPostgres) {
-    const { Pool } = await import('pg')
-    const pool = new Pool({
-      host:     process.env.DB_HOST,
-      port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    })
-    try {
-      await pool.query('SELECT public.sp_process_bale_daily($1::date)', [null])
-    } finally {
-      await pool.end()
-    }
-  } else {
-    // @deprecated MySQL – use PostgreSQL + pg_cron
-    const mysql = await import('mysql2/promise')
-    const connection = await mysql.createConnection({
-      host:     process.env.DB_HOST,
-      port:     parseInt(process.env.DB_PORT ?? '3306', 10),
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    })
-    try {
-      await connection.execute('CALL sp_process_bale_daily(?)', [null])
-    } finally {
-      await connection.end()
-    }
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_bale_daily($1::date)', [null])
+  } finally {
+    await pool.end()
   }
 }
 
@@ -51,38 +31,18 @@ async function executeBaleProcessing(): Promise<void> {
  * Execute the Bale Bisnis daily processing stored procedure.
  */
 async function executeBaleBisnisProcessing(): Promise<void> {
-  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
-  const isPostgres = dbType === 'postgresql' || dbType === 'postgres'
-
-  if (isPostgres) {
-    const { Pool } = await import('pg')
-    const pool = new Pool({
-      host:     process.env.DB_HOST,
-      port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    })
-    try {
-      await pool.query('SELECT public.sp_process_bale_bisnis_daily($1::date)', [null])
-    } finally {
-      await pool.end()
-    }
-  } else {
-    // @deprecated MySQL – use PostgreSQL + pg_cron
-    const mysql = await import('mysql2/promise')
-    const connection = await mysql.createConnection({
-      host:     process.env.DB_HOST,
-      port:     parseInt(process.env.DB_PORT ?? '3306', 10),
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    })
-    try {
-      await connection.execute('CALL sp_process_bale_bisnis_daily(?)', [null])
-    } finally {
-      await connection.end()
-    }
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_bale_bisnis_daily($1::date)', [null])
+  } finally {
+    await pool.end()
   }
 }
 
@@ -90,38 +50,18 @@ async function executeBaleBisnisProcessing(): Promise<void> {
  * Execute the OLOB daily processing stored procedure.
  */
 async function executeOlobProcessing(): Promise<void> {
-  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
-  const isPostgres = dbType === 'postgresql' || dbType === 'postgres'
-
-  if (isPostgres) {
-    const { Pool } = await import('pg')
-    const pool = new Pool({
-      host:     process.env.DB_HOST,
-      port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    })
-    try {
-      await pool.query('SELECT public.sp_process_olob_daily($1::date)', [null])
-    } finally {
-      await pool.end()
-    }
-  } else {
-    // @deprecated MySQL – use PostgreSQL + pg_cron
-    const mysql = await import('mysql2/promise')
-    const connection = await mysql.createConnection({
-      host:     process.env.DB_HOST,
-      port:     parseInt(process.env.DB_PORT ?? '3306', 10),
-      user:     process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    })
-    try {
-      await connection.execute('CALL sp_process_olob_daily(?)', [null])
-    } finally {
-      await connection.end()
-    }
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_olob_daily($1::date)', [null])
+  } finally {
+    await pool.end()
   }
 }
 
@@ -272,15 +212,6 @@ export async function initializeScheduler(): Promise<void> {
     return
   }
 
-  // Check DB type directly from env — no @/ import needed
-  const dbType = (process.env.DB_TYPE ?? 'mysql').toLowerCase()
-
-  // Only setup for PostgreSQL when app-level scheduler is enabled
-  // MySQL should continue using Event Scheduler
-  if (dbType === 'postgresql' || dbType === 'postgres') {
-    console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
-    await setupProcessingSchedulers()
-  } else {
-    console.log('ℹ️  Application-level scheduler only available for PostgreSQL. MySQL is deprecated – use PostgreSQL + pg_cron.')
-  }
+  console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
+  await setupProcessingSchedulers()
 }

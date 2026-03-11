@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const env = createEnv({
   server: {
     // Database (mysql deprecated – use postgresql/postgres + pg_cron)
-    DB_TYPE: z.enum(['mysql', 'postgresql', 'postgres']).default('mysql'),
+    DB_TYPE: z.enum(['mysql', 'postgresql', 'postgres']).default('postgresql'),
     DB_HOST: z.string().min(1),
     DB_PORT: z.coerce.number().int().positive().default(3306),
     DB_USER: z.string().min(1),
