@@ -109,7 +109,7 @@ BEGIN
         ON a.transaction_date    = d.transaction_date::date
        AND a.transaction_category = f.transaction_category
        AND a.transaction_status   = s.status_code
-       AND a.transaction_state    = st.transaction_state
+       AND (a.transaction_state::numeric = st.state_code OR (a.transaction_state IS NULL AND a.transaction_count IS NULL))
       ORDER BY
           d.transaction_date,
           f.transaction_category,
