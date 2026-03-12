@@ -119,6 +119,10 @@ export default function SuperadminPage() {
   const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
   const { data: appsWithConfig, refetch: refetchAppsConfig } = trpc.applications.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
   const updateConfigMutation = trpc.applications.updateConfig.useMutation({ onSuccess: () => refetchAppsConfig() })
+  const { data: fdwData, refetch: refetchFdw } = trpc.fdw.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
+  const fdwAddMutation = trpc.fdw.add.useMutation({ onSuccess: () => { refetchFdw(); setNewFdwForm({ source_db_name: '', table_name: '', schema_name: 'public' }) } })
+  const fdwRemoveMutation = trpc.fdw.remove.useMutation({ onSuccess: () => refetchFdw() })
+  const [newFdwForm, setNewFdwForm] = useState({ source_db_name: '', table_name: '', schema_name: 'public' })
 
   useEffect(() => {
     if (!authLoading && authCheck !== undefined) {
@@ -1538,6 +1542,76 @@ export default function SuperadminPage() {
               {appsWithConfig?.data?.applications?.length === 0 && (
                 <div className="p-8 text-center text-white/50">No applications configured.</div>
               )}
+            </div>
+
+            {/* FDW Config Section */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">FDW Source Tables</h3>
+              <p className="text-white/70 text-sm mb-4">
+                Shared tables imported via Foreign Data Wrapper. Used by apps like EDC Agen and EDC Merchant that read from the same source tables. Run migration to apply changes: <code className="bg-white/10 px-1 rounded text-xs">DB_NAME=platform_db npm run db:migrate</code>
+              </p>
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Source DB</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Table Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Schema</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {(fdwData?.data?.fdwSources ?? []).map((row: { id: number; source_db_name: string; table_name: string; schema_name?: string }) => (
+                        <tr key={row.id} className="hover:bg-white/5">
+                          <td className="px-4 py-3 text-sm text-white/90">{row.source_db_name}</td>
+                          <td className="px-4 py-3 text-sm text-white/90">{row.table_name}</td>
+                          <td className="px-4 py-3 text-sm text-white/90">{row.schema_name || 'public'}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <button
+                              onClick={() => fdwRemoveMutation.mutate({ id: row.id })}
+                              disabled={fdwRemoveMutation.isPending}
+                              className="px-2 py-1 bg-red-600/80 hover:bg-red-500 text-white rounded text-xs disabled:opacity-50"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex flex-wrap gap-4 items-end">
+                  <input
+                    type="text"
+                    placeholder="Source DB (e.g. itm_db)"
+                    value={newFdwForm.source_db_name}
+                    onChange={(e) => setNewFdwForm((p) => ({ ...p, source_db_name: e.target.value }))}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[120px]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Table name"
+                    value={newFdwForm.table_name}
+                    onChange={(e) => setNewFdwForm((p) => ({ ...p, table_name: e.target.value }))}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[180px]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Schema (default: public)"
+                    value={newFdwForm.schema_name}
+                    onChange={(e) => setNewFdwForm((p) => ({ ...p, schema_name: e.target.value }))}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[100px]"
+                  />
+                  <button
+                    onClick={() => fdwAddMutation.mutate(newFdwForm)}
+                    disabled={fdwAddMutation.isPending || !newFdwForm.source_db_name || !newFdwForm.table_name}
+                    className="px-3 py-2 bg-green-600/80 hover:bg-green-500 text-white rounded text-sm disabled:opacity-50"
+                  >
+                    {fdwAddMutation.isPending ? 'Adding...' : 'Add FDW'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -8,6 +8,7 @@ import { noRcTransactionRouter } from './routers/noRcTransaction'
 import { auditLogsRouter } from './routers/auditLogs'
 import { processingLogsRouter } from './routers/processingLogs'
 import { systemRouter } from './routers/system'
+import { fdwRouter } from './routers/fdw'
 
 export const appRouter = router({
   auth: authRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   auditLogs: auditLogsRouter,
   processingLogs: processingLogsRouter,
   system: systemRouter,
+  fdw: fdwRouter,
 })
 
 export type AppRouter = typeof appRouter

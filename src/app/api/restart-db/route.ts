@@ -41,7 +41,7 @@ export async function POST() {
           ('SMS Notif'),
           ('QRIS'),
           ('EDC Merchant'),
-          ('EDC Agent'),
+          ('EDC Agen'),
           ('Bale Korpora')
       `)
 

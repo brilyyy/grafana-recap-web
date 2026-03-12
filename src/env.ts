@@ -10,6 +10,7 @@ export const env = createEnv({
     DB_USER: z.string().min(1),
     DB_PASSWORD: z.string().min(1),
     DB_NAME: z.string().min(1),
+    DB_USER_TARGET: z.string().optional(),
 
     // Auth (JWT – kept until BetterAuth replaces them)
     JWT_SECRET: z.string().min(1).default('change-this-secret-key-in-production'),
@@ -26,6 +27,9 @@ export const env = createEnv({
     BALE_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     BALE_BISNIS_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     OLOB_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    EDC_AGEN_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    EDC_MERCHANT_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
 
     // Migrations / seeds (used by TypeORM CLI scripts, kept here for documentation)
     TARGET_DATABASES: z.string().optional(),
@@ -45,6 +49,7 @@ export const env = createEnv({
     DB_USER: process.env.DB_USER,
     DB_PASSWORD: process.env.DB_PASSWORD,
     DB_NAME: process.env.DB_NAME,
+    DB_USER_TARGET: process.env.DB_USER_TARGET,
 
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
@@ -58,6 +63,9 @@ export const env = createEnv({
     BALE_PROCESSING_SCHEDULE: process.env.BALE_PROCESSING_SCHEDULE,
     BALE_BISNIS_PROCESSING_SCHEDULE: process.env.BALE_BISNIS_PROCESSING_SCHEDULE,
     OLOB_PROCESSING_SCHEDULE: process.env.OLOB_PROCESSING_SCHEDULE,
+    EDC_AGEN_PROCESSING_SCHEDULE: process.env.EDC_AGEN_PROCESSING_SCHEDULE,
+    EDC_MERCHANT_PROCESSING_SCHEDULE: process.env.EDC_MERCHANT_PROCESSING_SCHEDULE,
+    EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE: process.env.EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE,
 
     TARGET_DATABASES: process.env.TARGET_DATABASES,
     DEFAULT_SU_USERNAME: process.env.DEFAULT_SU_USERNAME,

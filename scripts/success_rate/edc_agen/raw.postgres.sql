@@ -1,4 +1,10 @@
-SELECT "TRXMDT" as "Tanggal Transaksi","TRRSPC" as "RC", "RSSHTD" as "RC Description",count("TRRSPC") as "Total Transaksi" FROM  
+SELECT 
+    "TRXMDT" as "Tanggal Transaksi",
+    "TRRSPC" as "RC",
+    "RSSHTD" as "RC Description",
+    count("TRRSPC") as "Total Transaksi",
+    SUM("TRTRN$") as "Total Nominal" 
+FROM  
 "ASID160448_ZTRANS0P", "ASID160448_ZRSPCD0P" where "TRRSPC"="RSRSPC"                       
 and "TRTRTY" not in ('21', '6A', '6B', 'C1', 'C2')                       
 and "TRPROD" = 'POS'                              

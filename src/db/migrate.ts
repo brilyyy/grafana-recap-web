@@ -61,6 +61,7 @@ const DB_PORT = parseInt(process.env.DB_PORT ?? '5432', 10)
 const DB_USER = process.env.DB_USER ?? 'root'
 const DB_PASSWORD = process.env.DB_PASSWORD ?? ''
 const DB_NAME = process.env.DB_NAME ?? 'platform_db'
+const DB_USER_TARGET = process.env.DB_USER_TARGET?.trim() || null
 
 // ─── Cron / scheduling ──────────────────────────────────────────────────────
 
@@ -212,16 +213,35 @@ async function runCoreSchema() {
       await exec(`ALTER TABLE "app_identifier" ADD COLUMN "raw_table_name" VARCHAR(255)`)
       console.log('  ✅ app_identifier.raw_table_name added')
     }
-    // Backfill db_name/raw_table_name for existing rows (so FDW/procedures have config)
-    const rows = await exec('SELECT id, app_name FROM "app_identifier" WHERE "db_name" IS NULL OR "raw_table_name" IS NULL')
+    // Backfill db_name/raw_table_name for existing rows (exclude EDC apps that use fdw_source_table)
+    const rows = await exec(
+      `SELECT id, app_name FROM "app_identifier" WHERE ("db_name" IS NULL OR "raw_table_name" IS NULL) AND "app_name" NOT IN ('EDC Agen', 'EDC Merchant', 'EDC Merchant Ancol')`,
+    )
     for (const row of rows as { id: number; app_name: string }[]) {
       const dbName = deriveDbName(row.app_name)
-      const rawTableName = deriveRawTableName(row.app_name)
+      const rawTableName = row.app_name === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(row.app_name)
       await exec('UPDATE "app_identifier" SET "db_name"=$1, "raw_table_name"=$2 WHERE "id"=$3', [dbName, rawTableName, row.id])
     }
     if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
   }
   await createIndexSafely('idx_app_name', 'app_identifier', ['app_name'])
+
+  // ── fdw_source_table (shared FDW sources for apps that use multiple/shared tables) ─
+  if (!(await tableExists('fdw_source_table'))) {
+    await exec(`
+        CREATE TABLE "fdw_source_table" (
+          "id"              SERIAL PRIMARY KEY,
+          "source_db_name"  VARCHAR(255) NOT NULL,
+          "table_name"      VARCHAR(255) NOT NULL,
+          "schema_name"     VARCHAR(255) DEFAULT 'public',
+          "created_at"      TIMESTAMP DEFAULT NOW() NOT NULL,
+          UNIQUE("source_db_name", "table_name")
+        )
+      `)
+    console.log('  ✅ fdw_source_table created')
+  } else {
+    console.log('  ⏭  fdw_source_table exists')
+  }
 
   // ── app_success_rate ──────────────────────────────────────────────────────
   if (!(await tableExists('app_success_rate'))) {
@@ -544,40 +564,90 @@ async function runFdwSetup() {
     return
   }
 
-  const rows = await exec(
-    `SELECT id, app_name, db_name, raw_table_name FROM "app_identifier" WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`
-  ) as { id: number; app_name: string; db_name: string; raw_table_name: string }[]
+  // Collect (db, table) pairs from app_identifier (single-table apps) and fdw_source_table (shared tables)
+  const pairs = new Map<string, Set<string>>()
+
+  const appRows = await exec(
+    `SELECT db_name, raw_table_name FROM "app_identifier" WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`,
+  ) as { db_name: string; raw_table_name: string }[]
+  for (const r of appRows) {
+    if (!pairs.has(r.db_name)) pairs.set(r.db_name, new Set())
+    pairs.get(r.db_name)!.add(r.raw_table_name)
+  }
+
+  let fdwRows: { source_db_name: string; table_name: string }[] = []
+  if (await tableExists('fdw_source_table')) {
+    fdwRows = await exec(
+      `SELECT source_db_name, table_name FROM "fdw_source_table"`,
+    ) as { source_db_name: string; table_name: string }[]
+  }
+  for (const r of fdwRows) {
+    if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
+    pairs.get(r.source_db_name)!.add(r.table_name)
+  }
 
   const esc = (s: string) => s.replace(/'/g, "''")
-  for (const row of rows) {
-    const { db_name, raw_table_name } = row
-    const serverName = `${db_name}_server`
+  for (const [dbName, tables] of pairs) {
+    const serverName = `${dbName}_server`
     try {
-      await exec(`
-        DROP SERVER IF EXISTS "${serverName}" CASCADE
-      `)
+      await exec(`DROP SERVER IF EXISTS "${serverName}" CASCADE`)
       await exec(`
         CREATE SERVER "${serverName}"
         FOREIGN DATA WRAPPER postgres_fdw
-        OPTIONS (host '${esc(DB_HOST)}', dbname '${esc(db_name)}', port '${DB_PORT}')
+        OPTIONS (host '${esc(DB_HOST)}', dbname '${esc(dbName)}', port '${DB_PORT}')
       `)
       await exec(`
         CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
         SERVER "${serverName}"
         OPTIONS (user '${esc(DB_USER)}', password '${esc(DB_PASSWORD)}')
       `)
-      await exec(`
-        DROP FOREIGN TABLE IF EXISTS "${raw_table_name}"
-      `)
-      await exec(`
-        IMPORT FOREIGN SCHEMA public
-        LIMIT TO ("${raw_table_name}")
-        FROM SERVER "${serverName}"
-        INTO public
-      `)
-      console.log(`  ✅ FDW: ${raw_table_name} <- ${db_name}.${raw_table_name}`)
+      if (DB_USER_TARGET) {
+        const targetEsc = DB_USER_TARGET.replace(/"/g, '""')
+        try {
+          await exec(`
+            CREATE USER MAPPING IF NOT EXISTS FOR "${targetEsc}"
+            SERVER "${serverName}"
+            OPTIONS (user '${esc(DB_USER)}', password '${esc(DB_PASSWORD)}')
+          `)
+          await exec(`
+            ALTER USER MAPPING FOR "${targetEsc}" SERVER "${serverName}"
+            OPTIONS (SET user '${esc(DB_USER)}', SET password '${esc(DB_PASSWORD)}')
+          `)
+          console.log(`  ✅ FDW user mapping: ${serverName} -> ${DB_USER_TARGET}`)
+        } catch (e: unknown) {
+          console.warn(`  ⚠️  User mapping for ${DB_USER_TARGET} on ${serverName} failed:`, (e as Error).message)
+        }
+        try {
+          await exec(`GRANT USAGE ON FOREIGN SERVER "${serverName}" TO "${targetEsc}"`)
+          console.log(`  ✅ FDW grant: ${serverName} -> ${DB_USER_TARGET}`)
+        } catch (e: unknown) {
+          console.warn(`  ⚠️  GRANT USAGE on ${serverName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
+        }
+      }
+      for (const tableName of tables) {
+        try {
+          await exec(`DROP FOREIGN TABLE IF EXISTS "${tableName}"`)
+          await exec(`
+            IMPORT FOREIGN SCHEMA public
+            LIMIT TO ("${tableName}")
+            FROM SERVER "${serverName}"
+            INTO public
+          `)
+          console.log(`  ✅ FDW: ${tableName} <- ${dbName}.${tableName}`)
+          if (DB_USER_TARGET) {
+            try {
+              await exec(`GRANT SELECT ON "${tableName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
+              console.log(`  ✅ FDW grant SELECT: ${tableName} -> ${DB_USER_TARGET}`)
+            } catch (e: unknown) {
+              console.warn(`  ⚠️  GRANT SELECT on ${tableName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
+            }
+          }
+        } catch (e: unknown) {
+          console.warn(`  ⚠️  FDW for ${dbName}.${tableName} failed:`, (e as Error).message)
+        }
+      }
     } catch (e: unknown) {
-      console.warn(`  ⚠️  FDW for ${db_name}.${raw_table_name} failed:`, (e as Error).message)
+      console.warn(`  ⚠️  FDW server ${serverName} failed:`, (e as Error).message)
     }
   }
   console.log('  ✅ Phase 4b done')
@@ -671,19 +741,34 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
 async function runSeeds() {
   console.log('\n🌱 Phase 7: Seeds')
 
+  // Migrate EDC Agent -> EDC Agen (align with procedure name)
+  await exec(`UPDATE "app_identifier" SET "app_name"='EDC Agen', "db_name"='itm_db', "raw_table_name"=NULL WHERE "app_name"='EDC Agent'`)
+
   // Default app identifiers (with db_name, raw_table_name for cross-db)
-  const defaultApps = ['Bale', 'Bale Bisnis', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agent', 'Bale Korpora', 'OLOB']
+  const defaultApps = ['Bale', 'Bale Bisnis', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agen', 'Bale Korpora', 'OLOB']
   for (const appName of defaultApps) {
-    const dbName = deriveDbName(appName)
-    const rawTableName = appName === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(appName)
+    let dbName: string
+    let rawTableName: string | null
+    if (appName === 'EDC Agen' || appName === 'EDC Merchant' || appName === 'EDC Merchant Ancol') {
+      dbName = 'itm_db'
+      rawTableName = null
+    } else if (appName === 'OLOB') {
+      dbName = deriveDbName(appName)
+      rawTableName = 'openaccount_syslog'
+    } else {
+      dbName = deriveDbName(appName)
+      rawTableName = deriveRawTableName(appName)
+    }
     await exec(
       `INSERT INTO "app_identifier" ("app_name","db_name","raw_table_name") VALUES ($1,$2,$3)
        ON CONFLICT ("app_name") DO UPDATE SET "db_name"=COALESCE("app_identifier"."db_name",EXCLUDED."db_name"), "raw_table_name"=COALESCE("app_identifier"."raw_table_name",EXCLUDED."raw_table_name")`,
       [appName, dbName, rawTableName],
     )
   }
-  // Backfill db_name/raw_table_name for any existing rows where NULL
-  const rows = await exec('SELECT id, app_name FROM "app_identifier" WHERE "db_name" IS NULL OR "raw_table_name" IS NULL')
+  // Backfill db_name/raw_table_name for any existing rows where NULL (exclude EDC apps using fdw_source_table)
+  const rows = await exec(
+    `SELECT id, app_name FROM "app_identifier" WHERE ("db_name" IS NULL OR "raw_table_name" IS NULL) AND "app_name" NOT IN ('EDC Agen', 'EDC Merchant', 'EDC Merchant Ancol')`,
+  )
   for (const row of rows as { id: number; app_name: string }[]) {
     const dbName = deriveDbName(row.app_name)
     const rawTableName = row.app_name === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(row.app_name)
@@ -691,6 +776,22 @@ async function runSeeds() {
   }
   if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
   console.log(`  ✅ ${defaultApps.length} default app identifiers seeded`)
+
+  // Seed fdw_source_table for EDC (shared tables from itm_db)
+  if (await tableExists('fdw_source_table')) {
+    const fdwEntries = [
+      ['itm_db', 'ASID160448_ZTRANS0P'],
+      ['itm_db', 'ASID160448_ZRSPCD0P'],
+    ] as [string, string][]
+    for (const [sourceDb, tableName] of fdwEntries) {
+      await exec(
+        `INSERT INTO "fdw_source_table" ("source_db_name","table_name") VALUES ($1,$2)
+         ON CONFLICT ("source_db_name","table_name") DO NOTHING`,
+        [sourceDb, tableName],
+      )
+    }
+    console.log('  ✅ fdw_source_table seeded (itm_db)')
+  }
 
   // Superadmin users
   const usernames = (process.env.DEFAULT_SU_USERNAME ?? '').split(',').map((s) => s.trim()).filter(Boolean)

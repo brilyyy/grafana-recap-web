@@ -226,6 +226,7 @@ CDC creates raw tables in separate databases (`{app_name}_db`), not in `platform
 **Migration automatically:**
 - Adds `db_name` and `raw_table_name` to `app_identifier`
 - Creates FDW foreign server, user mapping, and foreign table for each app (Phase 4b)
+- If `DB_USER_TARGET` is set: creates user mapping for that role, grants `USAGE` on each foreign server, and `GRANT SELECT` on each foreign table (so the app user can query FDW tables)
 
 **If migration does not create FDW** (e.g. extension missing), run manually for each app:
 
@@ -253,7 +254,9 @@ DB_NAME=platform_db_local npm run db:migrate:fdw
 ```
 Use `DB_NAME` = your platform database (where app_identifier lives). **Not** the cron database (e.g. `postgres`).
 
-**Troubleshooting:** If FDW did not run, check: (1) `DB_NAME` must point to your platform DB, not the pg_cron database; (2) `app_identifier` must have `db_name` and `raw_table_name` populated (run `--schema-only` first); (3) app databases (e.g. `bale_db`) must exist; (4) `postgres_fdw` extension requires superuser or `CREATE` privilege.
+**DB_USER_TARGET (optional):** Set this to the role that will query FDW tables (e.g. your app user). The migration will: create a user mapping for that role, `GRANT USAGE ON FOREIGN SERVER` for each FDW server, and `GRANT SELECT` on each foreign table. If unset, only `CURRENT_USER` (migration user) can use FDW.
+
+**Troubleshooting:** If FDW did not run, check: (1) `DB_NAME` must point to your platform DB, not the pg_cron database; (2) `app_identifier` must have `db_name` and `raw_table_name` populated (run `--schema-only` first); (3) app databases (e.g. `bale_db`) must exist; (4) `postgres_fdw` extension requires superuser or `CREATE` privilege; (5) for `DB_USER_TARGET`, the role must exist in the database.
 
 **Verify FDW setup** (run in platform_db):
 ```sql
