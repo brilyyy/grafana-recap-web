@@ -5,8 +5,9 @@
 -- Table names and columns match AS/400 or source system. Use quoted identifiers for case-sensitive names.
 
 -- Transaction table (ZTRANS0P)
+-- TRXMDT: 1YYMMDD format (e.g. 1250311 = 2025-03-11)
 CREATE TABLE IF NOT EXISTS public."ASID160448_ZTRANS0P" (
-    "TRXMDT" DATE,
+    "TRXMDT" INTEGER,
     "TRRSPC" VARCHAR(50),
     "TRTRTY" VARCHAR(10),
     "TRPROD" VARCHAR(50),

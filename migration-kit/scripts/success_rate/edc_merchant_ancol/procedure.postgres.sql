@@ -24,6 +24,7 @@ DECLARE
   v_normalized_rc_desc VARCHAR(500);
   v_is_rc_empty BOOLEAN;
   v_is_success BOOLEAN;
+  v_trxmdt_int INT;
 BEGIN
   IF p_processing_date IS NULL THEN
     v_processing_date := CURRENT_DATE - INTERVAL '1 day';
@@ -36,6 +37,10 @@ BEGIN
     RAISE EXCEPTION 'Application EDC Merchant Ancol not found in app_identifier table';
   END IF;
 
+  v_trxmdt_int := 1000000 + (EXTRACT(YEAR FROM v_processing_date)::int % 100) * 10000
+    + EXTRACT(MONTH FROM v_processing_date)::int * 100
+    + EXTRACT(DAY FROM v_processing_date)::int;
+
   INSERT INTO app_processing_log (app_name, id_app_identifier, processing_date, start_time, status)
   VALUES (v_app_name, v_app_id, v_processing_date, NOW(), 'running')
   RETURNING id INTO v_log_id;
@@ -45,7 +50,7 @@ BEGIN
 
     FOR rec IN
       SELECT
-        t."TRXMDT"::date AS "Tanggal Transaksi",
+        TO_DATE(SUBSTRING(t."TRXMDT"::text FROM 2), 'YYMMDD')::date AS "Tanggal Transaksi",
         t."TRRSPC" AS "RC",
         r."RSSHTD" AS "RC Description",
         count(t."TRRSPC")::int AS "Total Transaksi",
@@ -54,7 +59,7 @@ BEGIN
       JOIN "ASID160448_ZRSPCD0P" r ON t."TRRSPC" = r."RSRSPC"
       WHERE t."TRTRTY" = '21'
         AND t."TRPROD" = 'POS'
-        AND t."TRXMDT" = v_processing_date
+        AND t."TRXMDT" = v_trxmdt_int
         AND t."TRCAID" IN (
           '200719398140682','200719389813135','200719389808836','200719389810345','200719389819715',
           '200719389812202','200719389815991','200719389809769','200719389811278','200719392283028',

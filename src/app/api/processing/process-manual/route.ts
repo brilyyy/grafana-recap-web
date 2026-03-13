@@ -113,6 +113,34 @@ export async function POST(request: NextRequest) {
       // This avoids timezone conversion issues
       let dateParamForDB = dateParam || null
 
+      // #region agent log
+      const itmApps = ['edc_agen', 'edc_merchant', 'edc_merchant_ancol']
+      if (isPostgres && itmApps.includes(appKey)) {
+        const effDate = dateParamForDB || (() => {
+          const y = new Date()
+          y.setDate(y.getDate() - 1)
+          return `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
+        })()
+        const [y, m, d] = effDate.split('-').map(Number)
+        const vTrxmdtInt = 1000000 + (y % 100) * 10000 + m * 100 + d
+        let diag: Record<string, unknown> = {}
+        try {
+          const [trxRows]: any = await connection.execute(
+            `SELECT pg_typeof("TRXMDT")::text AS trxmdt_type, COUNT(*) AS total, COUNT(CASE WHEN "TRXMDT" = ? THEN 1 END) AS match_count FROM "ASID160448_ZTRANS0P"`,
+            [vTrxmdtInt]
+          )
+          const [sampleRows]: any = await connection.execute(
+            `SELECT "TRXMDT" FROM "ASID160448_ZTRANS0P" LIMIT 5`
+          )
+          const r0 = trxRows?.[0]
+          diag = { trxmdtType: r0?.trxmdt_type ?? r0?.TRXMDT_TYPE, total: r0?.total ?? r0?.TOTAL, matchCount: r0?.match_count ?? r0?.MATCH_COUNT, sampleTrxmdt: sampleRows?.map((r: any) => r.TRXMDT ?? r.trxmdt), effDate, vTrxmdtInt }
+        } catch (e: any) {
+          diag = { diagError: e?.message, effDate, vTrxmdtInt }
+        }
+        fetch('http://127.0.0.1:7700/ingest/c60fa610-fe29-4dda-80df-f6615bae47c2', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '145e63' }, body: JSON.stringify({ sessionId: '145e63', location: 'process-manual/route.ts:diag', message: 'EDC TRXMDT diagnostic', data: diag, timestamp: Date.now(), hypothesisId: 'A' }) }).catch(() => {})
+      }
+      // #endregion
+
       // Call stored procedure based on database type
       // For PostgreSQL: use public. prefix (schema) and $1::date cast so the function is found
       // and parameter type matches (avoids "function does not exist" when param is inferred as unknown/text)
@@ -148,6 +176,12 @@ export async function POST(request: NextRequest) {
       )
 
       const logEntry = logResult[0]
+
+      // #region agent log
+      if (isPostgres && itmApps.includes(appKey)) {
+        fetch('http://127.0.0.1:7700/ingest/c60fa610-fe29-4dda-80df-f6615bae47c2', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '145e63' }, body: JSON.stringify({ sessionId: '145e63', location: 'process-manual/route.ts:after', message: 'EDC procedure result', data: { recordsProcessed: logEntry?.records_processed, recordsInserted: logEntry?.records_inserted, status: logEntry?.status, targetDate }, timestamp: Date.now(), hypothesisId: 'B' }) }).catch(() => {})
+      }
+      // #endregion
 
       // Log audit event
       await logAuditEvent(
