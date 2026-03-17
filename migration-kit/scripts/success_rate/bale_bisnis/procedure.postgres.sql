@@ -90,6 +90,7 @@ BEGIN
         FROM raw_bale_bisnis rbb
         WHERE rbb.transaction_date >= v_start_timestamp
           AND rbb.transaction_date <  v_end_timestamp + INTERVAL '1 second'
+          AND rbb.transaction_count != 0
         GROUP BY 1,2,3,4,5,6
       )
       SELECT

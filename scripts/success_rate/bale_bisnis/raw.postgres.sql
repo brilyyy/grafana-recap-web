@@ -52,6 +52,7 @@ agg AS (
   FROM raw_bale_bisnis rbb
   WHERE rbb.transaction_date >= $1::timestamp
     AND rbb.transaction_date <  $2::timestamp
+    AND rbb.transaction_count != 0
   GROUP BY 1,2,3,4,5,6
 )
 SELECT
