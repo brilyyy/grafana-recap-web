@@ -21,7 +21,8 @@ export default function NoRcTransactionCard() {
   const [submitting, setSubmitting] = useState<number | null>(null)
   const [submittingAll, setSubmittingAll] = useState(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-  const limit = 25
+  const [limit, setLimit] = useState(25)
+  const ROW_COUNT_OPTIONS = [25, 50, 100] as const
 
   const loadTransactions = useCallback(async (page: number) => {
     try {
@@ -67,6 +68,11 @@ export default function NoRcTransactionCard() {
     // Reset to page 1 when filter changes
     setCurrentPage(1)
   }, [selectedAppId])
+
+  useEffect(() => {
+    // Reset to page 1 when row count changes
+    setCurrentPage(1)
+  }, [limit])
 
   useEffect(() => {
     // Listen for data changes
@@ -255,20 +261,86 @@ export default function NoRcTransactionCard() {
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="mb-2">
-        <select
-          value={selectedAppId}
-          onChange={(e) => setSelectedAppId(e.target.value)}
-          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all bg-white/80 backdrop-blur-sm"
-        >
-          <option value="">All Applications</option>
-          {applications.map((app) => (
-            <option key={app.id} value={app.id}>
-              {app.app_name}
-            </option>
-          ))}
-        </select>
+      {/* Filter and pagination controls */}
+      <div className="mb-2 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 min-w-0">
+            <label className="block text-xs font-medium text-gray-600 mb-0.5">Application</label>
+            <select
+              value={selectedAppId}
+              onChange={(e) => setSelectedAppId(e.target.value)}
+              className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all bg-white"
+            >
+              <option value="">All Applications</option>
+              {applications.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {app.app_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={`flex flex-col sm:flex-row gap-2 sm:items-end transition-opacity ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-0.5">Rows per page</label>
+              <select
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                disabled={isLoading}
+                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 min-w-[72px] disabled:opacity-70"
+              >
+                {ROW_COUNT_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end gap-1.5">
+              <div className="flex items-center rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  className="p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  aria-label="Previous page"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-1 px-2 py-1 border-x border-gray-100">
+                  <input
+                    type="number"
+                    min={1}
+                    max={totalPages || 1}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!isNaN(val) && val >= 1) {
+                        setCurrentPage(Math.min(val, totalPages || 1))
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="w-8 text-center text-sm bg-transparent border-none focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-70"
+                  />
+                  <span className="text-gray-400 text-xs">/ {totalPages}</span>
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0 || isLoading}
+                  className="p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  aria-label="Next page"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <span className="text-xs text-gray-500 self-center hidden sm:inline">
+                {totalCount} total
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Message */}
@@ -446,30 +518,6 @@ export default function NoRcTransactionCard() {
         Refresh
       </button>
 
-      {/* Pagination */}
-      {!isLoading && !error && transactions.length > 0 && (
-        <div className="mt-2 flex items-center justify-between text-xs">
-          <div className="text-gray-600">
-            Page {currentPage} of {totalPages} ({totalCount} total)
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

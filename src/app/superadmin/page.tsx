@@ -154,6 +154,17 @@ export default function SuperadminPage() {
     }
   }, [isAuthenticated, userRole, activeTab, usersPage, usersFilters, auditPage, auditFilters])
 
+  useEffect(() => {
+    if (activeTab !== 'app-processing') return
+    if (!processingFilters.app_name) {
+      setProcessingLogs([])
+      return
+    }
+    if (processingFilters.app_name && processingFilters.month && processingFilters.year) {
+      fetchProcessingLogs()
+    }
+  }, [activeTab, processingFilters.app_name, processingFilters.month, processingFilters.year])
+
   // User Management Functions
   const fetchUsers = async () => {
     try {
@@ -1089,49 +1100,42 @@ export default function SuperadminPage() {
                   </select>
                 </div>
               </div>
-              <div className="mt-4">
-                <button
-                  onClick={fetchProcessingLogs}
-                  disabled={!processingFilters.app_name || processingLogsLoading}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
-                  {processingLogsLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Loading...
-                    </span>
-                  ) : (
-                    'Search'
-                  )}
-                </button>
-              </div>
             </div>
 
             {/* Processing Results */}
-            {processingLogsLoading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                <p className="text-white/70">Loading processing logs...</p>
-              </div>
-            ) : processingFilters.app_name ? (
+            {processingFilters.app_name ? (
               (() => {
                 const allDates = getAllDatesInMonth(processingFilters.month, processingFilters.year)
                 const today = new Date()
                 today.setHours(0, 0, 0, 0)
 
-                // Calculate statistics
-                const stats = {
-                  total: allDates.length,
-                  success: allDates.filter(d => logsByDate[d]?.status === 'success').length,
-                  failed: allDates.filter(d => logsByDate[d]?.status === 'failed').length,
-                  processing: allDates.filter(d => logsByDate[d]?.status === 'running').length,
-                  notProcessed: allDates.filter(d => !logsByDate[d]).length,
-                }
-
                 return (
                   <div className="space-y-4">
                     {/* Summary Statistics */}
+                    {processingLogsLoading ? (
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-4 h-4 rounded bg-white/20 animate-pulse" />
+                              <div className="h-3 w-16 rounded bg-white/20 animate-pulse" />
+                            </div>
+                            <div className="h-6 w-10 rounded bg-white/20 animate-pulse mt-1" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {(() => {
+                        const stats = {
+                          total: allDates.length,
+                          success: allDates.filter(d => logsByDate[d]?.status === 'success').length,
+                          failed: allDates.filter(d => logsByDate[d]?.status === 'failed').length,
+                          processing: allDates.filter(d => logsByDate[d]?.status === 'running').length,
+                          notProcessed: allDates.filter(d => !logsByDate[d]).length,
+                        }
+                        return (
+                          <>
                       <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1177,7 +1181,11 @@ export default function SuperadminPage() {
                         </div>
                         <p className="text-xl font-bold text-white">{stats.total}</p>
                       </div>
+                          </>
+                        )
+                      })()}
                     </div>
+                    )}
 
                     {/* Calendar Grid */}
                     <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
@@ -1211,7 +1219,23 @@ export default function SuperadminPage() {
                         ))}
                       </div>
                       <div className="grid grid-cols-7 gap-2">
-                        {(() => {
+                        {processingLogsLoading ? (
+                          (() => {
+                            const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
+                            const emptyDays = Array(firstDay).fill(null)
+                            return [...emptyDays, ...allDates].map((dateStr, idx) => {
+                              if (!dateStr) {
+                                return <div key={`empty-${idx}`} className="aspect-square" />
+                              }
+                              return (
+                                <div
+                                  key={dateStr}
+                                  className="aspect-square bg-white/10 rounded-lg animate-pulse"
+                                />
+                              )
+                            })
+                          })()
+                        ) : (() => {
                           const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
                           const emptyDays = Array(firstDay).fill(null)
                           return [...emptyDays, ...allDates].map((dateStr, idx) => {
@@ -1357,7 +1381,8 @@ export default function SuperadminPage() {
                       </div>
                     </div>
 
-                    {/* Detailed View Toggle */}
+                    {/* Detailed View Toggle - Hidden when loading */}
+                    {!processingLogsLoading && (
                     <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                       <details className="group">
                         <summary className="cursor-pointer flex items-center justify-between text-white font-medium hover:text-blue-300 transition-colors">
@@ -1445,10 +1470,15 @@ export default function SuperadminPage() {
                         </div>
                       </details>
                     </div>
+                    )}
                   </div>
                 )
               })()
-            ) : null}
+            ) : (
+              <div className="p-8 text-center text-white/70">
+                Select an application to view processing logs
+              </div>
+            )}
           </div>
         )}
 
