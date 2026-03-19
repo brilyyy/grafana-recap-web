@@ -192,6 +192,7 @@ async function runCoreSchema() {
           "app_name"        VARCHAR(255) NOT NULL UNIQUE,
           "db_name"         VARCHAR(255),
           "raw_table_name"  VARCHAR(255),
+          "retention_days"  INTEGER,
           "created_at"      TIMESTAMP DEFAULT NOW() NOT NULL,
           "updated_at"      TIMESTAMP DEFAULT NOW() NOT NULL
         )
@@ -212,6 +213,10 @@ async function runCoreSchema() {
     if (!(await columnExists('app_identifier', 'raw_table_name'))) {
       await exec(`ALTER TABLE "app_identifier" ADD COLUMN "raw_table_name" VARCHAR(255)`)
       console.log('  ✅ app_identifier.raw_table_name added')
+    }
+    if (!(await columnExists('app_identifier', 'retention_days'))) {
+      await exec(`ALTER TABLE "app_identifier" ADD COLUMN "retention_days" INTEGER`)
+      console.log('  ✅ app_identifier.retention_days added')
     }
     // Backfill db_name/raw_table_name for existing rows (exclude EDC apps that use fdw_source_table)
     const rows = await exec(
@@ -241,6 +246,36 @@ async function runCoreSchema() {
     console.log('  ✅ fdw_source_table created')
   } else {
     console.log('  ⏭  fdw_source_table exists')
+  }
+
+  // ── raw_table_housekeeping ────────────────────────────────────────────────
+  if (!(await tableExists('raw_table_housekeeping'))) {
+    await exec(`
+        CREATE TABLE "raw_table_housekeeping" (
+          "id"               SERIAL PRIMARY KEY,
+          "db_name"          VARCHAR(255) NOT NULL,
+          "table_name"       VARCHAR(255) NOT NULL,
+          "date_column"      VARCHAR(255),
+          "date_column_type" VARCHAR(50) DEFAULT 'timestamp',
+          "retention_days"   INTEGER,
+          "notes"            VARCHAR(500),
+          "created_at"       TIMESTAMP DEFAULT NOW() NOT NULL,
+          "updated_at"       TIMESTAMP DEFAULT NOW() NOT NULL,
+          UNIQUE("db_name", "table_name")
+        )
+      `)
+    await exec(`
+      CREATE TRIGGER "upd_raw_table_housekeeping_updated_at"
+        BEFORE UPDATE ON "raw_table_housekeeping"
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `)
+    console.log('  ✅ raw_table_housekeeping created')
+  } else {
+    console.log('  ⏭  raw_table_housekeeping exists')
+    if (!(await columnExists('raw_table_housekeeping', 'date_column_type'))) {
+      await exec(`ALTER TABLE "raw_table_housekeeping" ADD COLUMN "date_column_type" VARCHAR(50) DEFAULT 'timestamp'`)
+      console.log('  ✅ raw_table_housekeeping.date_column_type added')
+    }
   }
 
   // ── app_success_rate ──────────────────────────────────────────────────────
@@ -791,6 +826,50 @@ async function runSeeds() {
       )
     }
     console.log('  ✅ fdw_source_table seeded (itm_db)')
+  }
+
+  // Seed raw_table_housekeeping from app_identifier (deduplicated by db_name+table_name)
+  if (await tableExists('raw_table_housekeeping')) {
+    // Non-EDC apps with a dedicated raw table
+    const appRows = await exec(
+      `SELECT DISTINCT "db_name", "raw_table_name" FROM "app_identifier"
+       WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`
+    ) as { db_name: string; raw_table_name: string }[]
+    for (const r of appRows) {
+      const dateCol = r.raw_table_name === 'openaccount_syslog' ? 'log_dt' : 'transaction_date'
+      await exec(
+        `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column")
+         VALUES ($1,$2,$3)
+         ON CONFLICT ("db_name","table_name") DO NOTHING`,
+        [r.db_name, r.raw_table_name, dateCol]
+      )
+    }
+    // FDW source tables – ZTRANS0P uses TRXMDT integer (1YYMMDD); ZRSPCD0P is a reference table with no date
+    if (await tableExists('fdw_source_table')) {
+      const fdwRows = await exec(
+        `SELECT "source_db_name", "table_name" FROM "fdw_source_table"`
+      ) as { source_db_name: string; table_name: string }[]
+      for (const r of fdwRows) {
+        // Transaction table: TRXMDT integer date in 1YYMMDD format – housekeeping supported
+        if (r.table_name.includes('ZTRANS0P')) {
+          await exec(
+            `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","date_column_type")
+             VALUES ($1,$2,'TRXMDT','int_1yymmdd')
+             ON CONFLICT ("db_name","table_name") DO UPDATE SET "date_column"='TRXMDT', "date_column_type"='int_1yymmdd'`,
+            [r.source_db_name, r.table_name]
+          )
+        } else {
+          // Response-code reference tables: no date column, skip housekeeping
+          await exec(
+            `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","notes")
+             VALUES ($1,$2,NULL,'Reference table – no date column, housekeeping not applicable')
+             ON CONFLICT ("db_name","table_name") DO NOTHING`,
+            [r.source_db_name, r.table_name]
+          )
+        }
+      }
+    }
+    console.log('  ✅ raw_table_housekeeping seeded')
   }
 
   // Superadmin users

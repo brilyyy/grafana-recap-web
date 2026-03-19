@@ -9,6 +9,7 @@ import { auditLogsRouter } from './routers/auditLogs'
 import { processingLogsRouter } from './routers/processingLogs'
 import { systemRouter } from './routers/system'
 import { fdwRouter } from './routers/fdw'
+import { housekeepingRouter } from './routers/housekeeping'
 
 export const appRouter = router({
   auth: authRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   processingLogs: processingLogsRouter,
   system: systemRouter,
   fdw: fdwRouter,
+  housekeeping: housekeepingRouter,
 })
 
 export type AppRouter = typeof appRouter

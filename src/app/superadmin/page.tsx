@@ -49,7 +49,7 @@ interface AuditStats {
   topUsers: Array<{ username: string; count: number }>
 }
 
-type TabType = 'users' | 'audit-logs' | 'app-processing' | 'app-config'
+type TabType = 'users' | 'audit-logs' | 'app-processing' | 'app-config' | 'housekeeping'
 
 export default function SuperadminPage() {
   const router = useRouter()
@@ -114,15 +114,20 @@ export default function SuperadminPage() {
   const [processingStates, setProcessingStates] = useState<{
     [date: string]: { loading: boolean; error: string | null }
   }>({})
-  const [editingAppConfig, setEditingAppConfig] = useState<{ id: number; db_name: string; raw_table_name: string } | null>(null)
+
+  // Housekeeping state
+  const [editingRetention, setEditingRetention] = useState<{ id: number; value: string } | null>(null)
+  const [housekeepingRunning, setHousekeepingRunning] = useState<{ [id: number]: boolean }>({})
+  const [housekeepingMessages, setHousekeepingMessages] = useState<{ [id: number]: { type: 'success' | 'error'; text: string } }>({})
 
   const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
-  const { data: appsWithConfig, refetch: refetchAppsConfig } = trpc.applications.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
-  const updateConfigMutation = trpc.applications.updateConfig.useMutation({ onSuccess: () => refetchAppsConfig() })
   const { data: fdwData, refetch: refetchFdw } = trpc.fdw.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
   const fdwAddMutation = trpc.fdw.add.useMutation({ onSuccess: () => { refetchFdw(); setNewFdwForm({ source_db_name: '', table_name: '', schema_name: 'public' }) } })
   const fdwRemoveMutation = trpc.fdw.remove.useMutation({ onSuccess: () => refetchFdw() })
   const [newFdwForm, setNewFdwForm] = useState({ source_db_name: '', table_name: '', schema_name: 'public' })
+  const { data: housekeepingData, refetch: refetchHousekeeping, isLoading: housekeepingLoading } = trpc.housekeeping.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
+  const updateRetentionMutation = trpc.housekeeping.updateRetention.useMutation({ onSuccess: () => refetchHousekeeping() })
+  const runHousekeepingMutation = trpc.housekeeping.run.useMutation()
 
   useEffect(() => {
     if (!authLoading && authCheck !== undefined) {
@@ -147,8 +152,6 @@ export default function SuperadminPage() {
         fetchAuditLogs()
         fetchStats()
       } else if (activeTab === 'app-processing') {
-        fetchApplications()
-      } else if (activeTab === 'app-config') {
         fetchApplications()
       }
     }
@@ -566,7 +569,17 @@ export default function SuperadminPage() {
                 : 'text-white/70 hover:text-white'
             }`}
           >
-            App Config
+            FDW Configuration
+          </button>
+          <button
+            onClick={() => setActiveTab('housekeeping')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'housekeeping'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Housekeeping
           </button>
         </div>
 
@@ -1482,103 +1495,21 @@ export default function SuperadminPage() {
           </div>
         )}
 
-        {/* App Config Tab */}
+        {/* FDW Configuration Tab */}
         {activeTab === 'app-config' && (
           <div className="space-y-6">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <h3 className="text-lg font-semibold text-white mb-4">Application Config (Cross-DB)</h3>
-              <p className="text-white/70 text-sm mb-4">
-                Configure db_name and raw_table_name for each app. CDC creates raw tables in {'{app_name}'}_db. Update these when adding new apps or changing CDC targets.
+              <h3 className="text-lg font-semibold text-white mb-2">FDW Configuration</h3>
+              <p className="text-white/70 text-sm">
+                Manage Foreign Data Wrapper (FDW) source tables. These are shared tables imported from external databases (e.g. itm_db) used by apps like EDC Agen and EDC Merchant. Run migration to apply changes: <code className="bg-white/10 px-1 rounded text-xs">DB_NAME=platform_db npm run db:migrate</code>
               </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-white/5">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">App Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">db_name</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">raw_table_name</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {appsWithConfig?.data?.applications?.map((app: { id: number; app_name: string; db_name?: string | null; raw_table_name?: string | null }) => (
-                      <tr key={app.id} className="hover:bg-white/5">
-                        <td className="px-4 py-3 text-sm text-white/90">{app.app_name}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {editingAppConfig?.id === app.id ? (
-                            <input
-                              type="text"
-                              value={editingAppConfig.db_name}
-                              onChange={(e) => setEditingAppConfig((p) => p ? { ...p, db_name: e.target.value } : null)}
-                              className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                            />
-                          ) : (
-                            <span className="text-white/90">{app.db_name || '-'}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {editingAppConfig?.id === app.id ? (
-                            <input
-                              type="text"
-                              value={editingAppConfig.raw_table_name}
-                              onChange={(e) => setEditingAppConfig((p) => p ? { ...p, raw_table_name: e.target.value } : null)}
-                              className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                            />
-                          ) : (
-                            <span className="text-white/90">{app.raw_table_name || '-'}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {editingAppConfig?.id === app.id ? (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  updateConfigMutation.mutate(
-                                    { id: app.id, db_name: editingAppConfig.db_name, raw_table_name: editingAppConfig.raw_table_name },
-                                    { onSuccess: () => setEditingAppConfig(null) }
-                                  )
-                                }}
-                                disabled={updateConfigMutation.isPending}
-                                className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
-                              >
-                                {updateConfigMutation.isPending ? 'Saving...' : 'Save'}
-                              </button>
-                              <button
-                                onClick={() => setEditingAppConfig(null)}
-                                className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setEditingAppConfig({ id: app.id, db_name: app.db_name || '', raw_table_name: app.raw_table_name || '' })}
-                              className="px-2 py-1 bg-blue-600/80 hover:bg-blue-500 text-white rounded text-xs"
-                            >
-                              Edit
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )) ?? []}
-                  </tbody>
-                </table>
-              </div>
-              {(!appsWithConfig?.data?.applications?.length) && !appsWithConfig && (
-                <div className="p-8 text-center text-white/50">Loading...</div>
-              )}
-              {appsWithConfig?.data?.applications?.length === 0 && (
-                <div className="p-8 text-center text-white/50">No applications configured.</div>
-              )}
             </div>
 
             {/* FDW Config Section */}
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">FDW Source Tables</h3>
               <p className="text-white/70 text-sm mb-4">
-                Shared tables imported via Foreign Data Wrapper. Used by apps like EDC Agen and EDC Merchant that read from the same source tables. Run migration to apply changes: <code className="bg-white/10 px-1 rounded text-xs">DB_NAME=platform_db npm run db:migrate</code>
+                Add or remove source tables imported via postgres_fdw. After changes, run migration to recreate the foreign server and table mappings.
               </p>
               <div className="space-y-4">
                 <div className="overflow-x-auto">
@@ -1642,6 +1573,181 @@ export default function SuperadminPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Housekeeping Tab */}
+        {activeTab === 'housekeeping' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">Housekeeping Rules</h3>
+              <p className="text-white/70 text-sm">
+                Configure retention per raw table. Raw tables that are shared across multiple apps (e.g. EDC Agen, EDC Merchant, and EDC Merchant Ancol all use the same <code className="bg-white/10 px-1 rounded">itm_db</code> tables) appear as a single row. Running housekeeping deletes rows older than the configured retention period directly from the raw table.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
+              {housekeepingLoading ? (
+                <div className="p-8 text-center text-white/50">Loading...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Database</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Table</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Date Column</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Retention (days)</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {(housekeepingData?.data ?? []).map((row: {
+                        id: number
+                        db_name: string
+                        table_name: string
+                        date_column: string | null
+                        date_column_type: string | null
+                        retention_days: number | null
+                        notes: string | null
+                      }) => {
+                        const canRun = !!row.date_column && !!row.retention_days
+                        return (
+                        <tr key={row.id} className={`hover:bg-white/5 ${!row.date_column ? 'opacity-70' : ''}`}>
+                          <td className="px-4 py-3 text-sm text-white/80 font-mono">{row.db_name}</td>
+                          <td className="px-4 py-3 text-sm text-white font-mono font-medium">{row.table_name}</td>
+
+                          {/* Date column cell */}
+                          <td className="px-4 py-3 text-sm">
+                            {row.date_column ? (
+                              <div className="space-y-0.5">
+                                <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-blue-300">{row.date_column}</code>
+                                {row.date_column_type === 'int_1yymmdd' && (
+                                  <p className="text-xs text-white/40">integer 1YYMMDD format</p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-0.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded text-xs" title={row.notes ?? ''}>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                  </svg>
+                                  Not applicable
+                                </span>
+                                {row.notes && (
+                                  <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Retention days cell */}
+                          <td className="px-4 py-3 text-sm">
+                            {editingRetention?.id === row.id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={editingRetention.value}
+                                  onChange={(e) => setEditingRetention((p) => p ? { ...p, value: e.target.value } : null)}
+                                  className="w-24 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                  placeholder="days"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const days = parseInt(editingRetention.value)
+                                    if (!isNaN(days) && days > 0) {
+                                      updateRetentionMutation.mutate(
+                                        { id: row.id, retention_days: days },
+                                        { onSuccess: () => setEditingRetention(null) }
+                                      )
+                                    }
+                                  }}
+                                  disabled={updateRetentionMutation.isPending}
+                                  className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
+                                >
+                                  {updateRetentionMutation.isPending ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={() => setEditingRetention(null)}
+                                  className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {row.date_column ? (
+                                  <>
+                                    <span className={row.retention_days ? 'text-white' : 'text-white/40 italic'}>
+                                      {row.retention_days ? `${row.retention_days} days` : 'Not set'}
+                                    </span>
+                                    <button
+                                      onClick={() => setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })}
+                                      className="px-2 py-0.5 bg-blue-600/60 hover:bg-blue-500 text-white rounded text-xs"
+                                    >
+                                      Edit
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-white/30 italic text-xs">N/A</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Actions cell */}
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={async () => {
+                                  setHousekeepingRunning((p) => ({ ...p, [row.id]: true }))
+                                  setHousekeepingMessages((p) => { const n = { ...p }; delete n[row.id]; return n })
+                                  try {
+                                    const result = await runHousekeepingMutation.mutateAsync({ id: row.id })
+                                    setHousekeepingMessages((p) => ({ ...p, [row.id]: { type: 'success', text: result.message } }))
+                                  } catch (e: any) {
+                                    setHousekeepingMessages((p) => ({ ...p, [row.id]: { type: 'error', text: e?.message ?? 'Error running housekeeping' } }))
+                                  } finally {
+                                    setHousekeepingRunning((p) => ({ ...p, [row.id]: false }))
+                                  }
+                                }}
+                                disabled={!canRun || housekeepingRunning[row.id]}
+                                className="px-3 py-1 bg-orange-600/80 hover:bg-orange-500 text-white rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                                title={!row.date_column ? 'Date column not supported' : !row.retention_days ? 'Set retention days first' : 'Run housekeeping'}
+                              >
+                                {housekeepingRunning[row.id] ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                                    Running...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Run Housekeeping
+                                  </>
+                                )}
+                              </button>
+                              {housekeepingMessages[row.id] && (
+                                <p className={`text-xs ${housekeepingMessages[row.id].type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+                                  {housekeepingMessages[row.id].text}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {(housekeepingData?.data?.length ?? 0) === 0 && (
+                    <div className="p-8 text-center text-white/50">No raw tables configured. Run migration to populate.</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
