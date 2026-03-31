@@ -126,6 +126,7 @@ export default function SuperadminPage() {
   const fdwRemoveMutation = trpc.fdw.remove.useMutation({ onSuccess: () => refetchFdw() })
   const [newFdwForm, setNewFdwForm] = useState({ source_db_name: '', table_name: '', schema_name: 'public' })
   const { data: housekeepingData, refetch: refetchHousekeeping, isLoading: housekeepingLoading } = trpc.housekeeping.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
+  const { data: housekeepingScheduleData } = trpc.housekeeping.getSchedule.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
   const updateRetentionMutation = trpc.housekeeping.updateRetention.useMutation({ onSuccess: () => refetchHousekeeping() })
   const runHousekeepingMutation = trpc.housekeeping.run.useMutation()
 
@@ -1509,7 +1510,7 @@ export default function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">FDW Source Tables</h3>
               <p className="text-white/70 text-sm mb-4">
-                Add or remove source tables imported via postgres_fdw. After changes, run migration to recreate the foreign server and table mappings.
+                Add or remove source tables imported via postgres_fdw. Includes both app database connections (e.g. bale_db, bale_bisnis_db) and shared external tables (e.g. itm_db). After changes, run migration to recreate the foreign server and table mappings.
               </p>
               <div className="space-y-4">
                 <div className="overflow-x-auto">
@@ -1585,6 +1586,24 @@ export default function SuperadminPage() {
               <p className="text-white/70 text-sm">
                 Configure retention per raw table. Raw tables that are shared across multiple apps (e.g. EDC Agen, EDC Merchant, and EDC Merchant Ancol all use the same <code className="bg-white/10 px-1 rounded">itm_db</code> tables) appear as a single row. Running housekeeping deletes rows older than the configured retention period directly from the raw table.
               </p>
+            </div>
+
+            {/* pg_cron schedule info */}
+            <div className="flex items-start gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-4 py-3">
+              <svg className="w-4 h-4 text-indigo-300 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm text-indigo-200 space-y-1">
+                <p>
+                  <span className="font-semibold text-indigo-100">pg_cron auto-schedule: </span>
+                  <code className="bg-indigo-500/20 px-1.5 py-0.5 rounded text-xs font-mono text-indigo-100">
+                    {housekeepingScheduleData?.data?.schedule ?? '0 2 * * *'}
+                  </code>
+                </p>
+                <p className="text-indigo-300/80 text-xs">
+                  Cron jobs for each applicable table are registered during migration (<code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>). Retention day changes take effect on the next scheduled run automatically — no re-migration needed. To change the schedule, update <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in your <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
+                </p>
+              </div>
             </div>
 
             <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">

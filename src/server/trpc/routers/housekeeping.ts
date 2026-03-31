@@ -8,6 +8,11 @@ import { logAuditEvent } from '@/lib/audit'
 const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 
 export const housekeepingRouter = router({
+  getSchedule: superAdminProcedure.query(() => {
+    const schedule = process.env.HOUSEKEEPING_SCHEDULE ?? '0 2 * * *'
+    return { success: true, data: { schedule } }
+  }),
+
   list: superAdminProcedure.query(async () => {
     const [rows]: any = await pool.execute(
       `SELECT id, db_name, table_name, date_column, date_column_type, retention_days, notes

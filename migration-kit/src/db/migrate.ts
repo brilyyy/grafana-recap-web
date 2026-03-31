@@ -599,26 +599,17 @@ async function runFdwSetup() {
     return
   }
 
-  // Collect (db, table) pairs from app_identifier (single-table apps) and fdw_source_table (shared tables)
+  // All FDW connections are managed via fdw_source_table (seeded in Phase 7)
   const pairs = new Map<string, Set<string>>()
 
-  const appRows = await exec(
-    `SELECT db_name, raw_table_name FROM "app_identifier" WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`,
-  ) as { db_name: string; raw_table_name: string }[]
-  for (const r of appRows) {
-    if (!pairs.has(r.db_name)) pairs.set(r.db_name, new Set())
-    pairs.get(r.db_name)!.add(r.raw_table_name)
-  }
-
-  let fdwRows: { source_db_name: string; table_name: string }[] = []
   if (await tableExists('fdw_source_table')) {
-    fdwRows = await exec(
+    const fdwRows = await exec(
       `SELECT source_db_name, table_name FROM "fdw_source_table"`,
     ) as { source_db_name: string; table_name: string }[]
-  }
-  for (const r of fdwRows) {
-    if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
-    pairs.get(r.source_db_name)!.add(r.table_name)
+    for (const r of fdwRows) {
+      if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
+      pairs.get(r.source_db_name)!.add(r.table_name)
+    }
   }
 
   const esc = (s: string) => s.replace(/'/g, "''")
@@ -693,6 +684,69 @@ async function runFdwSetup() {
 async function runStoredProcedures() {
   console.log('\n⚙️  Phase 5: Stored procedures')
   await runProcedures(exec, true)
+
+  // PostgreSQL-only: housekeeping utility function
+  // Reads retention_days at runtime so UI changes take effect without re-running migration
+  if (DB_TYPE === 'postgresql' || DB_TYPE === 'postgres') {
+    try {
+      await exec(`
+        CREATE OR REPLACE FUNCTION public.sp_run_raw_housekeeping(p_id INTEGER)
+        RETURNS INTEGER AS $$
+        DECLARE
+          v_table_name     TEXT;
+          v_date_column    TEXT;
+          v_date_col_type  TEXT;
+          v_retention_days INTEGER;
+          v_sql            TEXT;
+          v_deleted        INTEGER;
+        BEGIN
+          SELECT table_name, date_column, date_column_type, retention_days
+            INTO v_table_name, v_date_column, v_date_col_type, v_retention_days
+            FROM raw_table_housekeeping
+           WHERE id = p_id;
+
+          IF NOT FOUND THEN
+            RAISE EXCEPTION 'Housekeeping config id=% not found', p_id;
+          END IF;
+
+          IF v_retention_days IS NULL THEN
+            RAISE EXCEPTION 'retention_days not set for table %', v_table_name;
+          END IF;
+
+          IF v_date_column IS NULL THEN
+            RAISE EXCEPTION 'date_column not set for table % (reference table – housekeeping not applicable)', v_table_name;
+          END IF;
+
+          IF v_date_col_type = 'int_1yymmdd' THEN
+            -- TRXMDT integer format: 1YYMMDD (e.g. 1250311 = 2025-03-11)
+            v_sql := format(
+              'DELETE FROM %I WHERE %I < (1000000'
+              ' + (EXTRACT(YEAR  FROM (CURRENT_DATE - (''%s days'')::INTERVAL))::int %% 100) * 10000'
+              ' + (EXTRACT(MONTH FROM (CURRENT_DATE - (''%s days'')::INTERVAL))::int) * 100'
+              ' + (EXTRACT(DAY   FROM (CURRENT_DATE - (''%s days'')::INTERVAL))::int))',
+              v_table_name, v_date_column,
+              v_retention_days, v_retention_days, v_retention_days
+            );
+          ELSE
+            -- Standard timestamp / date column
+            v_sql := format(
+              'DELETE FROM %I WHERE %I < (CURRENT_DATE - (''%s days'')::INTERVAL)',
+              v_table_name, v_date_column, v_retention_days
+            );
+          END IF;
+
+          EXECUTE v_sql;
+          GET DIAGNOSTICS v_deleted = ROW_COUNT;
+          RETURN v_deleted;
+        END;
+        $$ LANGUAGE plpgsql;
+      `)
+      console.log('  ✅ sp_run_raw_housekeeping created/updated')
+    } catch (e: unknown) {
+      console.warn('  ⚠️  sp_run_raw_housekeeping failed:', (e as Error).message)
+    }
+  }
+
   console.log('  ✅ Phase 5 done')
 }
 
@@ -762,6 +816,44 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
         }
       }
     }
+
+    // Housekeeping cron jobs – one per applicable raw_table_housekeeping row
+    // These run in DB_NAME (platform DB) since sp_run_raw_housekeeping lives there
+    const housekeepingSchedule = process.env.HOUSEKEEPING_SCHEDULE ?? '0 2 * * *'
+    console.log(`  Registering housekeeping pg_cron jobs (schedule: ${housekeepingSchedule})…`)
+    if (await tableExists('raw_table_housekeeping')) {
+      const hkRows = await exec(
+        `SELECT id, table_name FROM raw_table_housekeeping WHERE date_column IS NOT NULL ORDER BY id`,
+      ) as { id: number; table_name: string }[]
+
+      for (const hkRow of hkRows) {
+        const jobName = `housekeeping-${hkRow.id}-${hkRow.table_name.toLowerCase()}`
+        const hkSql = `SELECT public.sp_run_raw_housekeeping(${hkRow.id})`
+        try {
+          try { await exec(`SELECT cron.unschedule('${esc(jobName)}')`) } catch { /* ok – job may not exist yet */ }
+          await exec(`
+            SELECT cron.schedule_in_database(
+              '${esc(jobName)}',
+              '${esc(housekeepingSchedule)}',
+              $$${hkSql}$$,
+              '${esc(DB_NAME)}',
+              NULL,
+              true
+            )
+          `)
+          await exec(`
+            UPDATE cron.job
+            SET nodename = '${esc(DB_HOST)}', nodeport = ${DB_PORT}
+            WHERE jobname = '${esc(jobName)}'
+          `)
+          console.log(`  ✅ housekeeping pg_cron job '${jobName}' @ ${housekeepingSchedule}`)
+        } catch (e: unknown) {
+          console.warn(`  ⚠️  housekeeping pg_cron job '${jobName}' failed:`, (e as Error).message)
+        }
+      }
+      console.log(`  ✅ ${hkRows.length} housekeeping cron job(s) registered`)
+    }
+
     return
   }
 
@@ -812,8 +904,25 @@ async function runSeeds() {
   if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
   console.log(`  ✅ ${defaultApps.length} default app identifiers seeded`)
 
-  // Seed fdw_source_table for EDC (shared tables from itm_db)
+  // Seed fdw_source_table with all FDW connections:
+  //   1. app_identifier-derived (bale_db, bale_bisnis_db, etc.)
+  //   2. shared external tables (itm_db)
   if (await tableExists('fdw_source_table')) {
+    // App-identifier derived connections
+    const appFdwRows = await exec(
+      `SELECT DISTINCT "db_name", "raw_table_name" FROM "app_identifier"
+       WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`,
+    ) as { db_name: string; raw_table_name: string }[]
+    for (const r of appFdwRows) {
+      await exec(
+        `INSERT INTO "fdw_source_table" ("source_db_name","table_name") VALUES ($1,$2)
+         ON CONFLICT ("source_db_name","table_name") DO NOTHING`,
+        [r.db_name, r.raw_table_name],
+      )
+    }
+    if (appFdwRows.length > 0) console.log(`  ✅ fdw_source_table seeded with ${appFdwRows.length} app connection(s)`)
+
+    // Shared external tables (itm_db for EDC apps)
     const fdwEntries = [
       ['itm_db', 'ASID160448_ZTRANS0P'],
       ['itm_db', 'ASID160448_ZRSPCD0P'],
