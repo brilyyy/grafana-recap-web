@@ -90,7 +90,6 @@ BEGIN
         FROM raw_bale_bisnis rbb
         WHERE rbb.transaction_date >= v_start_timestamp
           AND rbb.transaction_date <  v_end_timestamp + INTERVAL '1 second'
-          AND rbb.transaction_count != 0
         GROUP BY 1,2,3,4,5,6
       )
       SELECT
@@ -110,7 +109,8 @@ BEGIN
         ON a.transaction_date    = d.transaction_date::date
        AND a.transaction_category = f.transaction_category
        AND a.transaction_status   = s.status_code
-       AND (a.transaction_state::numeric = st.state_code OR (a.transaction_state IS NULL AND a.transaction_count IS NULL))
+       AND a.transaction_state    = st.state_code
+       AND a.transaction_count != 0
       ORDER BY
           d.transaction_date,
           f.transaction_category,

@@ -59,7 +59,6 @@ agg AS (
   FROM raw_bale_bisnis rbb
   WHERE rbb.transaction_date >= @start_date
     AND rbb.transaction_date <  @end_date
-    AND rbb.transaction_count != 0
   GROUP BY 1,2,3,4,5,6
 )
 SELECT
@@ -80,6 +79,7 @@ LEFT JOIN agg a
  AND a.transaction_category = f.transaction_category
  AND a.transaction_status   = s.status_code
  AND a.transaction_state    = st.state_code
+ AND a.transaction_count != 0
 ORDER BY
     d.transaction_date,
     f.transaction_category,

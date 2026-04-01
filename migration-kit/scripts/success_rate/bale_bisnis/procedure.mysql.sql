@@ -67,7 +67,6 @@ BEGIN
       FROM `bale_bisnis_db`.`raw_bale_bisnis` rbb
       WHERE rbb.transaction_date >= v_start_timestamp
         AND rbb.transaction_date <  v_end_timestamp + INTERVAL 1 SECOND
-        AND rbb.transaction_count != 0
       GROUP BY 1,2,3,4,5,6
     )
     SELECT
@@ -87,7 +86,8 @@ BEGIN
       ON a.transaction_date    = d.transaction_date
      AND a.transaction_category = f.transaction_category
      AND a.transaction_status   = s.status_code
-     AND a.transaction_state    = st.transaction_state
+     AND a.transaction_state    = st.state_code
+     AND a.transaction_count != 0
     ORDER BY
         d.transaction_date,
         f.transaction_category,
