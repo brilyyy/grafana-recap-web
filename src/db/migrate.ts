@@ -24,7 +24,7 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 import bcrypt from 'bcryptjs'
-import { randomUUID, randomBytes, scrypt } from 'crypto'
+import { randomUUID, randomBytes, scrypt, createHash } from 'crypto'
 import { runStoredProcedures as runProcedures } from '../../scripts/success_rate/runProcedures'
 
 /**
@@ -86,6 +86,18 @@ function deriveDbName(appName: string): string {
 function deriveRawTableName(appName: string): string {
   const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
   return `raw_${base || 'unknown'}`
+}
+
+/**
+ * Build the local PostgreSQL identifier for a prefixed foreign table: `{sourceDb}_{tableName}`.
+ * When the raw concatenation would exceed PostgreSQL's 63-byte identifier limit the name is
+ * truncated to 55 chars and a 7-hex-char deterministic suffix is appended.
+ */
+function fdwLocalRelationName(sourceDb: string, tableName: string): string {
+  const raw = `${sourceDb}_${tableName}`
+  if (raw.length <= 63) return raw
+  const suffix = createHash('md5').update(`${sourceDb}:${tableName}`).digest('hex').slice(0, 7)
+  return `${raw.slice(0, 55)}_${suffix}`
 }
 
 // ─── Low-level query executor ────────────────────────────────────────────────
@@ -599,12 +611,14 @@ async function runFdwSetup() {
     return
   }
 
-  // All FDW connections are managed via fdw_source_table (seeded in Phase 7)
+  // All FDW connections are managed via fdw_source_table (seeded in Phase 7).
+  // Stable ORDER BY ensures that when two source DBs share the same table_name the
+  // first one alphabetically by source_db_name wins the compatibility view.
   const pairs = new Map<string, Set<string>>()
 
   if (await tableExists('fdw_source_table')) {
     const fdwRows = await exec(
-      `SELECT source_db_name, table_name FROM "fdw_source_table"`,
+      `SELECT source_db_name, table_name FROM "fdw_source_table" ORDER BY source_db_name, table_name`,
     ) as { source_db_name: string; table_name: string }[]
     for (const r of fdwRows) {
       if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
@@ -612,10 +626,14 @@ async function runFdwSetup() {
     }
   }
 
+  // Tracks short table names that already have a compatibility view across all servers.
+  const claimedViewNames = new Set<string>()
+
   const esc = (s: string) => s.replace(/'/g, "''")
   for (const [dbName, tables] of pairs) {
     const serverName = `${dbName}_server`
     try {
+      // CASCADE removes all dependent foreign tables (and any views over them) from prior runs.
       await exec(`DROP SERVER IF EXISTS "${serverName}" CASCADE`)
       await exec(`
         CREATE SERVER "${serverName}"
@@ -651,24 +669,51 @@ async function runFdwSetup() {
         }
       }
       for (const tableName of tables) {
+        // Local foreign-table name is prefixed: {sourceDb}_{tableName}
+        const localFtName = fdwLocalRelationName(dbName, tableName)
         try {
-          await exec(`DROP FOREIGN TABLE IF EXISTS "${tableName}"`)
+          // Import via a temporary schema so that any pre-existing compatibility view in
+          // public with the same short name does not block the IMPORT statement.
+          await exec(`DROP SCHEMA IF EXISTS _fdw_import_tmp CASCADE`)
+          await exec(`CREATE SCHEMA _fdw_import_tmp`)
           await exec(`
             IMPORT FOREIGN SCHEMA public
             LIMIT TO ("${tableName}")
             FROM SERVER "${serverName}"
-            INTO public
+            INTO _fdw_import_tmp
           `)
-          console.log(`  ✅ FDW: ${tableName} <- ${dbName}.${tableName}`)
+          await exec(`ALTER FOREIGN TABLE _fdw_import_tmp."${tableName}" RENAME TO "${localFtName}"`)
+          await exec(`ALTER FOREIGN TABLE _fdw_import_tmp."${localFtName}" SET SCHEMA public`)
+          await exec(`DROP SCHEMA _fdw_import_tmp`)
+          console.log(`  ✅ FDW FT: ${localFtName} <- ${dbName}.${tableName}`)
           if (DB_USER_TARGET) {
             try {
-              await exec(`GRANT SELECT ON "${tableName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
-              console.log(`  ✅ FDW grant SELECT: ${tableName} -> ${DB_USER_TARGET}`)
+              await exec(`GRANT SELECT ON "${localFtName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
+              console.log(`  ✅ FDW grant SELECT (FT): ${localFtName} -> ${DB_USER_TARGET}`)
             } catch (e: unknown) {
-              console.warn(`  ⚠️  GRANT SELECT on ${tableName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
+              console.warn(`  ⚠️  GRANT SELECT on ${localFtName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
+            }
+          }
+          // Compatibility view: short remote name → prefixed FT.
+          // Only the first source_db to register a given table_name gets the short view.
+          // Consumers of subsequent sources must query the prefixed FT directly.
+          if (claimedViewNames.has(tableName)) {
+            console.warn(`  ⚠️  FDW view "${tableName}" already claimed by another source; ${dbName} consumers must use "${localFtName}" directly.`)
+          } else {
+            claimedViewNames.add(tableName)
+            await exec(`CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${localFtName}"`)
+            console.log(`  ✅ FDW view: "${tableName}" -> "${localFtName}"`)
+            if (DB_USER_TARGET) {
+              try {
+                await exec(`GRANT SELECT ON "${tableName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
+                console.log(`  ✅ FDW grant SELECT (view): ${tableName} -> ${DB_USER_TARGET}`)
+              } catch (e: unknown) {
+                console.warn(`  ⚠️  GRANT SELECT on view ${tableName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
+              }
             }
           }
         } catch (e: unknown) {
+          try { await exec(`DROP SCHEMA IF EXISTS _fdw_import_tmp CASCADE`) } catch { /* ignore */ }
           console.warn(`  ⚠️  FDW for ${dbName}.${tableName} failed:`, (e as Error).message)
         }
       }
@@ -872,7 +917,7 @@ async function runSeeds() {
   await exec(`UPDATE "app_identifier" SET "app_name"='EDC Agen', "db_name"='itm_db', "raw_table_name"=NULL WHERE "app_name"='EDC Agent'`)
 
   // Default app identifiers (with db_name, raw_table_name for cross-db)
-  const defaultApps = ['Bale', 'Bale Bisnis', 'CMS', 'SMS Notif', 'QRIS', 'EDC Merchant', 'EDC Agen', 'Bale Korpora', 'OLOB']
+  const defaultApps = ['Bale', 'Bale Bisnis', 'QRIS', 'EDC Merchant', 'EDC Agen', 'Bale Korpora', 'OLOB']
   for (const appName of defaultApps) {
     let dbName: string
     let rawTableName: string | null
@@ -953,19 +998,36 @@ async function runSeeds() {
         [r.db_name, r.raw_table_name, dateCol]
       )
     }
-    // FDW source tables – ZTRANS0P uses TRXMDT integer (1YYMMDD); ZRSPCD0P is a reference table with no date
+    // FDW source tables – ZTRANS0P uses TRXMDT integer (1YYMMDD); ZRSPCD0P is a reference table with no date.
+    // table_name must be the relation on platform_db that sp_run_raw_housekeeping will DELETE from.
+    // After A+A2 FDW setup this is the compatibility view (short remote name) when the view was
+    // created, or the prefixed foreign table name when the short name was claimed by another source DB.
     if (await tableExists('fdw_source_table')) {
       const fdwRows = await exec(
-        `SELECT "source_db_name", "table_name" FROM "fdw_source_table"`
+        `SELECT "source_db_name", "table_name" FROM "fdw_source_table"`,
       ) as { source_db_name: string; table_name: string }[]
       for (const r of fdwRows) {
+        // Resolve the actual platform_db relation for this FDW table.
+        const localFtName = fdwLocalRelationName(r.source_db_name, r.table_name)
+        const viewCheck = await exec(
+          `SELECT 1 FROM information_schema.views WHERE table_schema = 'public' AND table_name = $1`,
+          [r.table_name],
+        ) as unknown[]
+        const platformTableName = viewCheck.length > 0 ? r.table_name : localFtName
+        // Remove any stale short-name row left from a prior run that pre-dates the collision.
+        if (platformTableName !== r.table_name) {
+          await exec(
+            `DELETE FROM "raw_table_housekeeping" WHERE "db_name"=$1 AND "table_name"=$2`,
+            [r.source_db_name, r.table_name],
+          )
+        }
         // Transaction table: TRXMDT integer date in 1YYMMDD format – housekeeping supported
         if (r.table_name.includes('ZTRANS0P')) {
           await exec(
             `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","date_column_type")
              VALUES ($1,$2,'TRXMDT','int_1yymmdd')
              ON CONFLICT ("db_name","table_name") DO UPDATE SET "date_column"='TRXMDT', "date_column_type"='int_1yymmdd'`,
-            [r.source_db_name, r.table_name]
+            [r.source_db_name, platformTableName],
           )
         } else {
           // Response-code reference tables: no date column, skip housekeeping
@@ -973,7 +1035,7 @@ async function runSeeds() {
             `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","notes")
              VALUES ($1,$2,NULL,'Reference table – no date column, housekeeping not applicable')
              ON CONFLICT ("db_name","table_name") DO NOTHING`,
-            [r.source_db_name, r.table_name]
+            [r.source_db_name, platformTableName],
           )
         }
       }

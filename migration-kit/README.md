@@ -54,7 +54,7 @@ Ini menjalankan semua fase: schema, procedures, cron/events, seed, dan (PostgreS
 - `npm run migrate:procedures` – stored procedure (sp_process_bale_daily)
 - `npm run migrate:cron`     – cron/event scheduler
 - `npm run migrate:seed`     – seed app identifier + superadmin
-- `npm run migrate:fdw`      – (PostgreSQL only) FDW servers, user mappings, foreign tables
+- `npm run migrate:fdw`      – (PostgreSQL only) FDW servers, user mappings, prefixed foreign tables + compatibility views
 
 ### Step 6: PostgreSQL FDW (jika diperlukan)
 
@@ -65,6 +65,8 @@ DB_NAME=platform_db npm run migrate:fdw
 ```
 
 Pastikan: (1) `postgres_fdw` extension sudah di-install di platform_db, (2) app databases (bale_db, dll.) sudah ada, (3) `app_identifier` punya `db_name` dan `raw_table_name` (jalankan `npm run migrate:schema` dulu jika belum).
+
+**FDW naming (A+A2):** Setiap foreign table diberi nama `{source_db}_{table_name}` (mis. `bale_db_raw_bale`), disertai compatibility view dengan nama pendek asli (mis. `raw_bale`) agar stored procedure yang ada tidak perlu diubah. Jika dua source database mempunyai `table_name` yang sama, yang pertama secara alfabet mendapat view pendek; yang kedua harus query langsung via nama FT yang sudah di-prefix.
 
 ## Deploy ke server tanpa akses internet (offline)
 

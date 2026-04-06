@@ -223,10 +223,12 @@ CDC creates raw tables in separate databases (`{app_name}_db`), not in `platform
 
 3. **Configure CDC** to write to `{app_name}_db` instead of `platform_db`.
 
-**Migration automatically:**
+**Migration automatically (Phase 4b):**
 - Adds `db_name` and `raw_table_name` to `app_identifier`
-- Creates FDW foreign server, user mapping, and foreign table for each app (Phase 4b)
-- If `DB_USER_TARGET` is set: creates user mapping for that role, grants `USAGE` on each foreign server, and `GRANT SELECT` on each foreign table (so the app user can query FDW tables)
+- For each row in `fdw_source_table`, creates a foreign server (`{db}_server`), user mapping, and a **prefixed foreign table** named `{source_db_name}_{table_name}` (e.g. `bale_db_raw_bale`)
+- Creates a **compatibility view** with the short remote name (e.g. `raw_bale`) that points to the prefixed foreign table, so existing stored procedures and SQL keep working unchanged
+- If two source databases expose the same `table_name`, the first one alphabetically wins the short-name view; the other must be queried via the prefixed foreign table name directly
+- If `DB_USER_TARGET` is set: creates user mapping for that role, grants `USAGE` on each foreign server, and `GRANT SELECT` on each foreign table and its compatibility view
 
 **If migration does not create FDW** (e.g. extension missing), run manually for each app:
 
@@ -240,10 +242,13 @@ CREATE USER MAPPING FOR CURRENT_USER
   SERVER bale_db_server
   OPTIONS (user 'your_db_user', password 'your_db_password');
 
-IMPORT FOREIGN SCHEMA public
-  LIMIT TO (raw_bale)
-  FROM SERVER bale_db_server
-  INTO public;
+-- Foreign table uses prefixed name; view restores the short name for existing SQL
+CREATE SCHEMA _fdw_import_tmp;
+IMPORT FOREIGN SCHEMA public LIMIT TO (raw_bale) FROM SERVER bale_db_server INTO _fdw_import_tmp;
+ALTER FOREIGN TABLE _fdw_import_tmp.raw_bale RENAME TO bale_db_raw_bale;
+ALTER FOREIGN TABLE _fdw_import_tmp.bale_db_raw_bale SET SCHEMA public;
+DROP SCHEMA _fdw_import_tmp;
+CREATE VIEW raw_bale AS SELECT * FROM bale_db_raw_bale;
 ```
 
 **App Config (Superadmin):** Use the **App Config** tab to set `db_name` and `raw_table_name` per app. When adding a new app, create its database, run FDW setup (or re-run migration with `--schema-only`), then add the stored procedure.
@@ -254,7 +259,7 @@ DB_NAME=platform_db_local npm run db:migrate:fdw
 ```
 Use `DB_NAME` = your platform database (where app_identifier lives). **Not** the cron database (e.g. `postgres`).
 
-**DB_USER_TARGET (optional):** Set this to the role that will query FDW tables (e.g. your app user). The migration will: create a user mapping for that role, `GRANT USAGE ON FOREIGN SERVER` for each FDW server, and `GRANT SELECT` on each foreign table. If unset, only `CURRENT_USER` (migration user) can use FDW.
+**DB_USER_TARGET (optional):** Set this to the role that will query FDW tables (e.g. your app user). The migration will: create a user mapping for that role, `GRANT USAGE ON FOREIGN SERVER` for each FDW server, and `GRANT SELECT` on each prefixed foreign table and its compatibility view. If unset, only `CURRENT_USER` (migration user) can use FDW.
 
 **Troubleshooting:** If FDW did not run, check: (1) `DB_NAME` must point to your platform DB, not the pg_cron database; (2) `app_identifier` must have `db_name` and `raw_table_name` populated (run `--schema-only` first); (3) app databases (e.g. `bale_db`) must exist; (4) `postgres_fdw` extension requires superuser or `CREATE` privilege; (5) for `DB_USER_TARGET`, the role must exist in the database.
 
@@ -266,15 +271,21 @@ SELECT extname FROM pg_extension WHERE extname = 'postgres_fdw';
 -- Foreign servers
 SELECT srvname FROM pg_foreign_server WHERE srvname LIKE '%_server';
 
--- Foreign tables
+-- Prefixed foreign tables (e.g. bale_db_raw_bale, itm_db_ASID160448_ZTRANS0P)
 SELECT foreign_table_name, foreign_server_name FROM information_schema.foreign_tables;
+
+-- Compatibility views (e.g. raw_bale -> bale_db_raw_bale)
+SELECT table_name, view_definition FROM information_schema.views
+WHERE table_schema = 'public' AND table_name NOT LIKE 'pg_%';
 
 -- User mappings (uses pg_user_mapping; pg_user_mappings may differ by PG version)
 SELECT s.srvname, um.umuser::regrole FROM pg_foreign_server s
 LEFT JOIN pg_user_mapping um ON um.umserver = s.oid WHERE s.srvname LIKE '%_server';
 
--- Test query
+-- Test query via compatibility view (short name)
 SELECT COUNT(*) FROM raw_bale;
+-- Test query via prefixed foreign table directly
+SELECT COUNT(*) FROM bale_db_raw_bale;
 ```
 
 See [`db/README.md`](db/README.md) for more details on cross-db architecture. See [`SERVER_CONFIG.md`](SERVER_CONFIG.md) for PostgreSQL server configuration (pg_cron, postgresql.conf).
