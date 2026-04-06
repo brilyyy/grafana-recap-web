@@ -4,6 +4,7 @@ import { router, superAdminProcedure } from '../init'
 import { pool } from '@/lib/db'
 import { env } from '@/env'
 import { logAuditEvent } from '@/lib/audit'
+import { resolvePgHousekeepingRelation } from '@/lib/fdw'
 
 const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 
@@ -87,12 +88,15 @@ export const housekeepingRouter = router({
       const n = row.retention_days
       let deletedCount = 0
 
+      // For PostgreSQL, DELETE must target the prefixed foreign table (e.g. bale_db_raw_bale),
+      // not the short-name view (raw_bale), which postgres_fdw does not allow deleting through.
+      const pgRelation = isPostgres ? resolvePgHousekeepingRelation(row.db_name, row.table_name) : row.table_name
+
       if (row.date_column_type === 'int_1yymmdd') {
         // TRXMDT integer format: 1YYMMDD (e.g. 1250311 = 2025-03-11)
-        // Compute the integer value for the cutoff date
         if (isPostgres) {
-          const result: any = await pool.execute(
-            `DELETE FROM "${row.table_name}"
+          const [, meta]: any = await pool.execute(
+            `DELETE FROM "${pgRelation}"
              WHERE "${row.date_column}" < (
                1000000
                + (EXTRACT(YEAR FROM (CURRENT_DATE - INTERVAL '${n} days'))::int % 100) * 10000
@@ -100,7 +104,7 @@ export const housekeepingRouter = router({
                + EXTRACT(DAY FROM (CURRENT_DATE - INTERVAL '${n} days'))::int
              )`
           )
-          deletedCount = result?.rowCount ?? result?.[0]?.affectedRows ?? 0
+          deletedCount = meta?.rowCount ?? 0
         } else {
           const [result]: any = await pool.execute(
             `DELETE FROM \`${row.db_name}\`.\`${row.table_name}\`
@@ -116,11 +120,11 @@ export const housekeepingRouter = router({
       } else {
         // Standard timestamp/date column
         if (isPostgres) {
-          const result: any = await pool.execute(
-            `DELETE FROM "${row.table_name}"
+          const [, meta]: any = await pool.execute(
+            `DELETE FROM "${pgRelation}"
              WHERE "${row.date_column}" < (CURRENT_DATE - INTERVAL '${n} days')`
           )
-          deletedCount = result?.rowCount ?? result?.[0]?.affectedRows ?? 0
+          deletedCount = meta?.rowCount ?? 0
         } else {
           const [result]: any = await pool.execute(
             `DELETE FROM \`${row.db_name}\`.\`${row.table_name}\`

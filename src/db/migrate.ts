@@ -734,19 +734,45 @@ async function runStoredProcedures() {
   // Reads retention_days at runtime so UI changes take effect without re-running migration
   if (DB_TYPE === 'postgresql' || DB_TYPE === 'postgres') {
     try {
+      // Helper: mirrors fdwLocalRelationName() TS logic so the stored function always
+      // targets the prefixed FDW foreign table even if table_name in the DB still holds
+      // the old short (logical) name from a pre-fix installation.
+      await exec(`
+        CREATE OR REPLACE FUNCTION public.housekeeping_platform_relation(p_db_name TEXT, p_table_name TEXT)
+        RETURNS TEXT AS $$
+        DECLARE
+          v_raw    TEXT;
+          v_suffix TEXT;
+        BEGIN
+          -- If already prefixed with db_name_, use as-is.
+          IF p_table_name LIKE p_db_name || '_%' THEN
+            RETURN p_table_name;
+          END IF;
+          v_raw := p_db_name || '_' || p_table_name;
+          IF char_length(v_raw) <= 63 THEN
+            RETURN v_raw;
+          END IF;
+          -- Replicate JS: first 55 chars + '_' + first 7 hex chars of MD5(db:table)
+          v_suffix := substring(md5(p_db_name || ':' || p_table_name) FROM 1 FOR 7);
+          RETURN substring(v_raw FROM 1 FOR 55) || '_' || v_suffix;
+        END;
+        $$ LANGUAGE plpgsql IMMUTABLE;
+      `)
       await exec(`
         CREATE OR REPLACE FUNCTION public.sp_run_raw_housekeeping(p_id INTEGER)
         RETURNS INTEGER AS $$
         DECLARE
+          v_db_name        TEXT;
           v_table_name     TEXT;
+          v_rel_name       TEXT;
           v_date_column    TEXT;
           v_date_col_type  TEXT;
           v_retention_days INTEGER;
           v_sql            TEXT;
           v_deleted        INTEGER;
         BEGIN
-          SELECT table_name, date_column, date_column_type, retention_days
-            INTO v_table_name, v_date_column, v_date_col_type, v_retention_days
+          SELECT db_name, table_name, date_column, date_column_type, retention_days
+            INTO v_db_name, v_table_name, v_date_column, v_date_col_type, v_retention_days
             FROM raw_table_housekeeping
            WHERE id = p_id;
 
@@ -762,6 +788,9 @@ async function runStoredProcedures() {
             RAISE EXCEPTION 'date_column not set for table % (reference table – housekeeping not applicable)', v_table_name;
           END IF;
 
+          -- Resolve the actual FDW foreign-table name (prefixed) so DELETE bypasses any view.
+          v_rel_name := public.housekeeping_platform_relation(v_db_name, v_table_name);
+
           IF v_date_col_type = 'int_1yymmdd' THEN
             -- TRXMDT integer format: 1YYMMDD (e.g. 1250311 = 2025-03-11)
             v_sql := format(
@@ -769,14 +798,14 @@ async function runStoredProcedures() {
               ' + (EXTRACT(YEAR  FROM (CURRENT_DATE - (''%s days'')::INTERVAL))::int %% 100) * 10000'
               ' + (EXTRACT(MONTH FROM (CURRENT_DATE - (''%s days'')::INTERVAL))::int) * 100'
               ' + (EXTRACT(DAY   FROM (CURRENT_DATE - (''%s days'')::INTERVAL))::int))',
-              v_table_name, v_date_column,
+              v_rel_name, v_date_column,
               v_retention_days, v_retention_days, v_retention_days
             );
           ELSE
             -- Standard timestamp / date column
             v_sql := format(
               'DELETE FROM %I WHERE %I < (CURRENT_DATE - (''%s days'')::INTERVAL)',
-              v_table_name, v_date_column, v_retention_days
+              v_rel_name, v_date_column, v_retention_days
             );
           END IF;
 
@@ -984,18 +1013,29 @@ async function runSeeds() {
 
   // Seed raw_table_housekeeping from app_identifier (deduplicated by db_name+table_name)
   if (await tableExists('raw_table_housekeeping')) {
-    // Non-EDC apps with a dedicated raw table
+    // Non-EDC apps with a dedicated raw table.
+    // For PostgreSQL, DELETE must target the prefixed FDW foreign table (e.g. bale_db_raw_bale)
+    // rather than the short-name compatibility view (raw_bale).
     const appRows = await exec(
       `SELECT DISTINCT "db_name", "raw_table_name" FROM "app_identifier"
        WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`
     ) as { db_name: string; raw_table_name: string }[]
     for (const r of appRows) {
       const dateCol = r.raw_table_name === 'openaccount_syslog' ? 'log_dt' : 'transaction_date'
+      // Resolve the correct DELETE target: prefixed foreign table for PostgreSQL.
+      const resolvedTableName = fdwLocalRelationName(r.db_name, r.raw_table_name)
+      // Remove stale row with old logical name if a corrected row doesn't exist yet.
+      if (resolvedTableName !== r.raw_table_name) {
+        await exec(
+          `DELETE FROM "raw_table_housekeeping" WHERE "db_name"=$1 AND "table_name"=$2`,
+          [r.db_name, r.raw_table_name]
+        )
+      }
       await exec(
         `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column")
          VALUES ($1,$2,$3)
          ON CONFLICT ("db_name","table_name") DO NOTHING`,
-        [r.db_name, r.raw_table_name, dateCol]
+        [r.db_name, resolvedTableName, dateCol]
       )
     }
     // FDW source tables – ZTRANS0P uses TRXMDT integer (1YYMMDD); ZRSPCD0P is a reference table with no date.
