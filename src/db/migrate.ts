@@ -9,7 +9,7 @@
  *   4. Performance idx    – additional composite indexes
  *   5. Stored procedures  – sp_process_*_daily (PostgreSQL functions)
  *   6. Cron setup         – pg_cron (PostgreSQL only)
- *   7. Seeds              – default app identifiers + superadmin user(s)
+ *   7. Seeds              – superadmin user(s) only (app/FDW/housekeeping data is not seeded here)
  *
  * Usage:
  *   npx tsx src/db/migrate.ts [--schema-only] [--procedures-only] [--cron-only] [--seed-only]
@@ -74,18 +74,6 @@ function getTargetDatabases(): string[] {
   const raw = process.env.TARGET_DATABASES?.trim()
   if (!raw) return ['platform_db', 'platform_db_dev']
   return raw.split(',').map((d) => d.trim()).filter(Boolean)
-}
-
-/** Derive db_name from app_name: lowercase + _db, spaces/special -> underscore */
-function deriveDbName(appName: string): string {
-  const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
-  return `${base || 'unknown'}_db`
-}
-
-/** Derive raw_table_name from app_name: raw_ + same as db_name base */
-function deriveRawTableName(appName: string): string {
-  const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '')
-  return `raw_${base || 'unknown'}`
 }
 
 /**
@@ -230,16 +218,6 @@ async function runCoreSchema() {
       await exec(`ALTER TABLE "app_identifier" ADD COLUMN "retention_days" INTEGER`)
       console.log('  ✅ app_identifier.retention_days added')
     }
-    // Backfill db_name/raw_table_name for existing rows (exclude EDC apps that use fdw_source_table)
-    const rows = await exec(
-      `SELECT id, app_name FROM "app_identifier" WHERE ("db_name" IS NULL OR "raw_table_name" IS NULL) AND "app_name" NOT IN ('EDC Agen', 'EDC Merchant', 'EDC Merchant Ancol')`,
-    )
-    for (const row of rows as { id: number; app_name: string }[]) {
-      const dbName = deriveDbName(row.app_name)
-      const rawTableName = row.app_name === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(row.app_name)
-      await exec('UPDATE "app_identifier" SET "db_name"=$1, "raw_table_name"=$2 WHERE "id"=$3', [dbName, rawTableName, row.id])
-    }
-    if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
   }
   await createIndexSafely('idx_app_name', 'app_identifier', ['app_name'])
 
@@ -611,7 +589,7 @@ async function runFdwSetup() {
     return
   }
 
-  // All FDW connections are managed via fdw_source_table (seeded in Phase 7).
+  // All FDW connections are driven by rows in fdw_source_table (maintain via app / Superadmin).
   // Stable ORDER BY ensures that when two source DBs share the same table_name the
   // first one alphabetically by source_db_name wins the compatibility view.
   const pairs = new Map<string, Set<string>>()
@@ -971,147 +949,7 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
 
 async function runSeeds() {
   console.log('\n🌱 Phase 7: Seeds')
-
-  // Migrate EDC Agent -> EDC Agen (align with procedure name)
-  await exec(`UPDATE "app_identifier" SET "app_name"='EDC Agen', "db_name"='itm_db', "raw_table_name"=NULL WHERE "app_name"='EDC Agent'`)
-
-  // Default app identifiers (with db_name, raw_table_name for cross-db)
-  const defaultApps = ['Bale', 'Bale Bisnis', 'QRIS', 'EDC Merchant', 'EDC Agen', 'Bale Korpora', 'OLOB']
-  for (const appName of defaultApps) {
-    let dbName: string
-    let rawTableName: string | null
-    if (appName === 'EDC Agen' || appName === 'EDC Merchant' || appName === 'EDC Merchant Ancol') {
-      dbName = 'itm_db'
-      rawTableName = null
-    } else if (appName === 'OLOB') {
-      dbName = deriveDbName(appName)
-      rawTableName = 'openaccount_syslog'
-    } else {
-      dbName = deriveDbName(appName)
-      rawTableName = deriveRawTableName(appName)
-    }
-    await exec(
-      `INSERT INTO "app_identifier" ("app_name","db_name","raw_table_name") VALUES ($1,$2,$3)
-       ON CONFLICT ("app_name") DO UPDATE SET "db_name"=COALESCE("app_identifier"."db_name",EXCLUDED."db_name"), "raw_table_name"=COALESCE("app_identifier"."raw_table_name",EXCLUDED."raw_table_name")`,
-      [appName, dbName, rawTableName],
-    )
-  }
-  // Backfill db_name/raw_table_name for any existing rows where NULL (exclude EDC apps using fdw_source_table)
-  const rows = await exec(
-    `SELECT id, app_name FROM "app_identifier" WHERE ("db_name" IS NULL OR "raw_table_name" IS NULL) AND "app_name" NOT IN ('EDC Agen', 'EDC Merchant', 'EDC Merchant Ancol')`,
-  )
-  for (const row of rows as { id: number; app_name: string }[]) {
-    const dbName = deriveDbName(row.app_name)
-    const rawTableName = row.app_name === 'OLOB' ? 'openaccount_syslog' : deriveRawTableName(row.app_name)
-    await exec('UPDATE "app_identifier" SET "db_name"=$1, "raw_table_name"=$2 WHERE "id"=$3', [dbName, rawTableName, row.id])
-  }
-  if (rows.length > 0) console.log(`  ✅ Backfilled db_name/raw_table_name for ${rows.length} app(s)`)
-  console.log(`  ✅ ${defaultApps.length} default app identifiers seeded`)
-
-  // Seed fdw_source_table with all FDW connections:
-  //   1. app_identifier-derived (bale_db, bale_bisnis_db, etc.)
-  //   2. shared external tables (itm_db)
-  if (await tableExists('fdw_source_table')) {
-    // App-identifier derived connections
-    const appFdwRows = await exec(
-      `SELECT DISTINCT "db_name", "raw_table_name" FROM "app_identifier"
-       WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`,
-    ) as { db_name: string; raw_table_name: string }[]
-    for (const r of appFdwRows) {
-      await exec(
-        `INSERT INTO "fdw_source_table" ("source_db_name","table_name") VALUES ($1,$2)
-         ON CONFLICT ("source_db_name","table_name") DO NOTHING`,
-        [r.db_name, r.raw_table_name],
-      )
-    }
-    if (appFdwRows.length > 0) console.log(`  ✅ fdw_source_table seeded with ${appFdwRows.length} app connection(s)`)
-
-    // Shared external tables (itm_db for EDC apps)
-    const fdwEntries = [
-      ['itm_db', 'ASID160448_ZTRANS0P'],
-      ['itm_db', 'ASID160448_ZRSPCD0P'],
-    ] as [string, string][]
-    for (const [sourceDb, tableName] of fdwEntries) {
-      await exec(
-        `INSERT INTO "fdw_source_table" ("source_db_name","table_name") VALUES ($1,$2)
-         ON CONFLICT ("source_db_name","table_name") DO NOTHING`,
-        [sourceDb, tableName],
-      )
-    }
-    console.log('  ✅ fdw_source_table seeded (itm_db)')
-  }
-
-  // Seed raw_table_housekeeping from app_identifier (deduplicated by db_name+table_name)
-  if (await tableExists('raw_table_housekeeping')) {
-    // Non-EDC apps with a dedicated raw table.
-    // For PostgreSQL, DELETE must target the prefixed FDW foreign table (e.g. bale_db_raw_bale)
-    // rather than the short-name compatibility view (raw_bale).
-    const appRows = await exec(
-      `SELECT DISTINCT "db_name", "raw_table_name" FROM "app_identifier"
-       WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`
-    ) as { db_name: string; raw_table_name: string }[]
-    for (const r of appRows) {
-      // Resolve the correct DELETE target: prefixed foreign table for PostgreSQL.
-      const resolvedTableName = fdwLocalRelationName(r.db_name, r.raw_table_name)
-      // Remove stale row with old logical name if a corrected row doesn't exist yet.
-      if (resolvedTableName !== r.raw_table_name) {
-        await exec(
-          `DELETE FROM "raw_table_housekeeping" WHERE "db_name"=$1 AND "table_name"=$2`,
-          [r.db_name, r.raw_table_name]
-        )
-      }
-      // date_column left unset — superadmin sets the real column per schema (no wrong default).
-      await exec(
-        `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","notes")
-         VALUES ($1,$2,NULL,$3)
-         ON CONFLICT ("db_name","table_name") DO NOTHING`,
-        [r.db_name, resolvedTableName, 'Set date column in Superadmin'],
-      )
-    }
-    // FDW source tables – ZTRANS0P uses TRXMDT integer (1YYMMDD); ZRSPCD0P is a reference table with no date.
-    // table_name must be the relation on platform_db that sp_run_raw_housekeeping will DELETE from.
-    // After A+A2 FDW setup this is the compatibility view (short remote name) when the view was
-    // created, or the prefixed foreign table name when the short name was claimed by another source DB.
-    if (await tableExists('fdw_source_table')) {
-      const fdwRows = await exec(
-        `SELECT "source_db_name", "table_name" FROM "fdw_source_table"`,
-      ) as { source_db_name: string; table_name: string }[]
-      for (const r of fdwRows) {
-        // Resolve the actual platform_db relation for this FDW table.
-        const localFtName = fdwLocalRelationName(r.source_db_name, r.table_name)
-        const viewCheck = await exec(
-          `SELECT 1 FROM information_schema.views WHERE table_schema = 'public' AND table_name = $1`,
-          [r.table_name],
-        ) as unknown[]
-        const platformTableName = viewCheck.length > 0 ? r.table_name : localFtName
-        // Remove any stale short-name row left from a prior run that pre-dates the collision.
-        if (platformTableName !== r.table_name) {
-          await exec(
-            `DELETE FROM "raw_table_housekeeping" WHERE "db_name"=$1 AND "table_name"=$2`,
-            [r.source_db_name, r.table_name],
-          )
-        }
-        // Transaction table: TRXMDT integer date in 1YYMMDD format – housekeeping supported
-        if (r.table_name.includes('ZTRANS0P')) {
-          await exec(
-            `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","date_column_type")
-             VALUES ($1,$2,'TRXMDT','int_1yymmdd')
-             ON CONFLICT ("db_name","table_name") DO UPDATE SET "date_column"='TRXMDT', "date_column_type"='int_1yymmdd'`,
-            [r.source_db_name, platformTableName],
-          )
-        } else {
-          // Response-code reference tables: no date column, skip housekeeping
-          await exec(
-            `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","notes")
-             VALUES ($1,$2,NULL,'Reference table – no date column, housekeeping not applicable')
-             ON CONFLICT ("db_name","table_name") DO NOTHING`,
-            [r.source_db_name, platformTableName],
-          )
-        }
-      }
-    }
-    console.log('  ✅ raw_table_housekeeping seeded')
-  }
+  console.log('  ℹ️  Skipping app_identifier, fdw_source_table, and raw_table_housekeeping seeds (use existing DB data / Superadmin UI).')
 
   // Superadmin users
   const usernames = (process.env.DEFAULT_SU_USERNAME ?? '').split(',').map((s) => s.trim()).filter(Boolean)
