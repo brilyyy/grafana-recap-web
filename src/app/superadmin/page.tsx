@@ -117,6 +117,19 @@ export default function SuperadminPage() {
 
   // Housekeeping state
   const [editingRetention, setEditingRetention] = useState<{ id: number; value: string } | null>(null)
+  const [editingDateConfig, setEditingDateConfig] = useState<{
+    id: number
+    date_column: string
+    date_column_type: 'timestamp' | 'int_1yymmdd'
+  } | null>(null)
+  const [newHkForm, setNewHkForm] = useState({
+    db_name: '',
+    table_name: '',
+    date_column: '',
+    date_column_type: 'timestamp' as 'timestamp' | 'int_1yymmdd',
+    retention_days: '',
+    notes: '',
+  })
   const [housekeepingRunning, setHousekeepingRunning] = useState<{ [id: number]: boolean }>({})
   const [housekeepingMessages, setHousekeepingMessages] = useState<{ [id: number]: { type: 'success' | 'error'; text: string } }>({})
 
@@ -127,7 +140,9 @@ export default function SuperadminPage() {
   const [newFdwForm, setNewFdwForm] = useState({ source_db_name: '', table_name: '', schema_name: 'public' })
   const { data: housekeepingData, refetch: refetchHousekeeping, isLoading: housekeepingLoading } = trpc.housekeeping.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
   const { data: housekeepingScheduleData } = trpc.housekeeping.getSchedule.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
-  const updateRetentionMutation = trpc.housekeeping.updateRetention.useMutation({ onSuccess: () => refetchHousekeeping() })
+  const updateConfigMutation = trpc.housekeeping.updateConfig.useMutation({ onSuccess: () => refetchHousekeeping() })
+  const upsertHousekeepingMutation = trpc.housekeeping.upsertRow.useMutation({ onSuccess: () => { refetchHousekeeping(); setNewHkForm({ db_name: '', table_name: '', date_column: '', date_column_type: 'timestamp', retention_days: '', notes: '' }) } })
+  const deleteHousekeepingMutation = trpc.housekeeping.deleteRow.useMutation({ onSuccess: () => refetchHousekeeping() })
   const runHousekeepingMutation = trpc.housekeeping.run.useMutation()
 
   useEffect(() => {
@@ -1601,9 +1616,78 @@ export default function SuperadminPage() {
                   </code>
                 </p>
                 <p className="text-indigo-300/80 text-xs">
-                  Cron jobs for each applicable table are registered during migration (<code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>). Retention day changes take effect on the next scheduled run automatically — no re-migration needed. To change the schedule, update <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in your <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
+                  One job <code className="bg-indigo-500/20 px-1 rounded">housekeeping-all</code> runs <code className="bg-indigo-500/20 px-1 rounded">sp_run_all_raw_housekeeping()</code> on the platform DB. New rows you add below are included on the next run — no app redeploy. Register or refresh that job with <code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>. To change the schedule, set <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
                 </p>
               </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 space-y-3">
+              <h4 className="text-sm font-semibold text-white">Add raw table</h4>
+              <p className="text-xs text-white/60">
+                Use the platform relation name (prefixed FDW foreign table when applicable, e.g. <code className="bg-white/10 px-1 rounded">bale_db_raw_bale</code>), not only the short view name.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <input
+                  placeholder="db_name"
+                  value={newHkForm.db_name}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, db_name: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm font-mono"
+                />
+                <input
+                  placeholder="table_name"
+                  value={newHkForm.table_name}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, table_name: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm font-mono"
+                />
+                <input
+                  placeholder="date_column (optional)"
+                  value={newHkForm.date_column}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, date_column: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm font-mono"
+                />
+                <select
+                  value={newHkForm.date_column_type}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm"
+                  style={{ colorScheme: 'dark' }}
+                >
+                  <option value="timestamp" className="bg-gray-800">timestamp / date</option>
+                  <option value="int_1yymmdd" className="bg-gray-800">integer 1YYMMDD (e.g. TRXMDT)</option>
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="retention days (optional)"
+                  value={newHkForm.retention_days}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, retention_days: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm"
+                />
+                <input
+                  placeholder="notes (optional)"
+                  value={newHkForm.notes}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, notes: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm sm:col-span-2"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newHkForm.db_name.trim() || !newHkForm.table_name.trim()) return
+                  const rd = newHkForm.retention_days.trim() ? parseInt(newHkForm.retention_days, 10) : null
+                  upsertHousekeepingMutation.mutate({
+                    db_name: newHkForm.db_name.trim(),
+                    table_name: newHkForm.table_name.trim(),
+                    date_column: newHkForm.date_column.trim() === '' ? null : newHkForm.date_column.trim(),
+                    date_column_type: newHkForm.date_column_type,
+                    retention_days: rd !== null && !Number.isNaN(rd) && rd > 0 ? rd : null,
+                    notes: newHkForm.notes.trim() === '' ? null : newHkForm.notes.trim(),
+                  })
+                }}
+                disabled={upsertHousekeepingMutation.isPending || !newHkForm.db_name.trim() || !newHkForm.table_name.trim()}
+                className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 text-white rounded text-sm disabled:opacity-50"
+              >
+                {upsertHousekeepingMutation.isPending ? 'Saving…' : 'Save row'}
+              </button>
             </div>
 
             <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
@@ -1632,6 +1716,7 @@ export default function SuperadminPage() {
                         notes: string | null
                       }) => {
                         const canRun = !!row.date_column && !!row.retention_days
+                        const isRefNoDate = !row.date_column && (row.notes?.toLowerCase().includes('reference') ?? false)
                         return (
                         <tr key={row.id} className={`hover:bg-white/5 ${!row.date_column ? 'opacity-70' : ''}`}>
                           <td className="px-4 py-3 text-sm text-white/80 font-mono">{row.db_name}</td>
@@ -1639,24 +1724,94 @@ export default function SuperadminPage() {
 
                           {/* Date column cell */}
                           <td className="px-4 py-3 text-sm">
-                            {row.date_column ? (
-                              <div className="space-y-0.5">
-                                <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-blue-300">{row.date_column}</code>
+                            {editingDateConfig?.id === row.id ? (
+                              <div className="flex flex-col gap-2 max-w-[220px]">
+                                <input
+                                  value={editingDateConfig.date_column}
+                                  onChange={(e) => setEditingDateConfig((p) => p ? { ...p, date_column: e.target.value } : null)}
+                                  className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono"
+                                  placeholder="column_name"
+                                />
+                                <select
+                                  value={editingDateConfig.date_column_type}
+                                  onChange={(e) => setEditingDateConfig((p) => p ? { ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' } : null)}
+                                  className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
+                                  style={{ colorScheme: 'dark' }}
+                                >
+                                  <option value="timestamp" className="bg-gray-800">timestamp / date</option>
+                                  <option value="int_1yymmdd" className="bg-gray-800">integer 1YYMMDD</option>
+                                </select>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const col = editingDateConfig.date_column.trim()
+                                      if (!col) return
+                                      updateConfigMutation.mutate(
+                                        {
+                                          id: row.id,
+                                          date_column: col,
+                                          date_column_type: editingDateConfig.date_column_type,
+                                        },
+                                        { onSuccess: () => setEditingDateConfig(null) },
+                                      )
+                                    }}
+                                    disabled={updateConfigMutation.isPending || !editingDateConfig.date_column.trim()}
+                                    className="px-2 py-0.5 bg-green-600/80 text-white rounded text-xs"
+                                  >
+                                    Save
+                                  </button>
+                                  <button type="button" onClick={() => setEditingDateConfig(null)} className="px-2 py-0.5 bg-white/20 text-white rounded text-xs">Cancel</button>
+                                </div>
+                              </div>
+                            ) : row.date_column ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-blue-300">{row.date_column}</code>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingDateConfig({
+                                      id: row.id,
+                                      date_column: row.date_column ?? '',
+                                      date_column_type: row.date_column_type === 'int_1yymmdd' ? 'int_1yymmdd' : 'timestamp',
+                                    })}
+                                    className="px-1.5 py-0.5 bg-blue-600/50 text-white rounded text-[10px]"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
                                 {row.date_column_type === 'int_1yymmdd' && (
                                   <p className="text-xs text-white/40">integer 1YYMMDD format</p>
                                 )}
                               </div>
-                            ) : (
+                            ) : isRefNoDate ? (
                               <div className="space-y-0.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded text-xs" title={row.notes ?? ''}>
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                  </svg>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/10 text-white/60 rounded text-xs" title={row.notes ?? ''}>
                                   Not applicable
                                 </span>
                                 {row.notes && (
                                   <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
                                 )}
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded text-xs">
+                                  Pending setup
+                                </span>
+                                {row.notes && (
+                                  <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingDateConfig({
+                                    id: row.id,
+                                    date_column: '',
+                                    date_column_type: 'timestamp',
+                                  })}
+                                  className="text-xs text-blue-300 hover:underline"
+                                >
+                                  Set date column
+                                </button>
                               </div>
                             )}
                           </td>
@@ -1677,16 +1832,16 @@ export default function SuperadminPage() {
                                   onClick={() => {
                                     const days = parseInt(editingRetention.value)
                                     if (!isNaN(days) && days > 0) {
-                                      updateRetentionMutation.mutate(
+                                      updateConfigMutation.mutate(
                                         { id: row.id, retention_days: days },
                                         { onSuccess: () => setEditingRetention(null) }
                                       )
                                     }
                                   }}
-                                  disabled={updateRetentionMutation.isPending}
+                                  disabled={updateConfigMutation.isPending}
                                   className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
                                 >
-                                  {updateRetentionMutation.isPending ? 'Saving...' : 'Save'}
+                                  {updateConfigMutation.isPending ? 'Saving...' : 'Save'}
                                 </button>
                                 <button
                                   onClick={() => setEditingRetention(null)}
@@ -1697,7 +1852,7 @@ export default function SuperadminPage() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-2">
-                                {row.date_column ? (
+                                {row.date_column || !isRefNoDate ? (
                                   <>
                                     <span className={row.retention_days ? 'text-white' : 'text-white/40 italic'}>
                                       {row.retention_days ? `${row.retention_days} days` : 'Not set'}
@@ -1705,6 +1860,7 @@ export default function SuperadminPage() {
                                     <button
                                       onClick={() => setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })}
                                       className="px-2 py-0.5 bg-blue-600/60 hover:bg-blue-500 text-white rounded text-xs"
+                                      disabled={isRefNoDate}
                                     >
                                       Edit
                                     </button>
@@ -1734,7 +1890,7 @@ export default function SuperadminPage() {
                                 }}
                                 disabled={!canRun || housekeepingRunning[row.id]}
                                 className="px-3 py-1 bg-orange-600/80 hover:bg-orange-500 text-white rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                                title={!row.date_column ? 'Date column not supported' : !row.retention_days ? 'Set retention days first' : 'Run housekeeping'}
+                                title={!row.date_column ? 'Configure date column and retention first' : !row.retention_days ? 'Set retention days first' : 'Run housekeeping'}
                               >
                                 {housekeepingRunning[row.id] ? (
                                   <>
@@ -1750,6 +1906,17 @@ export default function SuperadminPage() {
                                   </>
                                 )}
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!window.confirm(`Remove housekeeping config for ${row.db_name}.${row.table_name}?`)) return
+                                  deleteHousekeepingMutation.mutate({ id: row.id })
+                                }}
+                                disabled={deleteHousekeepingMutation.isPending}
+                                className="px-3 py-1 bg-red-900/50 hover:bg-red-800/60 text-red-200 rounded text-xs disabled:opacity-50"
+                              >
+                                Delete row
+                              </button>
                               {housekeepingMessages[row.id] && (
                                 <p className={`text-xs ${housekeepingMessages[row.id].type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
                                   {housekeepingMessages[row.id].text}
@@ -1763,7 +1930,7 @@ export default function SuperadminPage() {
                     </tbody>
                   </table>
                   {(housekeepingData?.data?.length ?? 0) === 0 && (
-                    <div className="p-8 text-center text-white/50">No raw tables configured. Run migration to populate.</div>
+                    <div className="p-8 text-center text-white/50">No raw tables configured. Run migration to seed from apps, or add a row above.</div>
                   )}
                 </div>
               )}

@@ -815,7 +815,31 @@ async function runStoredProcedures() {
         END;
         $$ LANGUAGE plpgsql;
       `)
-      console.log('  ✅ sp_run_raw_housekeeping created/updated')
+      await exec(`
+        CREATE OR REPLACE FUNCTION public.sp_run_all_raw_housekeeping()
+        RETURNS INTEGER AS $$
+        DECLARE
+          r         RECORD;
+          v_n       INTEGER;
+          v_total   INTEGER := 0;
+        BEGIN
+          FOR r IN
+            SELECT id FROM raw_table_housekeeping
+            WHERE date_column IS NOT NULL AND retention_days IS NOT NULL
+            ORDER BY id
+          LOOP
+            BEGIN
+              v_n := public.sp_run_raw_housekeeping(r.id);
+              v_total := v_total + COALESCE(v_n, 0);
+            EXCEPTION WHEN OTHERS THEN
+              RAISE WARNING 'sp_run_all_raw_housekeeping: id=% failed: %', r.id, SQLERRM;
+            END;
+          END LOOP;
+          RETURN v_total;
+        END;
+        $$ LANGUAGE plpgsql;
+      `)
+      console.log('  ✅ sp_run_raw_housekeeping + sp_run_all_raw_housekeeping created/updated')
     } catch (e: unknown) {
       console.warn('  ⚠️  sp_run_raw_housekeeping failed:', (e as Error).message)
     }
@@ -891,41 +915,47 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
       }
     }
 
-    // Housekeeping cron jobs – one per applicable raw_table_housekeeping row
-    // These run in DB_NAME (platform DB) since sp_run_raw_housekeeping lives there
+    // Housekeeping: single pg_cron job calling sp_run_all_raw_housekeeping (picks up new rows without re-migrate)
     const housekeepingSchedule = process.env.HOUSEKEEPING_SCHEDULE ?? '0 2 * * *'
-    console.log(`  Registering housekeeping pg_cron jobs (schedule: ${housekeepingSchedule})…`)
+    console.log(`  Registering housekeeping pg_cron job (schedule: ${housekeepingSchedule})…`)
     if (await tableExists('raw_table_housekeeping')) {
-      const hkRows = await exec(
-        `SELECT id, table_name FROM raw_table_housekeeping WHERE date_column IS NOT NULL ORDER BY id`,
-      ) as { id: number; table_name: string }[]
-
-      for (const hkRow of hkRows) {
-        const jobName = `housekeeping-${hkRow.id}-${hkRow.table_name.toLowerCase()}`
-        const hkSql = `SELECT public.sp_run_raw_housekeeping(${hkRow.id})`
-        try {
-          try { await exec(`SELECT cron.unschedule('${esc(jobName)}')`) } catch { /* ok – job may not exist yet */ }
-          await exec(`
-            SELECT cron.schedule_in_database(
-              '${esc(jobName)}',
-              '${esc(housekeepingSchedule)}',
-              $$${hkSql}$$,
-              '${esc(DB_NAME)}',
-              NULL,
-              true
-            )
-          `)
-          await exec(`
-            UPDATE cron.job
-            SET nodename = '${esc(DB_HOST)}', nodeport = ${DB_PORT}
-            WHERE jobname = '${esc(jobName)}'
-          `)
-          console.log(`  ✅ housekeeping pg_cron job '${jobName}' @ ${housekeepingSchedule}`)
-        } catch (e: unknown) {
-          console.warn(`  ⚠️  housekeeping pg_cron job '${jobName}' failed:`, (e as Error).message)
+      try {
+        const legacyJobs = await exec(
+          `SELECT jobname FROM cron.job WHERE jobname ~ '^housekeeping-[0-9]+-'`,
+        ) as { jobname: string }[]
+        for (const { jobname } of legacyJobs) {
+          try {
+            await exec(`SELECT cron.unschedule('${esc(jobname)}')`)
+            console.log(`  ⏭  unscheduled legacy housekeeping job '${jobname}'`)
+          } catch { /* ok */ }
         }
+      } catch {
+        /* cron.job may be unavailable */
       }
-      console.log(`  ✅ ${hkRows.length} housekeeping cron job(s) registered`)
+
+      const jobName = 'housekeeping-all'
+      const hkSql = 'SELECT public.sp_run_all_raw_housekeeping()'
+      try {
+        try { await exec(`SELECT cron.unschedule('${esc(jobName)}')`) } catch { /* ok */ }
+        await exec(`
+          SELECT cron.schedule_in_database(
+            '${esc(jobName)}',
+            '${esc(housekeepingSchedule)}',
+            $$${hkSql}$$,
+            '${esc(DB_NAME)}',
+            NULL,
+            true
+          )
+        `)
+        await exec(`
+          UPDATE cron.job
+          SET nodename = '${esc(DB_HOST)}', nodeport = ${DB_PORT}
+          WHERE jobname = '${esc(jobName)}'
+        `)
+        console.log(`  ✅ housekeeping pg_cron job '${jobName}' @ ${housekeepingSchedule}`)
+      } catch (e: unknown) {
+        console.warn(`  ⚠️  housekeeping pg_cron job '${jobName}' failed:`, (e as Error).message)
+      }
     }
 
     return
@@ -1021,7 +1051,6 @@ async function runSeeds() {
        WHERE "db_name" IS NOT NULL AND "raw_table_name" IS NOT NULL`
     ) as { db_name: string; raw_table_name: string }[]
     for (const r of appRows) {
-      const dateCol = r.raw_table_name === 'openaccount_syslog' ? 'log_dt' : 'transaction_date'
       // Resolve the correct DELETE target: prefixed foreign table for PostgreSQL.
       const resolvedTableName = fdwLocalRelationName(r.db_name, r.raw_table_name)
       // Remove stale row with old logical name if a corrected row doesn't exist yet.
@@ -1031,11 +1060,12 @@ async function runSeeds() {
           [r.db_name, r.raw_table_name]
         )
       }
+      // date_column left unset — superadmin sets the real column per schema (no wrong default).
       await exec(
-        `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column")
-         VALUES ($1,$2,$3)
+        `INSERT INTO "raw_table_housekeeping" ("db_name","table_name","date_column","notes")
+         VALUES ($1,$2,NULL,$3)
          ON CONFLICT ("db_name","table_name") DO NOTHING`,
-        [r.db_name, resolvedTableName, dateCol]
+        [r.db_name, resolvedTableName, 'Set date column in Superadmin'],
       )
     }
     // FDW source tables – ZTRANS0P uses TRXMDT integer (1YYMMDD); ZRSPCD0P is a reference table with no date.

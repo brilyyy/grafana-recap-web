@@ -4,9 +4,28 @@ import { router, superAdminProcedure } from '../init'
 import { pool } from '@/lib/db'
 import { env } from '@/env'
 import { logAuditEvent } from '@/lib/audit'
-import { resolvePgHousekeepingRelation } from '@/lib/fdw'
 
 const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+/** Safe PostgreSQL/MySQL identifier for column names (matches format %I usage in DB functions). */
+const sqlIdentifierSchema = z
+  .string()
+  .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'Invalid column name')
+  .max(255)
+
+const dateColumnTypeSchema = z.enum(['timestamp', 'int_1yymmdd'])
+
+const dbNameSchema = z
+  .string()
+  .min(1)
+  .max(255)
+  .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid database name')
+
+const tableNameSchema = z
+  .string()
+  .min(1)
+  .max(255)
+  .regex(/^[a-zA-Z0-9_]+$/, 'Invalid table name')
 
 export const housekeepingRouter = router({
   getSchedule: superAdminProcedure.query(() => {
@@ -31,6 +50,73 @@ export const housekeepingRouter = router({
     }[] }
   }),
 
+  updateConfig: superAdminProcedure
+    .input(z.object({
+      id: z.number().int(),
+      retention_days: z.number().int().min(1).nullable().optional(),
+      date_column: z.union([sqlIdentifierSchema, z.literal('')]).nullable().optional(),
+      date_column_type: dateColumnTypeSchema.nullable().optional(),
+      notes: z.string().max(500).nullable().optional(),
+    }).refine(
+      (i) =>
+        i.retention_days !== undefined
+        || i.date_column !== undefined
+        || i.date_column_type !== undefined
+        || i.notes !== undefined,
+      { message: 'At least one field to update is required' },
+    ))
+    .mutation(async ({ input, ctx }) => {
+      const [rows]: any = await pool.execute(
+        'SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ?',
+        [input.id]
+      )
+      if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+
+      const sets: string[] = []
+      const vals: unknown[] = []
+
+      if (input.retention_days !== undefined) {
+        sets.push('retention_days = ?')
+        vals.push(input.retention_days)
+      }
+      if (input.date_column !== undefined) {
+        const col = input.date_column === '' ? null : input.date_column
+        sets.push('date_column = ?')
+        vals.push(col)
+      }
+      if (input.date_column_type !== undefined) {
+        sets.push('date_column_type = ?')
+        vals.push(input.date_column_type)
+      }
+      if (input.notes !== undefined) {
+        sets.push('notes = ?')
+        vals.push(input.notes)
+      }
+
+      vals.push(input.id)
+      await pool.execute(
+        `UPDATE raw_table_housekeeping SET ${sets.join(', ')} WHERE id = ?`,
+        vals
+      )
+
+      const row = rows[0]
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'HOUSEKEEPING_CONFIG_UPDATED',
+        'raw_table_housekeeping',
+        input.id.toString(),
+        `db=${row.db_name}, table=${row.table_name}, updates=${JSON.stringify({
+          retention_days: input.retention_days,
+          date_column: input.date_column,
+          date_column_type: input.date_column_type,
+          notes: input.notes,
+        })}`
+      )
+      return { success: true, message: 'Housekeeping config updated' }
+    }),
+
+  /** @deprecated Prefer updateConfig — kept for backward compatibility */
   updateRetention: superAdminProcedure
     .input(z.object({
       id: z.number().int(),
@@ -56,6 +142,83 @@ export const housekeepingRouter = router({
         `db=${row.db_name}, table=${row.table_name}, retention_days=${input.retention_days ?? 'NULL'}`
       )
       return { success: true, message: 'Retention updated' }
+    }),
+
+  upsertRow: superAdminProcedure
+    .input(z.object({
+      db_name: dbNameSchema,
+      table_name: tableNameSchema,
+      date_column: z.union([sqlIdentifierSchema, z.literal('')]).nullable().optional(),
+      date_column_type: dateColumnTypeSchema.optional(),
+      retention_days: z.number().int().min(1).nullable().optional(),
+      notes: z.string().max(500).nullable().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const dateCol = input.date_column === undefined ? null : (input.date_column === '' ? null : input.date_column)
+      const dateColType = input.date_column_type ?? 'timestamp'
+      const notes = input.notes ?? null
+      const retention = input.retention_days ?? null
+
+      if (isPostgres) {
+        await pool.execute(
+          `INSERT INTO raw_table_housekeeping ("db_name","table_name","date_column","date_column_type","retention_days","notes")
+           VALUES (?,?,?,?,?,?)
+           ON CONFLICT ("db_name","table_name") DO UPDATE SET
+             "date_column" = EXCLUDED."date_column",
+             "date_column_type" = EXCLUDED."date_column_type",
+             "retention_days" = EXCLUDED."retention_days",
+             "notes" = EXCLUDED."notes"`,
+          [input.db_name, input.table_name, dateCol, dateColType, retention, notes]
+        )
+      } else {
+        await pool.execute(
+          `INSERT INTO raw_table_housekeeping (\`db_name\`,\`table_name\`,\`date_column\`,\`date_column_type\`,\`retention_days\`,\`notes\`)
+           VALUES (?,?,?,?,?,?)
+           ON DUPLICATE KEY UPDATE
+             \`date_column\` = VALUES(\`date_column\`),
+             \`date_column_type\` = VALUES(\`date_column_type\`),
+             \`retention_days\` = VALUES(\`retention_days\`),
+             \`notes\` = VALUES(\`notes\`)`,
+          [input.db_name, input.table_name, dateCol, dateColType, retention, notes]
+        )
+      }
+
+      const [inserted]: any = await pool.execute(
+        'SELECT id FROM raw_table_housekeeping WHERE db_name = ? AND table_name = ?',
+        [input.db_name, input.table_name]
+      )
+      const id = inserted[0]?.id
+
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'HOUSEKEEPING_ROW_UPSERTED',
+        'raw_table_housekeeping',
+        id?.toString() ?? `${input.db_name}.${input.table_name}`,
+        `db=${input.db_name}, table=${input.table_name}`
+      )
+      return { success: true, message: 'Housekeeping row saved', id }
+    }),
+
+  deleteRow: superAdminProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input, ctx }) => {
+      const [rows]: any = await pool.execute(
+        'SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ?',
+        [input.id]
+      )
+      if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      await pool.execute('DELETE FROM raw_table_housekeeping WHERE id = ?', [input.id])
+      const row = rows[0]
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'HOUSEKEEPING_ROW_DELETED',
+        'raw_table_housekeeping',
+        input.id.toString(),
+        `db=${row.db_name}, table=${row.table_name}`
+      )
+      return { success: true, message: 'Housekeeping row removed' }
     }),
 
   run: superAdminProcedure
@@ -85,27 +248,18 @@ export const housekeepingRouter = router({
         })
       }
 
-      const n = row.retention_days
       let deletedCount = 0
 
-      // For PostgreSQL, DELETE must target the prefixed foreign table (e.g. bale_db_raw_bale),
-      // not the short-name view (raw_bale), which postgres_fdw does not allow deleting through.
-      const pgRelation = isPostgres ? resolvePgHousekeepingRelation(row.db_name, row.table_name) : row.table_name
-
-      if (row.date_column_type === 'int_1yymmdd') {
-        // TRXMDT integer format: 1YYMMDD (e.g. 1250311 = 2025-03-11)
-        if (isPostgres) {
-          const [, meta]: any = await pool.execute(
-            `DELETE FROM "${pgRelation}"
-             WHERE "${row.date_column}" < (
-               1000000
-               + (EXTRACT(YEAR FROM (CURRENT_DATE - INTERVAL '${n} days'))::int % 100) * 10000
-               + EXTRACT(MONTH FROM (CURRENT_DATE - INTERVAL '${n} days'))::int * 100
-               + EXTRACT(DAY FROM (CURRENT_DATE - INTERVAL '${n} days'))::int
-             )`
-          )
-          deletedCount = meta?.rowCount ?? 0
-        } else {
+      if (isPostgres) {
+        const [out]: any = await pool.execute(
+          'SELECT public.sp_run_raw_housekeeping(?) AS deleted',
+          [input.id]
+        )
+        const first = out[0] as { deleted?: number } | undefined
+        deletedCount = Number(first?.deleted ?? 0)
+      } else {
+        const n = row.retention_days
+        if (row.date_column_type === 'int_1yymmdd') {
           const [result]: any = await pool.execute(
             `DELETE FROM \`${row.db_name}\`.\`${row.table_name}\`
              WHERE \`${row.date_column}\` < (
@@ -116,15 +270,6 @@ export const housekeepingRouter = router({
              )`
           )
           deletedCount = result?.affectedRows ?? 0
-        }
-      } else {
-        // Standard timestamp/date column
-        if (isPostgres) {
-          const [, meta]: any = await pool.execute(
-            `DELETE FROM "${pgRelation}"
-             WHERE "${row.date_column}" < (CURRENT_DATE - INTERVAL '${n} days')`
-          )
-          deletedCount = meta?.rowCount ?? 0
         } else {
           const [result]: any = await pool.execute(
             `DELETE FROM \`${row.db_name}\`.\`${row.table_name}\`
