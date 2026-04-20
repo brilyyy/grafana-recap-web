@@ -18,15 +18,16 @@ DECLARE
     'SaveCardInfo', 'RegisterEChannel', 'ChooseKYCMethod', 'VerifyLivenessResult'
   ];
   v_tanggal_transaksi DATE;
-  v_status_code VARCHAR(50);
-  v_jumlah INT;
+  v_jenis_transaksi VARCHAR(255);
   v_rc VARCHAR(50);
   v_rc_description VARCHAR(500);
+  v_total_transaksi INT;
   v_bulan VARCHAR(20);
   v_tahun INT;
   v_error_type VARCHAR(255);
   v_normalized_rc VARCHAR(50);
   v_normalized_rc_desc VARCHAR(500);
+  v_normalized_status VARCHAR(255);
   v_is_rc_empty BOOLEAN;
   v_is_success BOOLEAN;
   v_query TEXT;
@@ -75,54 +76,48 @@ BEGIN
       LOOP
         v_records_processed := v_records_processed + 1;
         v_tanggal_transaksi := rec."Tanggal Transaksi";
-        v_status_code := rec.status_code;
-        v_jumlah := rec.jumlah;
-        v_rc := NULLIF(TRIM(v_status_code), '');
-        v_rc_description := v_status_code;
+        v_jenis_transaksi := v_api_name;
+        v_rc := rec.status_code;
+        v_rc_description := rec.status_code;
+        v_total_transaksi := rec.jumlah;
         v_bulan := EXTRACT(MONTH FROM v_tanggal_transaksi)::VARCHAR;
         v_tahun := EXTRACT(YEAR FROM v_tanggal_transaksi);
-
         v_normalized_rc := NULLIF(TRIM(COALESCE(v_rc, '')), '');
         v_normalized_rc := NULLIF(v_normalized_rc, '-');
         v_is_rc_empty := (v_normalized_rc IS NULL OR v_normalized_rc = '' OR v_normalized_rc = '-');
         v_normalized_rc_desc := LOWER(TRIM(COALESCE(v_rc_description, '')));
-        v_is_success := v_normalized_rc_desc IN ('sukses', 'success', 'berhasil');
-
+        v_normalized_status := LOWER(TRIM(COALESCE(v_rc, '')));
+        v_is_success := (
+          v_normalized_rc_desc LIKE '%sukses%' OR v_normalized_rc_desc LIKE '%success%' OR v_normalized_rc_desc LIKE '%berhasil%' OR
+          v_normalized_status LIKE '%sukses%' OR v_normalized_status LIKE '%success%' OR v_normalized_status LIKE '%berhasil%'
+        );
         IF v_is_rc_empty AND v_is_success THEN
-          v_normalized_rc := '00';
-          v_is_rc_empty := FALSE;
+          v_normalized_rc := '00'; v_is_rc_empty := FALSE;
         END IF;
-
         v_error_type := NULL;
-        IF NOT v_is_rc_empty AND v_api_name IS NOT NULL THEN
-          SELECT error_type::TEXT INTO v_error_type
+        IF NOT v_is_rc_empty AND v_jenis_transaksi IS NOT NULL THEN
+          SELECT error_type INTO v_error_type
           FROM response_code_dictionary
           WHERE id_app_identifier = v_app_id
-            AND jenis_transaksi = v_api_name
+            AND jenis_transaksi = v_jenis_transaksi
             AND rc = v_normalized_rc
           LIMIT 1;
           IF v_error_type IS NULL THEN
             INSERT INTO unmapped_rc (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
-            VALUES (v_app_id, v_api_name, v_normalized_rc, v_rc_description, NULL, NULL)
+            VALUES (v_app_id, v_jenis_transaksi, v_normalized_rc, v_rc_description, v_rc, NULL)
             ON CONFLICT (id_app_identifier, jenis_transaksi, rc) DO NOTHING;
           END IF;
         END IF;
-
         IF v_is_rc_empty THEN
-          IF v_is_success THEN
-            v_normalized_rc := '00';
-            v_error_type := 'Sukses';
-          ELSE
-            v_error_type := NULL;
-          END IF;
+          IF v_is_success THEN v_normalized_rc := '00'; v_error_type := 'Sukses';
+          ELSE v_error_type := NULL; END IF;
         END IF;
-
         INSERT INTO app_success_rate (
           id_app_identifier, tanggal_transaksi, bulan, tahun, jenis_transaksi, rc, rc_description,
           total_transaksi, total_nominal, total_biaya_admin, status_transaksi, error_type
         ) VALUES (
-          v_app_id, v_tanggal_transaksi, v_bulan, v_tahun, v_api_name, v_normalized_rc, v_rc_description,
-          v_jumlah, 0, 0, NULL, v_error_type::error_type_enum
+          v_app_id, v_tanggal_transaksi, v_bulan, v_tahun, v_jenis_transaksi, v_normalized_rc, v_rc_description,
+          v_total_transaksi, 0, 0, v_rc, v_error_type::error_type_enum
         );
         v_records_inserted := v_records_inserted + 1;
       END LOOP;

@@ -30,6 +30,8 @@ export const env = createEnv({
     EDC_AGEN_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     EDC_MERCHANT_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    CMS_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    BALE_KORPORA_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     HOUSEKEEPING_SCHEDULE: z.string().default('0 2 * * *'),
 
     // Migrations / seeds (used by TypeORM CLI scripts, kept here for documentation)
@@ -67,6 +69,8 @@ export const env = createEnv({
     EDC_AGEN_PROCESSING_SCHEDULE: process.env.EDC_AGEN_PROCESSING_SCHEDULE,
     EDC_MERCHANT_PROCESSING_SCHEDULE: process.env.EDC_MERCHANT_PROCESSING_SCHEDULE,
     EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE: process.env.EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE,
+    CMS_PROCESSING_SCHEDULE: process.env.CMS_PROCESSING_SCHEDULE,
+    BALE_KORPORA_PROCESSING_SCHEDULE: process.env.BALE_KORPORA_PROCESSING_SCHEDULE,
     HOUSEKEEPING_SCHEDULE: process.env.HOUSEKEEPING_SCHEDULE,
 
     TARGET_DATABASES: process.env.TARGET_DATABASES,

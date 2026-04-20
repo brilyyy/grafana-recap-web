@@ -9,8 +9,7 @@
     "migrate:procedures": "tsx src/db/migrate.ts --procedures-only",
     "migrate:cron": "tsx src/db/migrate.ts --cron-only",
     "migrate:seed": "tsx src/db/migrate.ts --seed-only",
-    "migrate:fdw": "tsx src/db/migrate.ts --fdw-only",
-    "copy-procedures": "node scripts/copy-procedures.js"
+    "migrate:fdw": "tsx src/db/migrate.ts --fdw-only"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

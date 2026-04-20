@@ -14,4 +14,6 @@ export const PROCEDURE_APPS: ProcedureApp[] = [
   { appKey: 'edc_agen', procedureName: 'sp_process_edc_agen_daily' },
   { appKey: 'edc_merchant', procedureName: 'sp_process_edc_merchant_daily' },
   { appKey: 'edc_merchant_ancol', procedureName: 'sp_process_edc_merchant_ancol_daily' },
+  { appKey: 'cms', procedureName: 'sp_process_cms_daily' },
+  { appKey: 'bale_korpora', procedureName: 'sp_process_bale_korpora_daily' },
 ]

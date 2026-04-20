@@ -7,7 +7,7 @@ Folder ini berisi script dan dependency untuk menjalankan migration database **d
 - `package.json` – dependency (dotenv, bcryptjs, pg, mysql2, tsx, typescript) dan script migration
 - `tsconfig.json` – konfigurasi TypeScript untuk menjalankan `src/db/migrate.ts`
 - `src/db/migrate.ts` – script migration lengkap (salinan dari project utama)
-- `scripts/success_rate/` – stored procedure SQL (bale, bale_bisnis). **Penting:** Jalankan `npm run copy-procedures` dari folder migration-kit (dengan project utama sebagai parent) untuk menyalin procedure files sebelum deploy.
+- `scripts/success_rate/` – stored procedure SQL per aplikasi (`procedure.mysql.sql` / `procedure.postgres.sql` untuk bale, bale_bisnis, olob, cms, bale_korpora; PostgreSQL-only untuk edc_agen, edc_merchant, edc_merchant_ancol). File ini disalin dari project utama dan di-commit di folder ini; saat procedure diubah di repo utama, salin ulang file yang bersangkutan ke `migration-kit/scripts/success_rate/{app}/` sebelum deploy.
 - `.env.example` – contoh variabel environment yang dibutuhkan
 
 ## Production Deployment (Step-by-Step)
@@ -22,7 +22,7 @@ Copy folder `migration-kit` ke server (misalnya `/app/dashboard-grafana-migratio
 
 Pastikan `src/db/migrate.ts` sama dengan `src/db/migrate.ts` di project utama. Setiap kali migration diubah di repo, salin lagi ke `migration-kit/src/db/migrate.ts`.
 
-**Procedure files:** Jalankan `npm run copy-procedures` dari folder `migration-kit` (dengan project utama sebagai parent directory) untuk menyalin `scripts/success_rate/bale/` dan `scripts/success_rate/bale_bisnis/` dari project utama. Tanpa ini, phase procedures akan gagal.
+**Procedure files:** Pastikan `migration-kit/scripts/success_rate/{app}/procedure.*.sql` sama dengan `scripts/success_rate/{app}/` di project utama. Salin file procedure secara manual (atau lewat diff/merge) bila ada perubahan di repo utama. Tanpa sinkron ini, phase procedures bisa menjalankan SQL yang sudah usang.
 
 ### Step 3: Konfigurasi .env
 
@@ -128,7 +128,7 @@ No `npm install` needed — `node_modules` is already copied.
 
 - Node.js 18+ (atau sesuai yang dipakai project utama)
 - Akses jaringan dari server ke database (MySQL atau PostgreSQL)
-- Variabel environment yang benar (terutama DB_* dan optional DEFAULT_SU_*, TARGET_DATABASES, BALE_PROCESSING_SCHEDULE, BALE_BISNIS_PROCESSING_SCHEDULE)
+- Variabel environment yang benar (terutama DB_* dan optional DEFAULT_SU_*, TARGET_DATABASES, BALE_PROCESSING_SCHEDULE, BALE_BISNIS_PROCESSING_SCHEDULE, CMS_PROCESSING_SCHEDULE, BALE_KORPORA_PROCESSING_SCHEDULE)
 
 ## Cara kerja offline (tanpa internet)
 

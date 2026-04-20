@@ -7,6 +7,8 @@
 let baleProcessingTask: any = null
 let baleBisnisProcessingTask: any = null
 let olobProcessingTask: any = null
+let cmsProcessingTask: any = null
+let baleKorporaProcessingTask: any = null
 
 /**
  * Execute the Bale daily processing stored procedure.
@@ -41,6 +43,44 @@ async function executeBaleBisnisProcessing(): Promise<void> {
   })
   try {
     await pool.query('SELECT public.sp_process_bale_bisnis_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Execute the CMS daily processing stored procedure.
+ */
+async function executeCmsProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_cms_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Execute the Bale Korpora daily processing stored procedure.
+ */
+async function executeBaleKorporaProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_bale_korpora_daily($1::date)', [null])
   } finally {
     await pool.end()
   }
@@ -174,6 +214,46 @@ async function setupProcessingSchedulers(): Promise<void> {
     )
     console.log(`✅ OLOB processing scheduler configured: Schedule '${olobSchedule}' (timezone: ${timezone})`)
   }
+
+  // CMS
+  if (!cmsProcessingTask) {
+    let cmsSchedule = getCronSchedule('CMS_PROCESSING_SCHEDULE')
+    if (!cron.validate(cmsSchedule)) cmsSchedule = '1 0 * * *'
+    cmsProcessingTask = cron.schedule(
+      cmsSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled CMS processing...')
+          await executeCmsProcessing()
+          console.log('✅ Scheduled CMS processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled CMS processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ CMS processing scheduler configured: Schedule '${cmsSchedule}' (timezone: ${timezone})`)
+  }
+
+  // Bale Korpora
+  if (!baleKorporaProcessingTask) {
+    let baleKorporaSchedule = getCronSchedule('BALE_KORPORA_PROCESSING_SCHEDULE')
+    if (!cron.validate(baleKorporaSchedule)) baleKorporaSchedule = '1 0 * * *'
+    baleKorporaProcessingTask = cron.schedule(
+      baleKorporaSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled Bale Korpora processing...')
+          await executeBaleKorporaProcessing()
+          console.log('✅ Scheduled Bale Korpora processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled Bale Korpora processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ Bale Korpora processing scheduler configured: Schedule '${baleKorporaSchedule}' (timezone: ${timezone})`)
+  }
 }
 
 /**
@@ -191,6 +271,14 @@ export function stopScheduler(): void {
   if (olobProcessingTask) {
     olobProcessingTask.stop()
     olobProcessingTask = null
+  }
+  if (cmsProcessingTask) {
+    cmsProcessingTask.stop()
+    cmsProcessingTask = null
+  }
+  if (baleKorporaProcessingTask) {
+    baleKorporaProcessingTask.stop()
+    baleKorporaProcessingTask = null
   }
   console.log('✅ Scheduler stopped')
 }
