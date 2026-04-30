@@ -26,6 +26,8 @@ dotenv.config()
 import bcrypt from 'bcryptjs'
 import { randomUUID, randomBytes, scrypt, createHash } from 'crypto'
 import { runStoredProcedures as runProcedures } from '../../scripts/success_rate/runProcedures'
+import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
+import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
 
 /**
  * Hash a password in BetterAuth's own format: `<hexSalt>:<hexKey>`
@@ -552,6 +554,7 @@ async function runProcessingLogSchema() {
           "records_inserted"  INTEGER DEFAULT 0,
           "records_skipped"   INTEGER DEFAULT 0,
           "error_message"     TEXT,
+          "recap_kind"        VARCHAR(64) NOT NULL DEFAULT 'success_rate_daily',
           "created_at"        TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `)
@@ -562,7 +565,104 @@ async function runProcessingLogSchema() {
   } else {
     console.log('  ⏭  app_processing_log exists')
   }
+
+  if (!(await columnExists('app_processing_log', 'recap_kind'))) {
+    await exec(`
+      ALTER TABLE "app_processing_log"
+      ADD COLUMN "recap_kind" VARCHAR(64) NOT NULL DEFAULT 'success_rate_daily'
+    `)
+    console.log('  ✅ app_processing_log.recap_kind added')
+  }
+  await createIndexSafely('idx_apl_recap_kind_date', 'app_processing_log', ['recap_kind', 'processing_date'])
+
   console.log('  ✅ Phase 3 done')
+}
+
+// ─── Phase 3b: Custom recap output tables ─────────────────────────────────────
+
+async function runRecapModelTables() {
+  console.log('\n📊 Phase 3b: recap model tables')
+
+  if (!(await tableExists('recap_cms_corp_daily'))) {
+    await exec(`
+      CREATE TABLE "recap_cms_corp_daily" (
+        "id"                  SERIAL PRIMARY KEY,
+        "id_app_identifier"   INTEGER NOT NULL REFERENCES "app_identifier"("id") ON DELETE CASCADE,
+        "tanggal_transaksi"   DATE NOT NULL,
+        "corp_id"             VARCHAR(255) NOT NULL,
+        "jenis_transaksi"     VARCHAR(1024) NOT NULL,
+        "rc"                  VARCHAR(255) NOT NULL,
+        "rc_description"      TEXT NOT NULL,
+        "status_transaksi"    VARCHAR(64) NOT NULL,
+        "total_transaksi"     INTEGER DEFAULT 0,
+        "total_nominal"       DECIMAL(20, 2) DEFAULT 0,
+        "created_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
+        "updated_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
+        CONSTRAINT "recap_cms_corp_daily_grain_key" UNIQUE (
+          "id_app_identifier",
+          "tanggal_transaksi",
+          "corp_id",
+          "jenis_transaksi",
+          "rc",
+          "rc_description",
+          "status_transaksi"
+        )
+      )
+    `)
+    await exec(`
+      CREATE TRIGGER "upd_recap_cms_corp_daily_updated_at"
+        BEFORE UPDATE ON "recap_cms_corp_daily"
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `)
+    console.log('  ✅ recap_cms_corp_daily created')
+  } else {
+    console.log('  ⏭  recap_cms_corp_daily exists')
+    if (!(await columnExists('recap_cms_corp_daily', 'jenis_transaksi'))) {
+      await exec(`
+        ALTER TABLE "recap_cms_corp_daily"
+        ADD COLUMN "jenis_transaksi" VARCHAR(1024) NOT NULL DEFAULT '(legacy aggregate)'
+      `)
+      await exec(`ALTER TABLE "recap_cms_corp_daily" ADD COLUMN "rc" VARCHAR(255) NOT NULL DEFAULT ''`)
+      await exec(`ALTER TABLE "recap_cms_corp_daily" ADD COLUMN "rc_description" TEXT NOT NULL DEFAULT ''`)
+      await exec(`
+        ALTER TABLE "recap_cms_corp_daily"
+        ADD COLUMN "status_transaksi" VARCHAR(64) NOT NULL DEFAULT 'legacy'
+      `)
+      await exec(`ALTER TABLE "recap_cms_corp_daily" ALTER COLUMN "jenis_transaksi" DROP DEFAULT`)
+      await exec(`ALTER TABLE "recap_cms_corp_daily" ALTER COLUMN "rc" DROP DEFAULT`)
+      await exec(`ALTER TABLE "recap_cms_corp_daily" ALTER COLUMN "rc_description" DROP DEFAULT`)
+      await exec(`ALTER TABLE "recap_cms_corp_daily" ALTER COLUMN "status_transaksi" DROP DEFAULT`)
+      await exec(`
+        ALTER TABLE "recap_cms_corp_daily"
+        DROP CONSTRAINT IF EXISTS "recap_cms_corp_daily_id_app_identifier_tanggal_transaksi_corp_id_key"
+      `)
+      await exec(`
+        ALTER TABLE "recap_cms_corp_daily"
+        ADD CONSTRAINT "recap_cms_corp_daily_grain_key" UNIQUE (
+          "id_app_identifier",
+          "tanggal_transaksi",
+          "corp_id",
+          "jenis_transaksi",
+          "rc",
+          "rc_description",
+          "status_transaksi"
+        )
+      `)
+      console.log('  ✅ recap_cms_corp_daily upgraded to CORP × jenis × RC × status grain')
+    }
+  }
+  await createIndexSafely('idx_recap_cms_corp_daily_app_date', 'recap_cms_corp_daily', [
+    'id_app_identifier',
+    'tanggal_transaksi',
+  ])
+
+  console.log('  ✅ Phase 3b done')
+}
+
+async function runRecapModelProcedures() {
+  console.log('\n⚙️  Phase 5b: Custom recap stored procedures (PostgreSQL)')
+  await runRecapModelStoredProcedures(exec)
+  console.log('  ✅ Phase 5b done')
 }
 
 // ─── Phase 4: Performance indexes ────────────────────────────────────────────
@@ -876,10 +976,18 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
         jobName: `process-${appKey.replace(/_/g, '-')}-daily`,
         schedule: getSchedule(appKey),
         sql: `SELECT public.${procedureName}(NULL)`,
-      })
+      }),
     )
+    const recapCronJobs: { jobName: string; schedule: string; sql: string }[] = RECAP_MODEL_REGISTRY.map(
+      (r) => ({
+        jobName: `recap-${r.modelKey.replace(/_/g, '-')}`,
+        schedule: process.env[r.scheduleEnvVar] ?? '1 0 * * *',
+        sql: `SELECT public.${r.functionName}(NULL)`,
+      }),
+    )
+    const allCronJobs = [...cronJobs, ...recapCronJobs]
     for (const dbName of targetDbs) {
-      for (const { jobName: base, schedule, sql } of cronJobs) {
+      for (const { jobName: base, schedule, sql } of allCronJobs) {
         const jobName = `${base}-${dbName}`
         try {
           try { await exec(`SELECT cron.unschedule('${esc(jobName)}')`) } catch { /* ok */ }
@@ -1083,6 +1191,7 @@ async function main() {
         await runCoreSchema()
         await runBetterAuthSchema()
         await runProcessingLogSchema()
+        await runRecapModelTables()
         await runPerformanceIndexes()
       }
       if (RUN_ALL || ONLY_SCHEMA || ONLY_FDW) {
@@ -1090,6 +1199,7 @@ async function main() {
       }
       if (RUN_ALL || ONLY_PROCEDURES) {
         await runStoredProcedures()
+        await runRecapModelProcedures()
       }
     }
 

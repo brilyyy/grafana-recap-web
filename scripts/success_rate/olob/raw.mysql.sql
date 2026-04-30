@@ -1,3 +1,5 @@
+﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+
 -- Set before running: SET @olob_start_date = '2026-03-05 00:00:00'; SET @olob_end_date = '2026-03-06 00:00:00'; SET @api_name = 'SelectBankAccountType';
 SELECT 
     date(log_dt) AS 'Tanggal Transaksi',
@@ -24,3 +26,4 @@ ORDER BY 1;
 -- RegisterEChannel
 -- ChooseKYCMethod
 -- VerifyLivenessResult
+

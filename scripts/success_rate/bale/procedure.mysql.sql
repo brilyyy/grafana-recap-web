@@ -1,3 +1,5 @@
+﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+
 CREATE PROCEDURE sp_process_bale_daily(IN p_processing_date DATE)
 MODIFIES SQL DATA
 SQL SECURITY DEFINER
@@ -215,3 +217,4 @@ BEGIN
   SET status='success', end_time=NOW(), records_processed=v_records_processed, records_inserted=v_records_inserted
   WHERE id=v_log_id;
 END
+

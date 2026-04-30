@@ -1,267 +1,166 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/db'
 import { env } from '@/env'
-
-const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
+import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 
 /**
- * Generic manual trigger endpoint for application processing
  * POST /api/processing/process-manual
- * Body: { app_name: string, date?: string }
- * 
- * If date parameter is not provided, processes H-1 (yesterday)
- * Date must be < current date (only H-1 and earlier can be processed)
+ * Body:
+ * - Preferred: { catalogEntryId: string, date?: string }
+ * - Legacy: { app_name: string, date?: string } → maps to catalog sr:{appKey}
+ *
+ * Auth: superadmin session OR x-recap-api-key matching RECAP_TRIGGER_API_KEY (PostgreSQL only).
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth(request)
-    
-    // Check if user has superadmin role
-    if (session.role !== 'superadmin') {
+    const apiKey = request.headers.get('x-recap-api-key')
+    const apiOk =
+      !!env.RECAP_TRIGGER_API_KEY &&
+      apiKey === env.RECAP_TRIGGER_API_KEY
+
+    let session: Awaited<ReturnType<typeof requireAuth>> | null = null
+    if (!apiOk) {
+      session = await requireAuth(request)
+      if (session.role !== 'superadmin') {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Unauthorized: Only superadmin can trigger manual processing',
+          } as ApiResponse,
+          { status: 403 },
+        )
+      }
+    }
+
+    if (!isPostgres) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Unauthorized: Only superadmin can trigger manual processing',
+          message: 'Manual processing recap API requires PostgreSQL (DB_TYPE=postgresql).',
         } as ApiResponse,
-        { status: 403 }
+        { status: 400 },
       )
     }
 
     const body = await request.json()
-    const { app_name, date } = body
-
-    if (!app_name || !app_name.trim()) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'app_name is required',
-        } as ApiResponse,
-        { status: 400 }
-      )
+    const { app_name, date, catalogEntryId: bodyCatalogId } = body as {
+      app_name?: string
+      date?: string
+      catalogEntryId?: string
     }
 
-    let processingDate: Date | null = null
-    let dateParam: string | null = null
-    
-    if (date) {
-      // Validate date format (YYYY-MM-DD)
+    let catalogEntryId = bodyCatalogId?.trim() || null
+    if (!catalogEntryId) {
+      if (!app_name?.trim()) {
+        return NextResponse.json(
+          { success: false, message: 'catalogEntryId or app_name is required' } as ApiResponse,
+          { status: 400 },
+        )
+      }
+      const appKey = normalizeAppNameToKey(app_name)
+      catalogEntryId = `sr:${appKey}`
+    }
+
+    const dateParam = date && String(date).trim() ? String(date).trim() : null
+    if (dateParam) {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/
-      if (!dateRegex.test(date)) {
+      if (!dateRegex.test(dateParam)) {
         return NextResponse.json(
-          {
-            success: false,
-            message: 'Invalid date format. Use YYYY-MM-DD format',
-          } as ApiResponse,
-          { status: 400 }
+          { success: false, message: 'Invalid date format. Use YYYY-MM-DD' } as ApiResponse,
+          { status: 400 },
         )
-      }
-      
-      // Use date string directly to avoid timezone conversion issues
-      // Date format is already YYYY-MM-DD, use it as-is
-      dateParam = date
-      
-      // Validate date format and create Date object for validation only
-      processingDate = new Date(date + 'T00:00:00')
-      if (isNaN(processingDate.getTime())) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Invalid date value',
-          } as ApiResponse,
-          { status: 400 }
-        )
-      }
-
-      // Validate: date must be < current date (only H-1 and earlier can be processed)
-      // Use database's current date to avoid timezone mismatch: server may be UTC while DB uses
-      // e.g. Asia/Jakarta. If server says "2026-02-26" (UTC) but DB says "2026-02-27", we would
-      // wrongly reject processing 2026-02-26 (yesterday in DB timezone).
-      const connection = await pool.getConnection()
-      try {
-        const [todayRows]: any = isPostgres
-          ? await connection.execute(`SELECT CURRENT_DATE::text AS today`)
-          : await connection.execute(`SELECT DATE(NOW()) AS today`)
-        const todayStr = String(todayRows?.[0]?.today ?? '').split('T')[0].slice(0, 10)
-        connection.release()
-        if (date >= todayStr) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: 'Cannot process future dates. Only H-1 (yesterday) and earlier dates can be processed.',
-            } as ApiResponse,
-            { status: 400 }
-          )
-        }
-      } catch (e) {
-        connection.release()
-        throw e
       }
     }
 
-    const connection = await pool.getConnection()
+    let result
     try {
-      const dbType = isPostgres ? 'postgresql' : 'mysql'
-      // Build stored procedure name: sp_process_{app_key}_daily
-      // e.g. "Bale Bisnis" -> sp_process_bale_bisnis_daily
-      const appKey = app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'
-      const procedureName = `sp_process_${appKey}_daily`
-      
-      // Prepare date parameter for database - use date string directly (YYYY-MM-DD)
-      // This avoids timezone conversion issues
-      let dateParamForDB = dateParam || null
-
-      // #region agent log
-      const itmApps = ['edc_agen', 'edc_merchant', 'edc_merchant_ancol']
-      if (isPostgres && itmApps.includes(appKey)) {
-        const effDate = dateParamForDB || (() => {
-          const y = new Date()
-          y.setDate(y.getDate() - 1)
-          return `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
-        })()
-        const [y, m, d] = effDate.split('-').map(Number)
-        const vTrxmdtInt = 1000000 + (y % 100) * 10000 + m * 100 + d
-        let diag: Record<string, unknown> = {}
-        try {
-          const [trxRows]: any = await connection.execute(
-            `SELECT pg_typeof("TRXMDT")::text AS trxmdt_type, COUNT(*) AS total, COUNT(CASE WHEN "TRXMDT" = ? THEN 1 END) AS match_count FROM "ASID160448_ZTRANS0P"`,
-            [vTrxmdtInt]
-          )
-          const [sampleRows]: any = await connection.execute(
-            `SELECT "TRXMDT" FROM "ASID160448_ZTRANS0P" LIMIT 5`
-          )
-          const r0 = trxRows?.[0]
-          diag = { trxmdtType: r0?.trxmdt_type ?? r0?.TRXMDT_TYPE, total: r0?.total ?? r0?.TOTAL, matchCount: r0?.match_count ?? r0?.MATCH_COUNT, sampleTrxmdt: sampleRows?.map((r: any) => r.TRXMDT ?? r.trxmdt), effDate, vTrxmdtInt }
-        } catch (e: any) {
-          diag = { diagError: e?.message, effDate, vTrxmdtInt }
-        }
-        fetch('http://127.0.0.1:7700/ingest/c60fa610-fe29-4dda-80df-f6615bae47c2', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '145e63' }, body: JSON.stringify({ sessionId: '145e63', location: 'process-manual/route.ts:diag', message: 'EDC TRXMDT diagnostic', data: diag, timestamp: Date.now(), hypothesisId: 'A' }) }).catch(() => {})
+      result = await triggerRecap({ catalogEntryId, date: dateParam })
+    } catch (e: unknown) {
+      if (e instanceof RecapValidationError) {
+        return NextResponse.json(
+          { success: false, message: e.message } as ApiResponse,
+          { status: e.code === 'NOT_FOUND' ? 404 : 400 },
+        )
       }
-      // #endregion
-
-      // Call stored procedure based on database type
-      // For PostgreSQL: use public. prefix (schema) and $1::date cast so the function is found
-      // and parameter type matches (avoids "function does not exist" when param is inferred as unknown/text)
-      if (dbType === 'postgresql') {
-        await connection.execute(`SELECT public.${procedureName}($1::date)`, [dateParamForDB])
-      } else {
-        await connection.execute(`CALL ${procedureName}(?)`, [dateParamForDB])
+      const errMsg = (e as Error).message ?? String(e)
+      if (errMsg.includes('relation') && errMsg.includes('does not exist')) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              'Required table or foreign table is missing. Ensure CDC/FDW and migration have been applied.',
+            detail: errMsg,
+          } as ApiResponse,
+          { status: 404 },
+        )
       }
-
-      // Get the processing log entry for the specific date that was just processed
-      // Use the processing_date if provided, otherwise use H-1 (yesterday)
-      let targetDate: string
-      if (dateParamForDB) {
-        targetDate = dateParamForDB
-      } else {
-        // Calculate H-1 (yesterday) using date string to avoid timezone issues
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        // Get local date string (YYYY-MM-DD) without timezone conversion
-        const year = yesterday.getFullYear()
-        const month = String(yesterday.getMonth() + 1).padStart(2, '0')
-        const day = String(yesterday.getDate()).padStart(2, '0')
-        targetDate = `${year}-${month}-${day}`
+      if (errMsg.includes('does not exist') && (errMsg.includes('function') || errMsg.includes('Function'))) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Processing function not found. Run db:migrate to install procedures.',
+            detail: errMsg,
+          } as ApiResponse,
+          { status: 404 },
+        )
       }
+      throw e
+    }
 
-      const [logResult]: any = await connection.execute(
-        `SELECT * FROM app_processing_log 
-         WHERE app_name = ? 
-           AND processing_date = ?
-         ORDER BY created_at DESC 
-         LIMIT 1`,
-        [app_name.trim(), targetDate]
-      )
-
-      const logEntry = logResult[0]
-
-      // #region agent log
-      if (isPostgres && itmApps.includes(appKey)) {
-        fetch('http://127.0.0.1:7700/ingest/c60fa610-fe29-4dda-80df-f6615bae47c2', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '145e63' }, body: JSON.stringify({ sessionId: '145e63', location: 'process-manual/route.ts:after', message: 'EDC procedure result', data: { recordsProcessed: logEntry?.records_processed, recordsInserted: logEntry?.records_inserted, status: logEntry?.status, targetDate }, timestamp: Date.now(), hypothesisId: 'B' }) }).catch(() => {})
-      }
-      // #endregion
-
-      // Log audit event
+    const logEntry = result.logEntry
+    if (session) {
+      const label = app_name?.trim() || catalogEntryId
       await logAuditEvent(
         session.userId,
         session.username,
-        `${app_name.toUpperCase()}_PROCESSING_MANUAL_TRIGGER`,
+        `RECAP_MANUAL_${catalogEntryId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
         'app_processing_log',
         logEntry?.id?.toString() || 'unknown',
-        `Manually triggered ${app_name} processing${processingDate ? ` for date ${dateParam}` : ' (H-1)'}. Status: ${logEntry?.status || 'unknown'}`,
+        `Manually triggered recap ${catalogEntryId}${dateParam ? ` for ${dateParam}` : ' (H-1)'}. Status: ${logEntry?.status || 'unknown'}`,
         getClientIp(request),
-        getUserAgent(request)
-      )
-
-      return NextResponse.json({
-        success: true,
-        message: `${app_name} processing triggered successfully${processingDate ? ` for date ${dateParam}` : ' (H-1)'}`,
-        data: {
-          processingDate: processingDate ? dateParam : 'H-1 (yesterday)',
-          logEntry: logEntry ? {
-            id: logEntry.id,
-            status: logEntry.status,
-            recordsProcessed: logEntry.records_processed,
-            recordsInserted: logEntry.records_inserted,
-            startTime: logEntry.start_time,
-            endTime: logEntry.end_time,
-            errorMessage: logEntry.error_message,
-          } : null,
-        },
-      } as ApiResponse)
-    } catch (error: any) {
-      const errMsg = error.message ?? String(error)
-      // Relation missing (e.g. raw_bale) – procedure runs but table doesn't exist
-      if (errMsg.includes('relation') && errMsg.includes('does not exist')) {
-        console.error('[process-manual] Missing table:', errMsg)
-        const dbName = `${app_name.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'}_db`
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Raw table does not exist. Ensure the raw table (e.g., raw_${app_name.toLowerCase().replace(/\s/g, '_')}) exists in ${dbName} (created by CDC). If using PostgreSQL, verify postgres_fdw is set up and the foreign table exists in platform_db.`,
-            detail: errMsg,
-          } as ApiResponse,
-          { status: 404 }
-        )
-      }
-      // Procedure/function not found
-      if (errMsg.includes('does not exist') || errMsg.includes('PROCEDURE') || errMsg.includes('function')) {
-        console.error('[process-manual] Procedure call failed:', errMsg)
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Processing procedure not found for application: ${app_name}. Please ensure the stored procedure exists.`,
-            detail: errMsg,
-          } as ApiResponse,
-          { status: 404 }
-        )
-      }
-
-      throw error
-    } finally {
-      connection.release()
-    }
-  } catch (error: any) {
-    // Handle authentication errors
-    if (error.message?.includes('Unauthorized') || error.message?.includes('Forbidden')) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: error.message,
-        } as ApiResponse,
-        { status: 403 }
+        getUserAgent(request),
       )
     }
-    
+
+    return NextResponse.json({
+      success: true,
+      message: result.message,
+      data: {
+        catalogEntryId,
+        processingDate: result.processingDateLabel,
+        targetDate: result.targetDate,
+        logEntry: logEntry
+          ? {
+              id: logEntry.id,
+              status: logEntry.status,
+              recordsProcessed: logEntry.recordsProcessed,
+              recordsInserted: logEntry.recordsInserted,
+              startTime: logEntry.startTime,
+              endTime: logEntry.endTime,
+              errorMessage: logEntry.errorMessage,
+              recapKind: logEntry.recapKind,
+            }
+          : null,
+      },
+    } as ApiResponse)
+  } catch (error: unknown) {
+    const err = error as { message?: string }
+    if (err.message?.includes('Unauthorized') || err.message?.includes('Forbidden')) {
+      return NextResponse.json({ success: false, message: err.message } as ApiResponse, { status: 403 })
+    }
+
     console.error('Error triggering processing:', error)
     return NextResponse.json(
       {
         success: false,
-        message: 'Error triggering processing: ' + error.message,
+        message: 'Error triggering processing: ' + (err.message ?? String(error)),
       } as ApiResponse,
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

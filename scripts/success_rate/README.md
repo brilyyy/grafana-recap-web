@@ -4,6 +4,10 @@ This directory contains raw aggregation queries and stored procedure definitions
 
 > **Note:** MySQL and pgAgent are deprecated. Use PostgreSQL + pg_cron. See [SERVER_CONFIG.md](../../SERVER_CONFIG.md).
 
+### MySQL SQL files (`*.mysql.sql`) — deprecated
+
+Do **not** extend `procedure.mysql.sql`, `raw.mysql.sql`, or related MySQL-only scripts for new features. They remain only for legacy reference. All new success-rate and recap work uses **`procedure.postgres.sql`** and **`raw.postgres.sql`**. The Drizzle schema [src/db/schema/mysql.ts](src/db/schema/mysql.ts) is deprecated for the same reason.
+
 > **Menambahkan aplikasi baru?** Lihat [ADD_NEW_APP.md](../ADD_NEW_APP.md) untuk urutan lengkap: frontend → success rate + raw table → stored procedures → migration-kit → production.
 
 ## Directory Structure (Unified Convention)

@@ -171,6 +171,7 @@ export const appProcessingLog = pgTable(
     recordsInserted: integer('records_inserted').default(0),
     recordsSkipped: integer('records_skipped').default(0),
     errorMessage: text('error_message'),
+    recapKind: varchar('recap_kind', { length: 64 }).notNull().default('success_rate_daily'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (t) => ({

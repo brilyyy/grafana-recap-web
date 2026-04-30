@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { router, superAdminProcedure } from '../init'
 import { pool } from '@/lib/db'
+import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
 
 export const processingLogsRouter = router({
   list: superAdminProcedure
@@ -9,15 +11,26 @@ export const processingLogsRouter = router({
       limit: z.number().int().min(1).max(200).default(50),
       app_id: z.number().int().optional(),
       status: z.string().optional(),
+      recap_kind: z.string().optional(),
     }).optional())
     .query(async ({ input }) => {
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
       const offset = (page - 1) * limit
-      const params: any[] = []
+      const params: unknown[] = []
       let where = 'WHERE 1=1'
-      if (input?.app_id) { where += ' AND apl.id_app_identifier = ?'; params.push(input.app_id) }
-      if (input?.status) { where += ' AND apl.status = ?'; params.push(input.status) }
+      if (input?.app_id) {
+        where += ' AND apl.id_app_identifier = ?'
+        params.push(input.app_id)
+      }
+      if (input?.status) {
+        where += ' AND apl.status = ?'
+        params.push(input.status)
+      }
+      if (input?.recap_kind) {
+        where += ' AND COALESCE(apl.recap_kind, \'success_rate_daily\') = ?'
+        params.push(input.recap_kind)
+      }
 
       const [logs]: any = await pool.execute(
         `SELECT apl.*, ai.app_name FROM app_processing_log apl
@@ -33,24 +46,28 @@ export const processingLogsRouter = router({
 
   processManual: superAdminProcedure
     .input(z.object({ app_id: z.number().int(), date: z.string().optional() }))
-    .mutation(async ({ input, ctx }) => {
-      const { app_id } = input
-      const [apps]: any = await pool.execute('SELECT app_name FROM app_identifier WHERE id = ?', [app_id])
+    .mutation(async ({ input }) => {
+      const [apps]: any = await pool.execute('SELECT app_name FROM app_identifier WHERE id = ?', [
+        input.app_id,
+      ])
       if (apps.length === 0) return { success: false, message: 'Application not found' }
 
-      const appName = apps[0].app_name.toLowerCase()
-      const dateParam = input.date ?? null
-      const connection = await pool.getConnection()
+      const appKey = normalizeAppNameToKey(apps[0].app_name as string)
       try {
-        const isPostgres = (connection as any).execute?.toString?.().includes('pg') ?? false
-        if (isPostgres) {
-          await connection.execute(`SELECT public.sp_process_${appName}_daily($1::date)`, [dateParam])
-        } else {
-          await connection.execute(`CALL sp_process_${appName}_daily(?)`, [dateParam])
+        const result = await triggerRecap({
+          catalogEntryId: `sr:${appKey}`,
+          date: input.date ?? null,
+        })
+        return {
+          success: true,
+          message: result.message,
+          data: result,
         }
-        return { success: true, message: `Manual processing for ${apps[0].app_name} completed` }
-      } finally {
-        connection.release()
+      } catch (e: unknown) {
+        if (e instanceof RecapValidationError) {
+          return { success: false, message: e.message }
+        }
+        throw e
       }
     }),
 })

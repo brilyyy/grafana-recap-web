@@ -12,7 +12,10 @@ import {
 } from 'drizzle-orm/mysql-core'
 import { relations } from 'drizzle-orm'
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+/**
+ * @deprecated MySQL schema for this project is frozen. The application targets PostgreSQL
+ * (see `src/db/schema/pg.ts`). Do not add new tables or columns here for new features.
+ */
 
 export const userRoleEnum = ['superadmin', 'admin', 'user'] as const
 export const requestedRoleEnum = ['admin', 'user'] as const

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const appName = searchParams.get('app_name')
     const month = searchParams.get('month')
     const year = searchParams.get('year')
+    const recapKind = searchParams.get('recap_kind') ?? 'success_rate_daily'
 
     if (!appName || !month || !year) {
       return NextResponse.json(
@@ -87,11 +88,13 @@ export async function GET(request: NextRequest) {
             records_inserted,
             start_time,
             end_time,
-            error_message
+            error_message,
+            COALESCE(recap_kind, 'success_rate_daily') as recap_kind
           FROM app_processing_log
           WHERE app_name = $1
             AND processing_date >= $2::date
             AND processing_date <= $3::date
+            AND COALESCE(recap_kind, 'success_rate_daily') = $4
           ORDER BY processing_date DESC, created_at DESC
         `
       } else {
@@ -106,7 +109,8 @@ export async function GET(request: NextRequest) {
             l1.records_inserted,
             l1.start_time,
             l1.end_time,
-            l1.error_message
+            l1.error_message,
+            COALESCE(l1.recap_kind, 'success_rate_daily') as recap_kind
           FROM app_processing_log l1
           INNER JOIN (
             SELECT processing_date, MAX(created_at) as max_created_at
@@ -114,19 +118,30 @@ export async function GET(request: NextRequest) {
             WHERE app_name = ?
               AND processing_date >= ?
               AND processing_date <= ?
+              AND COALESCE(recap_kind, 'success_rate_daily') = ?
             GROUP BY processing_date
           ) l2 ON l1.processing_date = l2.processing_date 
             AND l1.created_at = l2.max_created_at
           WHERE l1.app_name = ?
             AND l1.processing_date >= ?
             AND l1.processing_date <= ?
+            AND COALESCE(l1.recap_kind, 'success_rate_daily') = ?
           ORDER BY l1.processing_date DESC
         `
       }
 
       const [logs]: any = dbType === 'postgresql'
-        ? await connection.execute(query, [appName, startDate, endDate])
-        : await connection.execute(query, [appName, startDate, endDate, appName, startDate, endDate])
+        ? await connection.execute(query, [appName, startDate, endDate, recapKind])
+        : await connection.execute(query, [
+            appName,
+            startDate,
+            endDate,
+            recapKind,
+            appName,
+            startDate,
+            endDate,
+            recapKind,
+          ])
 
       const normalizedLogs = (logs || []).map((log: any) => {
         let processingDateStr: string

@@ -1,0 +1,135 @@
+import { pool } from '@/lib/db'
+import { env } from '@/env'
+import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import type { TriggerRecapParams, TriggerRecapResult } from '@/domain/recap/types'
+import { getCatalogEntryById } from '@/domain/recap/catalog'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+export class RecapValidationError extends Error {
+  constructor(
+    message: string,
+    readonly code: 'BAD_DATE' | 'NOT_FOUND' | 'CONFLICT',
+  ) {
+    super(message)
+    this.name = 'RecapValidationError'
+  }
+}
+
+async function resolveTargetDate(
+  connection: {
+    execute: (q: string, p?: unknown[]) => Promise<[unknown[], unknown]>
+  },
+  dateParam: string | null,
+): Promise<string> {
+  if (dateParam) return dateParam
+  const [rows] = await connection.execute(
+    `SELECT (CURRENT_DATE - INTERVAL '1 day')::date::text AS d`,
+  )
+  const row = rows[0] as Record<string, unknown> | undefined
+  const d = row?.d ?? row?.D
+  return String(d ?? '').slice(0, 10)
+}
+
+async function validatePastDate(dateStr: string): Promise<void> {
+  const connection = await pool.getConnection()
+  try {
+    const [todayRows]: any = isPostgres
+      ? await connection.execute(`SELECT CURRENT_DATE::text AS today`)
+      : await connection.execute(`SELECT DATE(NOW()) AS today`)
+    const todayStr = String(todayRows?.[0]?.today ?? '')
+      .split('T')[0]
+      .slice(0, 10)
+    if (dateStr >= todayStr) {
+      throw new RecapValidationError(
+        'Cannot process future or today dates. Use a date before CURRENT_DATE in the database.',
+        'BAD_DATE',
+      )
+    }
+  } finally {
+    connection.release()
+  }
+}
+
+async function resolveAppForEntry(
+  entry: NonNullable<ReturnType<typeof getCatalogEntryById>>,
+): Promise<{ id: number; app_name: string }> {
+  const appKey =
+    entry.scope.type === 'per_app' || entry.scope.type === 'fixed_app'
+      ? entry.scope.appKey
+      : null
+  if (!appKey) throw new RecapValidationError('Invalid catalog entry scope', 'NOT_FOUND')
+
+  const [rows]: any = await pool.execute('SELECT id, app_name FROM app_identifier', [])
+  const list = rows as { id: number; app_name: string }[]
+  const row = list.find((r) => normalizeAppNameToKey(r.app_name) === appKey)
+  if (!row) {
+    throw new RecapValidationError(
+      `Application for key "${appKey}" not found in app_identifier`,
+      'NOT_FOUND',
+    )
+  }
+  return row
+}
+
+export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapResult> {
+  const entry = getCatalogEntryById(params.catalogEntryId)
+  if (!entry) {
+    throw new RecapValidationError(`Unknown recap catalog id: ${params.catalogEntryId}`, 'NOT_FOUND')
+  }
+
+  const dateParam = params.date
+  if (dateParam) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      throw new RecapValidationError('Invalid date format. Use YYYY-MM-DD', 'BAD_DATE')
+    }
+    await validatePastDate(dateParam)
+  }
+
+  if (!isPostgres) {
+    throw new Error('Recap trigger requires PostgreSQL (DB_TYPE=postgresql)')
+  }
+
+  const appRow = await resolveAppForEntry(entry)
+  const connection = await pool.getConnection()
+  try {
+    const targetDate = await resolveTargetDate(connection, dateParam)
+    const dateParamForDb = dateParam || null
+
+    await connection.execute(`SELECT public.${entry.functionName}($1::date)`, [dateParamForDb])
+
+    const [logResult]: any = await connection.execute(
+      `SELECT * FROM app_processing_log
+       WHERE app_name = ?
+         AND processing_date = ?
+         AND recap_kind = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [appRow.app_name, targetDate, entry.recapKind],
+    )
+    const log = logResult[0] as Record<string, unknown> | undefined
+
+    const logEntry = log
+      ? {
+          id: Number(log.id),
+          status: String(log.status ?? ''),
+          recordsProcessed: log.records_processed != null ? Number(log.records_processed) : null,
+          recordsInserted: log.records_inserted != null ? Number(log.records_inserted) : null,
+          startTime: log.start_time != null ? String(log.start_time) : null,
+          endTime: log.end_time != null ? String(log.end_time) : null,
+          errorMessage: log.error_message != null ? String(log.error_message) : null,
+          recapKind: log.recap_kind != null ? String(log.recap_kind) : entry.recapKind,
+        }
+      : null
+
+    return {
+      success: true,
+      message: `Recap ${entry.id} completed`,
+      processingDateLabel: dateParam ?? 'H-1 (yesterday in DB)',
+      targetDate,
+      logEntry,
+    }
+  } finally {
+    connection.release()
+  }
+}

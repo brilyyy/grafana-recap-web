@@ -1,3 +1,5 @@
+﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+
 WITH categories AS (
     SELECT 'ACTIVATE_DORMANT' AS category UNION ALL
     SELECT 'BILLPAYMENT_BANK_LOAN' UNION ALL
@@ -104,3 +106,4 @@ GROUP BY
     rb.transaction_status
 ORDER BY 
     `Tanggal Transaksi` DESC;
+

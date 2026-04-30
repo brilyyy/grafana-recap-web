@@ -1,3 +1,5 @@
+﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+
 -- Housekeeping procedure for raw_bale table (MySQL)
 -- Deletes rows older than p_retention_days from the current date.
 -- Run in bale_db.
@@ -9,3 +11,4 @@ BEGIN
   SET v_cutoff_date = DATE_SUB(CURDATE(), INTERVAL p_retention_days DAY);
   DELETE FROM raw_bale WHERE transaction_date < v_cutoff_date;
 END;
+

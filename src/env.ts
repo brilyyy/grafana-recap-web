@@ -32,7 +32,11 @@ export const env = createEnv({
     EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     CMS_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     BALE_KORPORA_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
+    CMS_CORP_RECAP_SCHEDULE: z.string().default('1 0 * * *'),
     HOUSEKEEPING_SCHEDULE: z.string().default('0 2 * * *'),
+
+    /** Optional: allows POST /api/processing/process-manual without session when header matches */
+    RECAP_TRIGGER_API_KEY: z.string().optional(),
 
     // Migrations / seeds (used by TypeORM CLI scripts, kept here for documentation)
     TARGET_DATABASES: z.string().optional(),
@@ -71,7 +75,9 @@ export const env = createEnv({
     EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE: process.env.EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE,
     CMS_PROCESSING_SCHEDULE: process.env.CMS_PROCESSING_SCHEDULE,
     BALE_KORPORA_PROCESSING_SCHEDULE: process.env.BALE_KORPORA_PROCESSING_SCHEDULE,
+    CMS_CORP_RECAP_SCHEDULE: process.env.CMS_CORP_RECAP_SCHEDULE,
     HOUSEKEEPING_SCHEDULE: process.env.HOUSEKEEPING_SCHEDULE,
+    RECAP_TRIGGER_API_KEY: process.env.RECAP_TRIGGER_API_KEY,
 
     TARGET_DATABASES: process.env.TARGET_DATABASES,
     DEFAULT_SU_USERNAME: process.env.DEFAULT_SU_USERNAME,

@@ -1,3 +1,5 @@
+﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+
 WITH rbb AS (
   SELECT * FROM raw_bale_bisnis
 ),
@@ -45,7 +47,7 @@ states AS (
   SELECT 4, 'SCHEDULED'
 ),
 agg AS (
-  -- Agregasi per hari × category × status × state × result_code
+  -- Agregasi per hari Ã— category Ã— status Ã— state Ã— result_code
   SELECT
       DATE(rbb.transaction_date)              AS transaction_date,
       rbb.transaction_category,

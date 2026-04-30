@@ -1,6 +1,9 @@
 /**
  * Registry of apps with stored procedures for success rate processing.
  * Add new apps here when procedure.mysql.sql and procedure.postgres.sql exist.
+ *
+ * @deprecated MySQL — `procedure.mysql.sql` and MySQL procedure paths are deprecated. Use PostgreSQL
+ * and `procedure.postgres.sql` only for new work. See scripts/success_rate/README.md.
  */
 export type ProcedureApp = {
   appKey: string

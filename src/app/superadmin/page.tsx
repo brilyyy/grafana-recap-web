@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import LogoutButton from '@/components/LogoutButton'
 import { trpc } from '@/lib/trpc'
@@ -49,7 +49,7 @@ interface AuditStats {
   topUsers: Array<{ username: string; count: number }>
 }
 
-type TabType = 'users' | 'audit-logs' | 'app-processing' | 'app-config' | 'housekeeping'
+type TabType = 'users' | 'audit-logs' | 'app-processing' | 'daily-recaps' | 'app-config' | 'housekeeping'
 
 export default function SuperadminPage() {
   const router = useRouter()
@@ -110,6 +110,7 @@ export default function SuperadminPage() {
     app_name: '',
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
+    recap_kind: 'success_rate_daily',
   })
   const [processingStates, setProcessingStates] = useState<{
     [date: string]: { loading: boolean; error: string | null }
@@ -144,6 +145,16 @@ export default function SuperadminPage() {
   const upsertHousekeepingMutation = trpc.housekeeping.upsertRow.useMutation({ onSuccess: () => { refetchHousekeeping(); setNewHkForm({ db_name: '', table_name: '', date_column: '', date_column_type: 'timestamp', retention_days: '', notes: '' }) } })
   const deleteHousekeepingMutation = trpc.housekeeping.deleteRow.useMutation({ onSuccess: () => refetchHousekeeping() })
   const runHousekeepingMutation = trpc.housekeeping.run.useMutation()
+
+  const { data: recapCatalogData, isLoading: recapCatalogLoading, refetch: refetchRecapCatalog } =
+    trpc.recap.listCatalog.useQuery(undefined, {
+      enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'daily-recaps'),
+    })
+  const recapTriggerMutation = trpc.recap.triggerManual.useMutation({
+    onSuccess: () => refetchRecapCatalog(),
+  })
+  const [recapExpandedId, setRecapExpandedId] = useState<string | null>(null)
+  const [recapManualDates, setRecapManualDates] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!authLoading && authCheck !== undefined) {
@@ -182,7 +193,7 @@ export default function SuperadminPage() {
     if (processingFilters.app_name && processingFilters.month && processingFilters.year) {
       fetchProcessingLogs()
     }
-  }, [activeTab, processingFilters.app_name, processingFilters.month, processingFilters.year])
+  }, [activeTab, processingFilters.app_name, processingFilters.month, processingFilters.year, processingFilters.recap_kind])
 
   // User Management Functions
   const fetchUsers = async () => {
@@ -384,6 +395,7 @@ export default function SuperadminPage() {
         app_name: processingFilters.app_name,
         month: processingFilters.month.toString(),
         year: processingFilters.year.toString(),
+        recap_kind: processingFilters.recap_kind,
       })
 
       const response = await fetch(`/api/processing-logs?${params}`)
@@ -441,12 +453,19 @@ export default function SuperadminPage() {
     }))
 
     try {
+      const appKey = appName.toLowerCase().trim().replace(/[\s\-.]+/g, '_').replace(/[^a-z0-9_]/g, '')
+      const catalogEntryId =
+        processingFilters.recap_kind === 'cms_corp_daily'
+          ? 'cms_corp_daily'
+          : `sr:${appKey}`
+
       const response = await fetch('/api/processing/process-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           app_name: appName,
           date: date,
+          catalogEntryId,
         }),
       })
 
@@ -576,6 +595,16 @@ export default function SuperadminPage() {
             }`}
           >
             Application Data Processing
+          </button>
+          <button
+            onClick={() => setActiveTab('daily-recaps')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'daily-recaps'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Daily recaps
           </button>
           <button
             onClick={() => setActiveTab('app-config')}
@@ -1049,7 +1078,7 @@ export default function SuperadminPage() {
             {/* Filters */}
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Filters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm text-white/70 mb-1">App Name</label>
                   {applicationsLoading ? (
@@ -1126,6 +1155,24 @@ export default function SuperadminPage() {
                         </option>
                       )
                     })}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Recap kind</label>
+                  <select
+                    value={processingFilters.recap_kind}
+                    onChange={(e) => {
+                      setProcessingFilters((prev) => ({ ...prev, recap_kind: e.target.value }))
+                    }}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="success_rate_daily" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      success_rate_daily
+                    </option>
+                    <option value="cms_corp_daily" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      cms_corp_daily
+                    </option>
                   </select>
                 </div>
               </div>
@@ -1508,6 +1555,148 @@ export default function SuperadminPage() {
                 Select an application to view processing logs
               </div>
             )}
+          </div>
+        )}
+
+        {/* Daily recaps catalog (success rate + custom models) */}
+        {activeTab === 'daily-recaps' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">Daily recaps</h3>
+              <p className="text-white/70 text-sm mb-2">
+                All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and representative query text.
+                Use <strong className="text-white">Application Data Processing</strong> with the same{' '}
+                <strong className="text-white">Recap kind</strong> filter to inspect calendar logs.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-white/5 text-left text-white/80">
+                    <tr>
+                      <th className="px-3 py-2">Title</th>
+                      <th className="px-3 py-2">ID</th>
+                      <th className="px-3 py-2">Kind</th>
+                      <th className="px-3 py-2">Output table</th>
+                      <th className="px-3 py-2">Schedule (env)</th>
+                      <th className="px-3 py-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recapCatalogLoading ? (
+                      Array.from({ length: 8 }).map((_, i) => (
+                        <tr key={`recap-catalog-skeleton-${i}`} className="border-t border-white/10">
+                          <td className="px-3 py-2">
+                            <div className="h-4 w-40 max-w-full rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-28 rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-24 rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-32 rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-36 rounded bg-white/20 animate-pulse mb-1" />
+                            <div className="h-2 w-24 rounded bg-white/10 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-7 w-[11rem] max-w-full rounded bg-white/20 animate-pulse mb-1" />
+                            <div className="h-6 w-28 rounded bg-white/15 animate-pulse" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      (recapCatalogData?.data ?? []).map((row) => (
+                        <Fragment key={row.id}>
+                          <tr
+                            className="border-t border-white/10 hover:bg-white/5 cursor-pointer"
+                            onClick={() =>
+                              setRecapExpandedId((id) => (id === row.id ? null : row.id))
+                            }
+                          >
+                            <td className="px-3 py-2 text-white font-medium">{row.title}</td>
+                            <td className="px-3 py-2 text-white/90 font-mono text-xs">{row.id}</td>
+                            <td className="px-3 py-2 text-white/80">{row.recapKind}</td>
+                            <td className="px-3 py-2 text-white/80 font-mono text-xs">{row.outputTable}</td>
+                            <td className="px-3 py-2 text-white/70 text-xs">
+                              {row.scheduleEnvVar ?? '—'}
+                              <br />
+                              <span className="text-white/50">
+                                {(row as { scheduleCronResolved?: string }).scheduleCronResolved ?? ''}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex flex-col gap-1 items-start" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="date"
+                                  className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs max-w-[11rem]"
+                                  value={recapManualDates[row.id] ?? ''}
+                                  onChange={(e) =>
+                                    setRecapManualDates((prev) => ({
+                                      ...prev,
+                                      [row.id]: e.target.value,
+                                    }))
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  className="px-2 py-1 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs disabled:opacity-50"
+                                  disabled={recapTriggerMutation.isPending}
+                                  onClick={() => {
+                                    const d = recapManualDates[row.id]?.trim()
+                                    recapTriggerMutation.mutate({
+                                      catalogEntryId: row.id,
+                                      date: d || undefined,
+                                    })
+                                  }}
+                                >
+                                  Run now (empty date = H-1)
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {recapExpandedId === row.id && (
+                            <tr className="bg-black/20">
+                              <td colSpan={6} className="px-4 py-3 text-white/90">
+                                <p className="text-sm mb-2">{row.description}</p>
+                                <p className="text-xs text-white/70 mb-2">{row.briefProcessSummary}</p>
+                                <p className="text-xs text-white/50 mb-1">
+                                  Function: <code className="text-white/80">{row.functionName}</code> · Doc:{' '}
+                                  <code className="text-white/80">{row.rawSqlRepoPath}</code>
+                                </p>
+                                <details open className="mt-2">
+                                  <summary className="cursor-pointer text-blue-300 text-sm mb-1">
+                                    Representative query (brief)
+                                  </summary>
+                                  <pre className="mt-2 p-3 rounded bg-black/40 border border-white/10 text-xs overflow-x-auto whitespace-pre-wrap">
+                                    {row.briefQuery}
+                                  </pre>
+                                </details>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))
+                    )}
+                  </tbody>
+                  </table>
+                </div>
+                {!recapCatalogLoading && recapTriggerMutation.isError && (
+                  <p className="p-3 text-red-300 text-sm">
+                    {(recapTriggerMutation.error as Error)?.message ?? 'Trigger failed'}
+                  </p>
+                )}
+                {!recapCatalogLoading && recapTriggerMutation.isSuccess && recapTriggerMutation.data?.data && (
+                  <p className="p-3 text-green-300 text-sm">
+                    {recapTriggerMutation.data.data.message} — status:{' '}
+                    {recapTriggerMutation.data.data.logEntry?.status ?? '—'}
+                  </p>
+                )}
+              </div>
           </div>
         )}
 

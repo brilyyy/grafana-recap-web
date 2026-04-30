@@ -1,3 +1,5 @@
+﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+
 SELECT 
     a.ACTN_DT AS `Tanggal Transaksi`, 
     a.SRVC_NM AS `Jenis Transaksi`, 
