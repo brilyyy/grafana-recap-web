@@ -7,7 +7,7 @@ Folder ini berisi script dan dependency untuk menjalankan migration database **d
 - `package.json` – dependency (dotenv, bcryptjs, pg, mysql2, tsx, typescript) dan script migration
 - `tsconfig.json` – konfigurasi TypeScript untuk menjalankan `src/db/migrate.ts`
 - `src/db/migrate.ts` – script migration lengkap (salinan dari project utama)
-- `scripts/success_rate/` – stored procedure SQL per aplikasi (`procedure.mysql.sql` / `procedure.postgres.sql` untuk bale, bale_bisnis, olob, cms, bale_korpora; PostgreSQL-only untuk edc_agen, edc_merchant, edc_merchant_ancol). File ini disalin dari project utama dan di-commit di folder ini; saat procedure diubah di repo utama, salin ulang file yang bersangkutan ke `migration-kit/scripts/success_rate/{app}/` sebelum deploy.
+- `scripts/success_rate/` – stored procedure SQL per aplikasi (`procedure.mysql.sql` / `procedure.postgres.sql` untuk bale, bale_bisnis, olob, cms, bale_korpora; PostgreSQL-only untuk edc_agen, edc_merchant, edc_merchant_ancol, debit_online). File ini disalin dari project utama dan di-commit di folder ini; saat procedure diubah di repo utama, salin ulang file yang bersangkutan ke `migration-kit/scripts/success_rate/{app}/` sebelum deploy.
 - `.env.example` – contoh variabel environment yang dibutuhkan
 
 ## Production Deployment (Step-by-Step)

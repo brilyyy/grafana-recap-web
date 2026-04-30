@@ -11,6 +11,7 @@ const DISPLAY_APP: Record<string, string> = {
   edc_merchant_ancol: 'EDC Merchant Ancol',
   cms: 'CMS',
   bale_korpora: 'Bale Korpora',
+  debit_online: 'Debit Online',
 }
 
 const SCHEDULE_ENV: Record<string, string> = {
@@ -22,6 +23,7 @@ const SCHEDULE_ENV: Record<string, string> = {
   edc_merchant_ancol: 'EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE',
   cms: 'CMS_PROCESSING_SCHEDULE',
   bale_korpora: 'BALE_KORPORA_PROCESSING_SCHEDULE',
+  debit_online: 'DEBIT_ONLINE_PROCESSING_SCHEDULE',
 }
 
 const BRIEF_SUCCESS_RATE: Record<string, string> = {
@@ -36,6 +38,8 @@ const BRIEF_SUCCESS_RATE: Record<string, string> = {
   cms:
     'FROM cms_db_GCM_AGCM_LOG_ACTV: GROUP BY day, service, ERR_MAP, IS_ERR; INSERT app_success_rate.',
   bale_korpora: 'FROM raw_bale_korpora: aggregate; INSERT app_success_rate.',
+  debit_online:
+    'FROM ASID160448_ZTRANS0P + ZRSPCD0P (FDW): TRTRTY=21, TRPCCD=59; INSERT app_success_rate.',
 }
 
 function successRateEntries(): RecapCatalogEntry[] {
