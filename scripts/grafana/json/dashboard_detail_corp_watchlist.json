@@ -1,0 +1,2165 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": 0,
+    "links": [],
+    "panels": [
+      {
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 2,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 18,
+        "options": {
+          "code": {
+            "language": "plaintext",
+            "showLineNumbers": false,
+            "showMiniMap": false
+          },
+          "content": "<h1 style=\"text-align: center; font-weight: 700; font-size: 3rem;\">\r\n  Dashboard Bale Korpora - ${corp_name:label}\r\n</h1>",
+          "mode": "html"
+        },
+        "pluginVersion": "12.2.1",
+        "title": "",
+        "transparent": true,
+        "type": "text"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "text",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 0,
+          "y": 2
+        },
+        "id": 2,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT \r\n  COUNT(\"ID\")\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n AND \"ACTN_DT\" >= ($__timeFrom() :: timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo() :: timestamp + interval '7 hour')\r\n\r\n-- SELECT * FROM \"bale_korpora_db_GCM_AGCM_LOG_ACTV\" LIMIT 1",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Total Transaction Execute",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "dark-green",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 4,
+          "y": 2
+        },
+        "id": 4,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  COUNT(*) AS jumlah_baris\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\nAND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"IS_ERR\" = 'N';",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Transaction Success Execute",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "dark-red",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 8,
+          "y": 2
+        },
+        "id": 6,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  COUNT(*) AS jumlah_baris\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\nAND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"IS_ERR\" <> 'N';",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Transaction Failed Execute",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              }
+            },
+            "decimals": 2,
+            "mappings": [],
+            "unit": "locale"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "gagal"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sukses"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Failed"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 12,
+          "w": 4,
+          "x": 11,
+          "y": 2
+        },
+        "id": 8,
+        "options": {
+          "displayLabels": [
+            "percent"
+          ],
+          "legend": {
+            "displayMode": "list",
+            "placement": "right",
+            "showLegend": false
+          },
+          "pieType": "donut",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "sort": "desc",
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n\r\n\r\nSELECT\r\n    COUNT(CASE WHEN \"IS_ERR\" = 'N' THEN 1 END) AS \"Success\",\r\n    COUNT(CASE WHEN \"IS_ERR\" <> 'N' THEN 1 END) AS \"Failed\"\r\n\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n\r\n-- SELECT DISTINCT \"IS_ERR\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n\r\n-- SELECT COUNT(*) AS jumlah_baris\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n\r\n\r\n",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "continuous-BlYlRd"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisGridShow": false,
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineWidth": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "semi-dark-orange",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Count_ERR"
+              },
+              "properties": [
+                {
+                  "id": "custom.axisPlacement",
+                  "value": "hidden"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "RC_ERR"
+              },
+              "properties": [
+                {
+                  "id": "custom.axisLabel",
+                  "value": "Respond Code"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 12,
+          "w": 9,
+          "x": 15,
+          "y": 2
+        },
+        "id": 20,
+        "options": {
+          "barRadius": 0,
+          "barWidth": 0.76,
+          "fullHighlight": false,
+          "groupWidth": 0.7,
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": false
+          },
+          "orientation": "horizontal",
+          "showValue": "always",
+          "stacking": "none",
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "multi",
+            "sort": "none"
+          },
+          "xField": "ERR_MAP_NM",
+          "xTickLabelRotation": 0,
+          "xTickLabelSpacing": 0
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "WITH err_counts AS (\r\n  SELECT\r\n    a.\"ERR_MAP_CD\",\r\n    COUNT(*) AS \"Count_ERR\"\r\n  FROM \"bale_korpora_db_GCM_AGCM_LOG_ACTV\" a\r\n  WHERE a.\"ACTN_BY_CUST_ID\" = '$corp_name'\r\n    AND a.\"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n    AND a.\"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n    AND a.\"IS_ERR\" = 'Y'\r\n  GROUP BY a.\"ERR_MAP_CD\"\r\n  ORDER BY 2 DESC\r\n  LIMIT 5\r\n)\r\nSELECT\r\n  e.\"ERR_MAP_CD\" || ' : ' || COALESCE(m.\"NM\", 'Anon') AS \"RC_ERR\",\r\n  e.\"Count_ERR\"\r\nFROM err_counts e\r\nLEFT JOIN \"bale_korpora_db_GCM_AGCM_HOST_ERROR_MAPPING\" m\r\n  ON e.\"ERR_MAP_CD\" = m.\"CD\"\r\nORDER BY e.\"Count_ERR\" DESC",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Top 5 ERR Name",
+        "type": "barchart"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "noValue": "N/A",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "text",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "currencyIDR"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 0,
+          "y": 6
+        },
+        "id": 3,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT\r\n  SUM(\"AMT\") AS \"Volume\"\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Volume Transaction (RP Juta)",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "noValue": "N/A",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "currencyIDR"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 4,
+          "y": 6
+        },
+        "id": 5,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT\r\n--   SUM(\"AMT\") AS \"Volume\"\r\n-- FROM\r\n--   \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n--   AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n--   AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n--   AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n--   AND \"IS_ERR\" = 'N';\r\n\r\nSELECT\r\n  SUM(\"AMT\") AS \"Volume\"\r\nFROM \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"IS_ERR\" = 'N';",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Volume TRX Success (RP Juta)",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "decimals": 0,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "currencyIDR"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 8,
+          "y": 6
+        },
+        "id": 7,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n\r\n\r\nSELECT COALESCE(SUM(\"AMT\"), 0) AS total_amt\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\nAND \"IS_ERR\" <> 'N';\r\n\r\n\r\n",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Volume TRX Failed (RP Juta)",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "text",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 0,
+          "y": 10
+        },
+        "id": 21,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT \r\n  COUNT(\"ID\")\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_TYP_NM\" NOT ILIKE '%Execute%'\r\n AND \"ACTN_DT\" >= ($__timeFrom() :: timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo() :: timestamp + interval '7 hour')\r\n\r\n-- SELECT * FROM \"bale_korpora_db_GCM_AGCM_LOG_ACTV\" LIMIT 1",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Total Transaction Inquiry",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "dark-green",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 4,
+          "y": 10
+        },
+        "id": 22,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  COUNT(*) AS jumlah_baris\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\nAND \"ACTN_TYP_NM\" NOT ILIKE '%Execute%'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"IS_ERR\" = 'N';",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Transaction Success Inquiry",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "dark-red",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 8,
+          "y": 10
+        },
+        "id": 23,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  COUNT(*) AS jumlah_baris\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\nAND \"ACTN_TYP_NM\" NOT ILIKE '%Execute%'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"IS_ERR\" <> 'N';",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Transaction Failed",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "gagal"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sukses"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 49
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Success"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 105
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Reject"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 137
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "% Failed"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 137
+                },
+                {
+                  "id": "unit",
+                  "value": "percent"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Fitur"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 426
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Failed"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 112
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 14
+        },
+        "id": 13,
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true,
+          "sortBy": [
+            {
+              "desc": true,
+              "displayName": "Failed"
+            }
+          ]
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\", \"IS_ERR\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n-- SELECT\r\n--     COUNT(CASE WHEN \"IS_ERR\" = 'N' THEN 1 END) AS sukses,\r\n--     COUNT(CASE WHEN \"IS_ERR\" <> 'N' THEN 1 END) AS gagal\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n-- SELECT DISTINCT \"SRVC_NM\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n-- SELECT COUNT(*) AS jumlah_baris\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  \"SRVC_NM\" AS \"Fitur\",\r\n  COUNT(*) AS \"Total\",\r\n  COUNT(*) FILTER (\r\n    WHERE\r\n      \"IS_ERR\" = 'N'\r\n  ) AS \"Success\",\r\n  COUNT(*) FILTER (\r\n    WHERE\r\n      \"IS_ERR\" != 'N'\r\n  ) AS \"Reject\",\r\n  ROUND(\r\n    COUNT(*) FILTER (\r\n      WHERE\r\n        \"IS_ERR\" != 'N'\r\n    ) :: numeric / NULLIF(COUNT(*), 0) * 100,\r\n    0\r\n  ) AS \"% Failed\"\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"SRVC_NM\" NOT ILIKE '%Payroll%'\r\n  AND \"SRVC_NM\" NOT ILIKE '%BULK%'\r\n  AND \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom() :: timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo() :: timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\nGROUP BY\r\n  \"SRVC_NM\"\r\nORDER BY\r\n  \"SRVC_NM\";\r\n\r\n",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Single",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Reject": "Failed"
+              }
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "gagal"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sukses"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 49
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Success"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 122
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Reject"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 132
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "% Failed"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 123
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Failed"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 121
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Fitur"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 289
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 14
+        },
+        "id": 15,
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true,
+          "sortBy": [
+            {
+              "desc": true,
+              "displayName": "% Failed"
+            }
+          ]
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\", \"IS_ERR\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n-- SELECT\r\n--     COUNT(CASE WHEN \"IS_ERR\" = 'N' THEN 1 END) AS sukses,\r\n--     COUNT(CASE WHEN \"IS_ERR\" <> 'N' THEN 1 END) AS gagal\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n-- SELECT DISTINCT \"SRVC_NM\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n-- SELECT COUNT(*) AS jumlah_baris\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  \"SRVC_NM\" AS \"Fitur\",\r\n  COUNT(*) AS \"Total\",\r\n  COUNT(*) FILTER (\r\n    WHERE\r\n      \"IS_ERR\" = 'N'\r\n  ) AS \"Success\",\r\n  COUNT(*) FILTER (\r\n    WHERE\r\n      \"IS_ERR\" != 'N'\r\n  ) AS \"Reject\",\r\n  ROUND(\r\n    COUNT(*) FILTER (\r\n      WHERE\r\n        \"IS_ERR\" != 'N'\r\n    ) :: numeric / NULLIF(COUNT(*), 0) * 100,\r\n    0\r\n  ) AS \"% Failed\"\r\nFROM\r\n  \"GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"SRVC_NM\" ILIKE '%BULK%'\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY\r\n  \"SRVC_NM\"\r\nORDER BY\r\n  \"SRVC_NM\";\r\n",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Bulk",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Reject": "Failed"
+              }
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "footer": {
+                "reducers": []
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "gagal"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sukses"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 49
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Success"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 127
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Reject"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 82
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Failed"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 111
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "% Failed"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 119
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Fitur"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 306
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 14
+        },
+        "id": 14,
+        "options": {
+          "cellHeight": "sm",
+          "showHeader": true
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n-- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\", \"IS_ERR\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n-- SELECT\r\n--     COUNT(CASE WHEN \"IS_ERR\" = 'N' THEN 1 END) AS sukses,\r\n--     COUNT(CASE WHEN \"IS_ERR\" <> 'N' THEN 1 END) AS gagal\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n-- SELECT DISTINCT \"SRVC_NM\"\r\n-- FROM \"GCM_AGCM_LOG_ACTV\";\r\n-- SELECT COUNT(*) AS jumlah_baris\r\n-- FROM \"GCM_AGCM_LOG_ACTV\"\r\n-- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\nSELECT\r\n  \"SRVC_NM\" AS \"Fitur\",\r\n  COUNT(*) AS \"Total\",\r\n  COUNT(*) FILTER (\r\n    WHERE\r\n      \"IS_ERR\" = 'N'\r\n  ) AS \"Success\",\r\n  COUNT(*) FILTER (\r\n    WHERE\r\n      \"IS_ERR\" != 'N'\r\n  ) AS \"Reject\",\r\n  ROUND(\r\n    COUNT(*) FILTER (\r\n      WHERE\r\n        \"IS_ERR\" != 'N'\r\n    ) :: numeric / NULLIF(COUNT(*), 0) * 100,\r\n    0\r\n  ) AS \"% Failed\"\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"SRVC_NM\" ILIKE '%Payroll%'\r\n  AND \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\nGROUP BY\r\n  \"SRVC_NM\"\r\nORDER BY\r\n  \"SRVC_NM\";",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Payroll",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Reject": "Failed"
+              }
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisGridShow": false,
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 2,
+              "gradientMode": "opacity",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "smooth",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "semi-dark-red",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "gagal"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sukses"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Success"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Reject"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "% Failed"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Fitur"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ACTN_BY_CUST_ID"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Count_Record"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-orange",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 22
+        },
+        "id": 11,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": false
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT\r\n  \"ACTN_DT\" - INTERVAL '7 hour' AS \"Time\",\r\n  COUNT(*) AS \"Count_Record\"\r\nFROM\r\n  \"bale_korpora_db_GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_BY_CUST_ID\" = '$corp_name'\r\n  AND \"ACTN_DT\" >= ($__timeFrom() :: timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo() :: timestamp + interval '7 hour') \r\n  -- AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\nGROUP BY\r\n  \"ACTN_DT\"\r\nORDER BY\r\n  \"ACTN_DT\" DESC;\r\n  \r\n  -- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 50\r\n  -- SELECT \"ID\", \"ACTN_DT\", \"ACTN_TYP_NM\", \"SRVC_NM\", \"AMT\", \"TRX_STS_CD\", \"IS_ERR\"\r\n  -- FROM \"GCM_AGCM_LOG_ACTV\"\r\n  -- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n  -- SELECT\r\n  --     COUNT(CASE WHEN \"IS_ERR\" = 'N' THEN 1 END) AS sukses,\r\n  --     COUNT(CASE WHEN \"IS_ERR\" <> 'N' THEN 1 END) AS gagal\r\n  -- FROM \"GCM_AGCM_LOG_ACTV\";\r\n  -- SELECT DISTINCT \"SRVC_NM\"\r\n  -- FROM \"GCM_AGCM_LOG_ACTV\";\r\n  -- SELECT COUNT(*) AS jumlah_baris\r\n  -- FROM \"GCM_AGCM_LOG_ACTV\"\r\n  -- WHERE \"ACTN_TYP_NM\" ILIKE '%Execute'\r\n  -- SELECT \r\n  --     \"ACTN_BY_CUST_ID\",\r\n  --     \"SRVC_NM\" AS \"Fitur\",\r\n  --     COUNT(*) AS \"Total\",\r\n  --     COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n  --     COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N') AS \"Reject\",\r\n  --     ROUND(\r\n  --         COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N')::numeric \r\n  --         / NULLIF(COUNT(*),0) * 100, 0\r\n  --     ) AS \"% Failed\"\r\n  -- FROM \"GCM_AGCM_LOG_ACTV\"\r\n  -- WHERE \"SRVC_NM\" NOT ILIKE '%Payroll%' \r\n  -- AND \"SRVC_NM\" NOT ILIKE '%BULK%' AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  -- GROUP BY \r\n  --     \"ACTN_BY_CUST_ID\",\r\n  --     \"SRVC_NM\"\r\n  -- ORDER BY \"SRVC_NM\";",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Trend Total Transaction",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "dffg7sdbqvhfld"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisGridShow": false,
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 2,
+              "gradientMode": "opacity",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "smooth",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "semi-dark-red",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "locale"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "gagal"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sukses"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Success"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Reject"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "% Failed"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Fitur"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ACTN_BY_CUST_ID"
+              },
+              "properties": []
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Count_Record"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 22
+        },
+        "id": 12,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": false
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.2.1",
+        "targets": [
+          {
+            "dataset": "dbs_db",
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "dffg7sdbqvhfld"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Trend Failed Transaction",
+        "type": "timeseries"
+      }
+    ],
+    "preload": false,
+    "schemaVersion": 42,
+    "tags": [
+      "Watchlist"
+    ],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "text": "176PTPJA",
+            "value": "176PTPJA"
+          },
+          "description": "Nama Perusahaan",
+          "label": "Corporation",
+          "name": "corp_name",
+          "options": [
+            {
+              "selected": false,
+              "text": "EDIK",
+              "value": "EDIK"
+            },
+            {
+              "selected": false,
+              "text": "FATMAWATI1",
+              "value": "FATMAWATI1"
+            },
+            {
+              "selected": false,
+              "text": "USU123",
+              "value": "USU123"
+            },
+            {
+              "selected": true,
+              "text": "176PTPJA",
+              "value": "176PTPJA"
+            },
+            {
+              "selected": false,
+              "text": "YAYASANUHN",
+              "value": "YAYASANUHN"
+            }
+          ],
+          "query": "EDIK,\nFATMAWATI1,\nUSU123,\n176PTPJA,\nYAYASANUHN",
+          "type": "custom"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Detail Watchlist Dashboard",
+    "uid": "dbwvbwr",
+    "version": 51
+  }
+  

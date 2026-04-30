@@ -103,7 +103,7 @@ export const appSuccessRate = pgTable(
     bulan: varchar('bulan', { length: 20 }).notNull(),
     tahun: integer('tahun').notNull(),
     jenisTransaksi: varchar('jenis_transaksi', { length: 255 }).notNull(),
-    rc: varchar('rc', { length: 50 }),
+    rc: varchar('rc', { length: 255 }),
     rcDescription: varchar('rc_description', { length: 500 }),
     totalTransaksi: integer('total_transaksi'),
     totalNominal: decimal('total_nominal', { precision: 20, scale: 2 }),
@@ -127,7 +127,7 @@ export const responseCodeDictionary = pgTable(
       .notNull()
       .references(() => appIdentifier.id, { onDelete: 'cascade' }),
     jenisTransaksi: varchar('jenis_transaksi', { length: 255 }),
-    rc: varchar('rc', { length: 50 }),
+    rc: varchar('rc', { length: 255 }),
     rcDescription: varchar('rc_description', { length: 500 }),
     errorType: errorTypeEnum('error_type').notNull(),
   },
@@ -144,7 +144,7 @@ export const unmappedRc = pgTable(
       .notNull()
       .references(() => appIdentifier.id, { onDelete: 'cascade' }),
     jenisTransaksi: varchar('jenis_transaksi', { length: 255 }),
-    rc: varchar('rc', { length: 50 }),
+    rc: varchar('rc', { length: 255 }),
     rcDescription: varchar('rc_description', { length: 500 }),
     statusTransaksi: varchar('status_transaksi', { length: 255 }),
     errorType: errorTypeEnum('error_type'),

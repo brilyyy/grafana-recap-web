@@ -48,37 +48,30 @@ export async function POST(request: NextRequest) {
       // 1. Insert into response_code_dictionary with upsert
       await connection.execute(rcDictUpsertSql, [id_app_identifier, jenis_transaksi || '', rc, error_type])
 
-      // 2. Update all app_success_rate entries that match this RC
-      // This includes:
-      // - Entries with error_type IS NULL (failed status)
-      // - Entries with status_transaksi = 'pending' AND error_type = 'S' (pending status that was defaulted to 'S')
-      // - Entries with status_transaksi = 'suspect' AND error_type = 'S' (suspect status that was defaulted to 'S')
-      // - Entries with status_transaksi = 'cancelled' AND error_type = 'S' (cancelled status that was defaulted to 'S')
-      // Build query based on whether jenis_transaksi is provided
+      // 2. Update every app_success_rate row for the same composite key as dictionary/unmapped row
+      // (aligned with PATCH /api/dictionary/update — no status_transaksi filter)
+      const jt = jenis_transaksi
       let updateQuery: string
       let updateParams: any[]
-      
-      if (jenis_transaksi && jenis_transaksi !== '') {
-        // If jenis_transaksi is provided, match it specifically
+
+      if (jt != null && String(jt).trim() !== '') {
         updateQuery = `UPDATE app_success_rate 
          SET error_type = ?
          WHERE id_app_identifier = ? 
-         AND rc = ? 
-         AND jenis_transaksi = ?
-         AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
-        updateParams = [error_type, id_app_identifier, rc, jenis_transaksi]
+           AND jenis_transaksi = ?
+           AND rc = ?`
+        updateParams = [error_type, id_app_identifier, jt, rc]
       } else {
-        // If jenis_transaksi is not provided, update all RCs regardless of jenis_transaksi
         updateQuery = `UPDATE app_success_rate 
          SET error_type = ?
          WHERE id_app_identifier = ? 
-         AND rc = ?
-         AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
+           AND rc = ?
+           AND (jenis_transaksi IS NULL OR jenis_transaksi = '')`
         updateParams = [error_type, id_app_identifier, rc]
       }
-      
-      const [updateResult]: any = await connection.execute(updateQuery, updateParams)
-      const updatedRows = updateResult.affectedRows || 0
+
+      const [first, second]: any = await connection.execute(updateQuery, updateParams)
+      const updatedRows = first?.affectedRows ?? second?.rowCount ?? 0
 
       // 3. Delete from unmapped_rc
       await connection.execute(

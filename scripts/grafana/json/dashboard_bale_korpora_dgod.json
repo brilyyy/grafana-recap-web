@@ -1,0 +1,1834 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 12,
+      "panels": [],
+      "title": "Bale Korpora",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 9,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS jumlah FROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Trx",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "locale"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "values": [
+            "value"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  ROUND(COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N')) as Sukses,\r\n  ROUND(COUNT(*) FILTER (WHERE \"IS_ERR\" = 'Y')) as Error\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Sukses : Error",
+      "transparent": true,
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              },
+              {
+                "color": "dark-red",
+                "value": 89
+              },
+              {
+                "color": "dark-green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time,\r\n  ROUND(100.0 * COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N')/ COUNT(*), 2) as persentase_sukses\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Persentase Sukses",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time,\r\n  COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') as total_sukses\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Total Trx Sukses",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              },
+              {
+                "color": "dark-green",
+                "value": 0
+              },
+              {
+                "color": "dark-red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time,\r\n  ROUND(100.0 * COUNT(*) FILTER (WHERE \"IS_ERR\" = 'Y')/ COUNT(*), 2) as persentase_sukses\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Persentase Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 17,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time,\r\n  COUNT(*) FILTER (WHERE \"IS_ERR\" = 'Y') as total_sukses\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Total Trx Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 5
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT   date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time, COUNT(*) AS jumlah FROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY time ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": true,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Maximum Total Transaksi (Menit)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 5,
+        "y": 5
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT   date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time, COUNT(*) AS jumlah FROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY time ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": true,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TPM",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyIDR"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 12,
+        "y": 6
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  SUM(\"AMT\") AS volume\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') AND \"IS_ERR\" = 'N' ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Volume Trx Sukses",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyIDR"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 6
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  SUM(\"AMT\") AS volume\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') AND \"IS_ERR\" = 'Y' ",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Volume Trx Failed",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "persentase_sukses"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.showValues",
+                "value": true
+              },
+              {
+                "id": "custom.axisSoftMax"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "jumlah"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 88
+              },
+              {
+                "id": "custom.showValues",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n  date_trunc('minute', \"ACTN_DT\" - interval '7 hour') as time,\r\n  COUNT(*) AS jumlah,\r\n  ROUND(100.0 * COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N')/ COUNT(*), 2) as persentase_sukses\r\nFROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TPM",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERR_MAP_NM"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERR_MAP_CD"
+            },
+            "properties": []
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 10,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"ERR_MAP_CD\", COUNT(\"ERR_MAP_CD\") AS \"Error Map\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  AND \"IS_ERR\" = 'Y'\r\nGROUP BY \"ERR_MAP_CD\"\r\nORDER BY 2 DESC\r\nLIMIT 10",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 Error",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERR_MAP_NM"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERR_MAP_CD"
+            },
+            "properties": []
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"ERR_MAP_CD\", \"ERR_MAP_NM\", \"REF_NO\", \"ACTN_TYP_NM\",\r\n  split_part(\"TRX_STS_NM\", '.', array_length(string_to_array(\"TRX_STS_NM\", '.'), 1)) AS status\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_DT\" >= ($__timeFrom()::timestamp + interval '7 hour')\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp + interval '7 hour')\r\n  AND \"IS_ERR\" = 'Y'\r\nGROUP BY \"ERR_MAP_CD\", 2, 3, 4, 5\r\nORDER BY 2 DESC\r\nLIMIT 50",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": true,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 Error",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6e87zcpurkd"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERR_MAP_NM"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ERR_MAP_CD"
+            },
+            "properties": []
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 11,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"SRVC_NM\", COUNT(\"SRVC_NM\") AS \"Service Name\" FROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp + interval '7 hour') AND \"ACTN_DT\"  <= ($__timeTo()::timestamp + interval '7 hour')  GROUP BY \"SRVC_NM\" ORDER BY 2 DESC LIMIT 10",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "bale_korpora_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6e87zcpurkd"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- \"SRVC_NM\" = service name\r\n-- \"ACTN_DT\" = date -> format 2005-12-24 06:42:04\r\n-- \"ACCT_CCY_CD\" = currency\r\n-- \"AMT\" = amount\r\n-- \"IS_ERR\" = N (ga error)\r\n-- ERR_MAP_CD & ERR_MAP_NM \r\n-- \"ACTN_TYP_NM\" = action_type\r\n-- \"REF_NO\"\r\n\r\n-- \"TRX_STS_CD\" = CODE statusnya\r\n-- \"TRX_STS_NAME\" = transaksi status name\r\n-- 0001 = failoncreation\r\n-- 0002 = pendingapproval\r\n-- 0003 = approvalinprogress\r\n-- 0004 = rejected\r\n-- 0005 = pendingrelease\r\n-- 0006 = expired\r\n-- 0007 = pendingexecute\r\n-- 0008 = cancelled\r\n-- 0010 = inprogress\r\n-- 0011 = executedwithpartialsuccess\r\n-- 0011 = inprogressoffline\r\n-- 0012 = executedsuccessfully\r\n-- 0013 = executedsuccesfully\r\n-- 0013 = executewithfailure\r\n-- 0014 = executedwithpartialsuccess\r\n-- 0014 = executewithfailure\r\n-- 0015 = executionfail\r\n-- 0016 = notexecuted\r\n-- 0017 = failonrecurringcreation\r\n-- 0018 = pendingrepair\r\n-- 008 = cancelled\r\n-- 12 = executedsuccesfully\r\n-- 13 = executewithfailure\r\n\r\n-- CLASS = ActivityLog, FinancialActivityLog, NonFinancialActivityLog",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 Service Name",
+      "type": "barchart"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [
+    "DGOD"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard Bale Korpora DGOD",
+  "uid": "dbgg2zg",
+  "version": 29
+}

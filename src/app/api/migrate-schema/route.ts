@@ -16,7 +16,7 @@ export async function POST() {
       // Update app_success_rate table: rc dan error_type boleh NULL
       await connection.execute(`
         ALTER TABLE app_success_rate 
-        MODIFY COLUMN rc VARCHAR(50) NULL,
+        MODIFY COLUMN rc VARCHAR(255) NULL,
         MODIFY COLUMN error_type ENUM('S', 'N', 'Sukses') NULL
       `)
 

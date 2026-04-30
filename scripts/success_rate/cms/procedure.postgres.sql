@@ -13,7 +13,7 @@ DECLARE
   rec RECORD;
   v_tanggal_transaksi DATE;
   v_jenis_transaksi VARCHAR(255);
-  v_rc VARCHAR(50);
+  v_rc VARCHAR(255);
   v_rc_description VARCHAR(500);
   v_total_transaksi INT;
   v_total_nominal DECIMAL(20,2);
@@ -22,7 +22,7 @@ DECLARE
   v_bulan VARCHAR(20);
   v_tahun INT;
   v_error_type VARCHAR(255);
-  v_normalized_rc VARCHAR(50);
+  v_normalized_rc VARCHAR(255);
   v_normalized_rc_desc VARCHAR(500);
   v_normalized_status VARCHAR(255);
   v_is_rc_empty BOOLEAN;
@@ -51,7 +51,7 @@ BEGIN
     FOR rec IN
       SELECT
         date(a."ACTN_DT")                      AS "Tanggal Transaksi",
-        a."SRVC_NM"                             AS "Jenis Transaksi",
+        COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)') AS "Jenis Transaksi",
         a."ERR_MAP_CD"                          AS "RC",
         a."ERR_MAP_NM"                          AS "RC Description",
         COUNT(DISTINCT a."ID")::INT             AS "Total Transaksi",
@@ -67,11 +67,11 @@ BEGIN
         AND a."ACTN_DT" <= v_end_timestamp
       GROUP BY
         date(a."ACTN_DT"),
-        a."SRVC_NM",
+        COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)'),
         a."ERR_MAP_CD",
         a."ERR_MAP_NM",
         a."IS_ERR"
-      ORDER BY date(a."ACTN_DT"), a."SRVC_NM"
+      ORDER BY date(a."ACTN_DT"), COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)')
     LOOP
       v_records_processed := v_records_processed + 1;
       v_tanggal_transaksi := rec."Tanggal Transaksi";

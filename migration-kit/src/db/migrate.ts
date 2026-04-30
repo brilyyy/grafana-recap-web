@@ -278,7 +278,7 @@ async function runCoreSchema() {
           "bulan"               VARCHAR(20) NOT NULL,
           "tahun"               INTEGER NOT NULL,
           "jenis_transaksi"     VARCHAR(255) NOT NULL,
-          "rc"                  VARCHAR(50),
+          "rc"                  VARCHAR(255),
           "rc_description"      VARCHAR(500),
           "total_transaksi"     INTEGER,
           "total_nominal"       DECIMAL(20,2),
@@ -308,7 +308,7 @@ async function runCoreSchema() {
           "id"                INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
           "id_app_identifier" INTEGER NOT NULL REFERENCES "app_identifier"("id") ON DELETE CASCADE,
           "jenis_transaksi"   VARCHAR(255),
-          "rc"                VARCHAR(50),
+          "rc"                VARCHAR(255),
           "rc_description"    VARCHAR(500),
           "error_type"        "error_type_enum" NOT NULL,
           CONSTRAINT "unique_dictionary_entry" UNIQUE ("id_app_identifier","jenis_transaksi","rc")
@@ -327,7 +327,7 @@ async function runCoreSchema() {
           "id"                INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
           "id_app_identifier" INTEGER NOT NULL REFERENCES "app_identifier"("id") ON DELETE CASCADE,
           "jenis_transaksi"   VARCHAR(255),
-          "rc"                VARCHAR(50),
+          "rc"                VARCHAR(255),
           "rc_description"    VARCHAR(500),
           "status_transaksi"  VARCHAR(255),
           "error_type"        "error_type_enum",
@@ -338,6 +338,18 @@ async function runCoreSchema() {
     console.log('  ✅ unmapped_rc created')
   } else {
     console.log('  ⏭  unmapped_rc exists')
+  }
+
+  // Long RC codes (e.g. GCM ERR_MAP_CD / exception paths) exceed legacy VARCHAR(50)
+  for (const tbl of ['app_success_rate', 'response_code_dictionary', 'unmapped_rc'] as const) {
+    if (await tableExists(tbl)) {
+      try {
+        await exec(`ALTER TABLE "${tbl}" ALTER COLUMN "rc" TYPE VARCHAR(255)`)
+        console.log(`  ✅ ${tbl}.rc → VARCHAR(255)`)
+      } catch (e: unknown) {
+        console.log(`  ⏭  ${tbl}.rc alter skipped: ${(e as Error).message}`)
+      }
+    }
   }
 
   // ── users ─────────────────────────────────────────────────────────────────

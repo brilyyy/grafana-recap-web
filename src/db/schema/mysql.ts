@@ -102,7 +102,7 @@ export const appSuccessRate = mysqlTable(
     bulan: varchar('bulan', { length: 20 }).notNull(),
     tahun: int('tahun').notNull(),
     jenisTransaksi: varchar('jenis_transaksi', { length: 255 }).notNull(),
-    rc: varchar('rc', { length: 50 }),
+    rc: varchar('rc', { length: 255 }),
     rcDescription: varchar('rc_description', { length: 500 }),
     totalTransaksi: int('total_transaksi'),
     totalNominal: decimal('total_nominal', { precision: 20, scale: 2 }),
@@ -126,7 +126,7 @@ export const responseCodeDictionary = mysqlTable(
       .notNull()
       .references(() => appIdentifier.id, { onDelete: 'cascade' }),
     jenisTransaksi: varchar('jenis_transaksi', { length: 255 }),
-    rc: varchar('rc', { length: 50 }),
+    rc: varchar('rc', { length: 255 }),
     rcDescription: varchar('rc_description', { length: 500 }),
     errorType: mysqlEnum('error_type', errorTypeEnum).notNull(),
   },
@@ -143,7 +143,7 @@ export const unmappedRc = mysqlTable(
       .notNull()
       .references(() => appIdentifier.id, { onDelete: 'cascade' }),
     jenisTransaksi: varchar('jenis_transaksi', { length: 255 }),
-    rc: varchar('rc', { length: 50 }),
+    rc: varchar('rc', { length: 255 }),
     rcDescription: varchar('rc_description', { length: 500 }),
     statusTransaksi: varchar('status_transaksi', { length: 255 }),
     errorType: mysqlEnum('error_type', errorTypeEnum),

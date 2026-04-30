@@ -65,19 +65,31 @@ export async function PATCH(request: NextRequest) {
         [error_type, id]
       )
 
-      // Also update all app_success_rate entries that match this dictionary entry
-      // and have NULL error_type
-      const [updateResult]: any = await connection.execute(
-        `UPDATE app_success_rate 
+      // Propagate to every app_success_rate row with the same composite key as this dictionary row
+      const jt = entry.jenis_transaksi
+      let updateQuery: string
+      let updateParams: any[]
+
+      if (jt != null && String(jt).trim() !== '') {
+        updateQuery = `UPDATE app_success_rate 
          SET error_type = ? 
          WHERE id_app_identifier = ? 
-           AND jenis_transaksi = ? 
-           AND rc = ? 
-           AND error_type IS NULL`,
-        [error_type, entry.id_app_identifier, entry.jenis_transaksi, entry.rc]
-      )
-      
-      const updatedRows = updateResult.affectedRows || 0
+           AND jenis_transaksi = ?
+           AND rc = ?`
+        updateParams = [error_type, entry.id_app_identifier, jt, entry.rc]
+      } else {
+        // Dictionary key uses empty / NULL jenis — match success-rate rows with no jenis set
+        updateQuery = `UPDATE app_success_rate 
+         SET error_type = ? 
+         WHERE id_app_identifier = ? 
+           AND rc = ?
+           AND (jenis_transaksi IS NULL OR jenis_transaksi = '')`
+        updateParams = [error_type, entry.id_app_identifier, entry.rc]
+      }
+
+      const [first, second]: any = await connection.execute(updateQuery, updateParams)
+      // MySQL: affectedRows on first (ResultSetHeader); Postgres: rowCount on second (query result)
+      const updatedRows = first?.affectedRows ?? second?.rowCount ?? 0
 
       // Log audit event
       await logAuditEvent(

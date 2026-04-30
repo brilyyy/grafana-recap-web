@@ -14,7 +14,7 @@ BEGIN
   DECLARE v_done INT DEFAULT 0;
   DECLARE v_tanggal_transaksi DATE;
   DECLARE v_jenis_transaksi VARCHAR(255);
-  DECLARE v_rc VARCHAR(50);
+  DECLARE v_rc VARCHAR(255);
   DECLARE v_rc_description VARCHAR(500);
   DECLARE v_total_transaksi INT;
   DECLARE v_total_nominal DECIMAL(20,2);
@@ -23,7 +23,7 @@ BEGIN
   DECLARE v_bulan VARCHAR(20);
   DECLARE v_tahun INT;
   DECLARE v_error_type VARCHAR(255);
-  DECLARE v_normalized_rc VARCHAR(50);
+  DECLARE v_normalized_rc VARCHAR(255);
   DECLARE v_normalized_rc_desc VARCHAR(500);
   DECLARE v_normalized_status VARCHAR(255);
   DECLARE v_is_rc_empty BOOLEAN;
@@ -32,7 +32,7 @@ BEGIN
   DECLARE cur_bale_korpora_data CURSOR FOR
     SELECT
       DATE(a.ACTN_DT)                     AS `Tanggal Transaksi`,
-      a.SRVC_NM                           AS `Jenis Transaksi`,
+      COALESCE(NULLIF(TRIM(COALESCE(a.SRVC_NM, '')), ''), '(tidak ada jenis transaksi)') AS `Jenis Transaksi`,
       a.ERR_MAP_CD                        AS `RC`,
       a.ERR_MAP_NM                        AS `RC Description`,
       COUNT(DISTINCT a.ID)                AS `Total Transaksi`,
@@ -48,11 +48,11 @@ BEGIN
       AND a.ACTN_DT <= v_end_timestamp
     GROUP BY
       DATE(a.ACTN_DT),
-      a.SRVC_NM,
+      COALESCE(NULLIF(TRIM(COALESCE(a.SRVC_NM, '')), ''), '(tidak ada jenis transaksi)'),
       a.ERR_MAP_CD,
       a.ERR_MAP_NM,
       a.IS_ERR
-    ORDER BY DATE(a.ACTN_DT), a.SRVC_NM;
+    ORDER BY DATE(a.ACTN_DT), COALESCE(NULLIF(TRIM(COALESCE(a.SRVC_NM, '')), ''), '(tidak ada jenis transaksi)');
 
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
