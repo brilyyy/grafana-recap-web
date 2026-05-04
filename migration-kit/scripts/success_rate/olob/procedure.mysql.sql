@@ -1,4 +1,4 @@
-﻿-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
+-- DEPRECATED: MySQL not supported for new work. Use the .postgres.sql variant.
 
 CREATE PROCEDURE sp_process_olob_daily(IN p_processing_date DATE)
 MODIFIES SQL DATA
@@ -130,7 +130,7 @@ BEGIN
             SET v_done = 0;
             IF v_error_type IS NULL THEN
               INSERT IGNORE INTO unmapped_rc (id_app_identifier,jenis_transaksi,rc,rc_description,status_transaksi,error_type)
-              VALUES (v_app_id,v_jenis_transaksi,v_normalized_rc,v_rc_description,v_rc,NULL);
+              VALUES (v_app_id,v_jenis_transaksi,IFNULL(v_normalized_rc,''),IFNULL(v_rc_description,''),v_rc,NULL);
             END IF;
           END IF;
           IF v_is_rc_empty THEN
@@ -141,7 +141,7 @@ BEGIN
             id_app_identifier,tanggal_transaksi,bulan,tahun,jenis_transaksi,rc,rc_description,
             total_transaksi,total_nominal,total_biaya_admin,status_transaksi,error_type
           ) VALUES (
-            v_app_id,v_tanggal_transaksi,v_bulan,v_tahun,v_jenis_transaksi,v_normalized_rc,v_rc_description,
+            v_app_id,v_tanggal_transaksi,v_bulan,v_tahun,v_jenis_transaksi,IFNULL(v_normalized_rc,''),IFNULL(v_rc_description,''),
             v_total_transaksi,0,0,v_rc,v_error_type
           );
           SET v_records_inserted = v_records_inserted + 1;

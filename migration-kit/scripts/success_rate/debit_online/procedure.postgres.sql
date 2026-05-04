@@ -92,7 +92,7 @@ BEGIN
         LIMIT 1;
         IF v_error_type IS NULL THEN
           INSERT INTO unmapped_rc (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
-          VALUES (v_app_id, v_jenis_transaksi, v_normalized_rc, v_rc_description, NULL, NULL)
+          VALUES (v_app_id, v_jenis_transaksi, COALESCE(v_normalized_rc, ''), COALESCE(v_rc_description, ''), NULL, NULL)
           ON CONFLICT (id_app_identifier, jenis_transaksi, rc) DO NOTHING;
         END IF;
       END IF;
@@ -104,7 +104,7 @@ BEGIN
         id_app_identifier, tanggal_transaksi, bulan, tahun, jenis_transaksi, rc, rc_description,
         total_transaksi, total_nominal, total_biaya_admin, status_transaksi, error_type
       ) VALUES (
-        v_app_id, v_tanggal_transaksi, v_bulan, v_tahun, v_jenis_transaksi, v_normalized_rc, v_rc_description,
+        v_app_id, v_tanggal_transaksi, v_bulan, v_tahun, v_jenis_transaksi, COALESCE(v_normalized_rc, ''), COALESCE(v_rc_description, ''),
         v_total_transaksi, v_total_nominal, 0, NULL, v_error_type::error_type_enum
       );
       v_records_inserted := v_records_inserted + 1;

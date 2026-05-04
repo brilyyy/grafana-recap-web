@@ -49,7 +49,7 @@ interface AuditStats {
   topUsers: Array<{ username: string; count: number }>
 }
 
-type TabType = 'users' | 'audit-logs' | 'app-processing' | 'daily-recaps' | 'app-config' | 'housekeeping'
+type TabType = 'users' | 'audit-logs' | 'app-processing' | 'job-list' | 'app-config' | 'housekeeping'
 
 export default function SuperadminPage() {
   const router = useRouter()
@@ -151,7 +151,7 @@ export default function SuperadminPage() {
       enabled: !!(
         isAuthenticated &&
         userRole === 'superadmin' &&
-        (activeTab === 'daily-recaps' || activeTab === 'app-processing')
+        (activeTab === 'job-list' || activeTab === 'app-processing')
       ),
     })
   const recapTriggerMutation = trpc.recap.triggerManual.useMutation({
@@ -610,14 +610,14 @@ export default function SuperadminPage() {
             Application Data Processing
           </button>
           <button
-            onClick={() => setActiveTab('daily-recaps')}
+            onClick={() => setActiveTab('job-list')}
             className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'daily-recaps'
+              activeTab === 'job-list'
                 ? 'text-white border-b-2 border-blue-400'
                 : 'text-white/70 hover:text-white'
             }`}
           >
-            Daily recaps
+            Job List
           </button>
           <button
             onClick={() => setActiveTab('app-config')}
@@ -1570,11 +1570,11 @@ export default function SuperadminPage() {
           </div>
         )}
 
-        {/* Daily recaps catalog (success rate + custom models) */}
-        {activeTab === 'daily-recaps' && (
+        {/* Job list: schedulable recap jobs (success rate + custom models) */}
+        {activeTab === 'job-list' && (
           <div className="space-y-6">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <h3 className="text-lg font-semibold text-white mb-2">Daily recaps</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Job List</h3>
               <p className="text-white/70 text-sm mb-2">
                 All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and representative query text.
                 Use <strong className="text-white">Application Data Processing</strong> with the same job to inspect calendar logs.
@@ -1591,7 +1591,6 @@ export default function SuperadminPage() {
                       <th className="px-3 py-2">Kind</th>
                       <th className="px-3 py-2">Output table</th>
                       <th className="px-3 py-2">Schedule (env)</th>
-                      <th className="px-3 py-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1599,7 +1598,8 @@ export default function SuperadminPage() {
                       Array.from({ length: 8 }).map((_, i) => (
                         <tr key={`recap-catalog-skeleton-${i}`} className="border-t border-white/10">
                           <td className="px-3 py-2">
-                            <div className="h-4 w-40 max-w-full rounded bg-white/20 animate-pulse" />
+                            <div className="h-4 w-40 max-w-full rounded bg-white/20 animate-pulse mb-2" />
+                            <div className="h-7 w-[11rem] max-w-full rounded bg-white/15 animate-pulse" />
                           </td>
                           <td className="px-3 py-2">
                             <div className="h-3 w-28 rounded bg-white/20 animate-pulse" />
@@ -1614,10 +1614,6 @@ export default function SuperadminPage() {
                             <div className="h-3 w-36 rounded bg-white/20 animate-pulse mb-1" />
                             <div className="h-2 w-24 rounded bg-white/10 animate-pulse" />
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="h-7 w-[11rem] max-w-full rounded bg-white/20 animate-pulse mb-1" />
-                            <div className="h-6 w-28 rounded bg-white/15 animate-pulse" />
-                          </td>
                         </tr>
                       ))
                     ) : (
@@ -1629,19 +1625,12 @@ export default function SuperadminPage() {
                               setRecapExpandedId((id) => (id === row.id ? null : row.id))
                             }
                           >
-                            <td className="px-3 py-2 text-white font-medium">{row.title}</td>
-                            <td className="px-3 py-2 text-white/90 font-mono text-xs">{row.id}</td>
-                            <td className="px-3 py-2 text-white/80">{row.recapKind}</td>
-                            <td className="px-3 py-2 text-white/80 font-mono text-xs">{row.outputTable}</td>
-                            <td className="px-3 py-2 text-white/70 text-xs">
-                              {row.scheduleEnvVar ?? '—'}
-                              <br />
-                              <span className="text-white/50">
-                                {(row as { scheduleCronResolved?: string }).scheduleCronResolved ?? ''}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2">
-                              <div className="flex flex-col gap-1 items-start" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-3 py-2 text-white">
+                              <div className="font-medium">{row.title}</div>
+                              <div
+                                className="mt-2 flex flex-wrap items-center gap-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <input
                                   type="date"
                                   className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs max-w-[11rem]"
@@ -1669,10 +1658,20 @@ export default function SuperadminPage() {
                                 </button>
                               </div>
                             </td>
+                            <td className="px-3 py-2 text-white/90 font-mono text-xs">{row.id}</td>
+                            <td className="px-3 py-2 text-white/80">{row.recapKind}</td>
+                            <td className="px-3 py-2 text-white/80 font-mono text-xs">{row.outputTable}</td>
+                            <td className="px-3 py-2 text-white/70 text-xs">
+                              {row.scheduleEnvVar ?? '—'}
+                              <br />
+                              <span className="text-white/50">
+                                {(row as { scheduleCronResolved?: string }).scheduleCronResolved ?? ''}
+                              </span>
+                            </td>
                           </tr>
                           {recapExpandedId === row.id && (
                             <tr className="bg-black/20">
-                              <td colSpan={6} className="px-4 py-3 text-white/90">
+                              <td colSpan={5} className="px-4 py-3 text-white/90">
                                 <p className="text-sm mb-2">{row.description}</p>
                                 <p className="text-xs text-white/70 mb-2">{row.briefProcessSummary}</p>
                                 <p className="text-xs text-white/50 mb-1">

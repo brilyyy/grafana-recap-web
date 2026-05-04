@@ -1,0 +1,22 @@
+{
+  "name": "dashboard-grafana-migration-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone migration runner for production server",
+  "scripts": {
+    "migrate": "tsx src/db/migrate.ts",
+    "migrate:schema": "tsx src/db/migrate.ts --schema-only",
+    "migrate:procedures": "tsx src/db/migrate.ts --procedures-only",
+    "migrate:cron": "tsx src/db/migrate.ts --cron-only",
+    "migrate:seed": "tsx src/db/migrate.ts --seed-only",
+    "migrate:fdw": "tsx src/db/migrate.ts --fdw-only"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.11.5",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

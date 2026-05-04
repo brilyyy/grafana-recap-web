@@ -110,7 +110,7 @@ BEGIN
         LIMIT 1;
         IF v_error_type IS NULL THEN
           INSERT INTO unmapped_rc (id_app_identifier, jenis_transaksi, rc, rc_description, status_transaksi, error_type)
-          VALUES (v_app_id, v_jenis_transaksi, v_normalized_rc, v_rc_description, v_status_transaksi, NULL)
+          VALUES (v_app_id, v_jenis_transaksi, v_normalized_rc, COALESCE(v_rc_description, ''), v_status_transaksi, NULL)
           ON CONFLICT (id_app_identifier, jenis_transaksi, rc) DO NOTHING;
         END IF;
       END IF;
@@ -139,8 +139,8 @@ BEGIN
         rec.tanggal_transaksi,
         rec.corp_id,
         v_jenis_transaksi,
-        v_normalized_rc,
-        v_rc_description,
+        COALESCE(v_normalized_rc, ''),
+        COALESCE(v_rc_description, ''),
         v_total_transaksi,
         v_total_nominal,
         v_status_transaksi,
