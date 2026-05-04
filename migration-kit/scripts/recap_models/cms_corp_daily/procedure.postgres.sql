@@ -48,34 +48,36 @@ BEGIN
     DELETE FROM recap_cms_corp_daily
     WHERE id_app_identifier = v_app_id AND tanggal_transaksi = v_processing_date;
 
+    -- Rollup grain: (tanggal, ACTN_BY_CUST_ID as corp_id, jenis, ERR_MAP_*, IS_ERR) — same base keys as
+    -- sp_process_cms_daily plus COALESCE(ACTN_BY_CUST_ID) for per-corporation daily rows.
     FOR rec IN
-      SELECT
-        date(a."ACTN_DT") AS tanggal_transaksi,
-        COALESCE(NULLIF(BTRIM(a."ACTN_BY_CUST_ID"::text), ''), '(unknown)') AS corp_id,
-        COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)') AS jenis_transaksi,
-        COALESCE(a."ERR_MAP_CD"::text, '') AS rc,
-        COALESCE(a."ERR_MAP_NM"::text, '') AS rc_description,
-        COUNT(DISTINCT a."ID")::INT AS total_transaksi,
-        COALESCE(SUM(a."AMT"), 0)::DECIMAL(20, 2) AS total_nominal,
-        CASE
-          WHEN a."IS_ERR" = 'N' THEN 'Sukses'
-          WHEN a."IS_ERR" = 'Y' THEN 'Gagal'
-          ELSE 'Status Tidak Dikenal'
-        END AS status_transaksi
-      FROM "cms_db_GCM_AGCM_LOG_ACTV" a
-      WHERE a."ACTN_DT" >= v_start_timestamp
-        AND a."ACTN_DT" <= v_end_timestamp
-      GROUP BY
-        date(a."ACTN_DT"),
-        COALESCE(NULLIF(BTRIM(a."ACTN_BY_CUST_ID"::text), ''), '(unknown)'),
-        COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)'),
-        COALESCE(a."ERR_MAP_CD"::text, ''),
-        COALESCE(a."ERR_MAP_NM"::text, ''),
-        CASE
-          WHEN a."IS_ERR" = 'N' THEN 'Sukses'
-          WHEN a."IS_ERR" = 'Y' THEN 'Gagal'
-          ELSE 'Status Tidak Dikenal'
-        END
+      SELECT *
+      FROM (
+        SELECT
+          date(a."ACTN_DT") AS tanggal_transaksi,
+          COALESCE(NULLIF(BTRIM(a."ACTN_BY_CUST_ID"::text), ''), '(unknown)') AS corp_id,
+          COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)') AS jenis_transaksi,
+          a."ERR_MAP_CD"::text AS rc,
+          a."ERR_MAP_NM"::text AS rc_description,
+          COUNT(DISTINCT a."ID")::INT AS total_transaksi,
+          COALESCE(SUM(a."AMT"), 0)::DECIMAL(20, 2) AS total_nominal,
+          CASE
+            WHEN a."IS_ERR" = 'N' THEN 'Sukses'
+            WHEN a."IS_ERR" = 'Y' THEN 'Gagal'
+            ELSE 'Status Tidak Dikenal'
+          END AS status_transaksi
+        FROM "cms_db_GCM_AGCM_LOG_ACTV" a
+        WHERE a."ACTN_DT" >= v_start_timestamp
+          AND a."ACTN_DT" <= v_end_timestamp
+        GROUP BY
+          date(a."ACTN_DT"),
+          COALESCE(NULLIF(BTRIM(a."ACTN_BY_CUST_ID"::text), ''), '(unknown)'),
+          COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)'),
+          a."ERR_MAP_CD",
+          a."ERR_MAP_NM",
+          a."IS_ERR"
+      ) AS cms_corp_rollup
+      ORDER BY cms_corp_rollup.corp_id, cms_corp_rollup.jenis_transaksi
     LOOP
       v_records_processed := v_records_processed + 1;
       v_jenis_transaksi := rec.jenis_transaksi;

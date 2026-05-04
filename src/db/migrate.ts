@@ -692,6 +692,11 @@ async function runRecapModelTables() {
     'id_app_identifier',
     'tanggal_transaksi',
   ])
+  await createIndexSafely('idx_recap_cms_corp_daily_app_date_corp', 'recap_cms_corp_daily', [
+    'id_app_identifier',
+    'tanggal_transaksi',
+    'corp_id',
+  ])
 
   console.log('  ✅ Phase 3b done')
 }

@@ -60,7 +60,7 @@ function successRateEntries(): RecapCatalogEntry[] {
 
 const CMS_CORP_BRIEF_QUERY = `FROM "cms_db_GCM_AGCM_LOG_ACTV" a
 WHERE a."ACTN_DT" >= v_start_timestamp AND a."ACTN_DT" <= v_end_timestamp
-GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (normalized), jenis_transaksi, RC, RC description, status_transaksi
+GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (as corp_id), jenis_transaksi, ERR_MAP_CD, ERR_MAP_NM, IS_ERR (same split as CMS success rate, plus per-corp)
 → COUNT(DISTINCT ID), SUM(AMT). Full SQL: scripts/recap_models/cms_corp_daily/raw.postgres.sql.`
 
 function customRecapEntries(): RecapCatalogEntry[] {
@@ -74,7 +74,7 @@ function customRecapEntries(): RecapCatalogEntry[] {
         description:
           'Aggregates CMS activity log by corporation, jenis transaksi, RC, status, and error_type per day into recap_cms_corp_daily.',
         briefProcessSummary:
-          'For the processing date, deletes prior CMS rows for that day in recap_cms_corp_daily, rolls up cms_db_GCM_AGCM_LOG_ACTV with the same grain as the representative raw query, and inserts one row per (CORP, jenis, RC, deskripsi RC, status). error_type is resolved like CMS daily success rate: normalized RC, lookup in response_code_dictionary for the CMS app identifier, unmapped_rc when missing, with rc stored normalized.',
+          'For the processing date, deletes prior CMS rows for that day in recap_cms_corp_daily, rolls up cms_db_GCM_AGCM_LOG_ACTV one row per corporation (ACTN_BY_CUST_ID), day, jenis, RC, RC description, and IS_ERR—aligned with CMS daily success rate plus corp_id. error_type matches sp_process_cms_daily (dictionary, unmapped_rc, normalized rc).',
         briefQuery: CMS_CORP_BRIEF_QUERY,
         outputTable: 'recap_cms_corp_daily',
         functionName: m.functionName,
