@@ -172,12 +172,14 @@ export const appProcessingLog = pgTable(
     recordsSkipped: integer('records_skipped').default(0),
     errorMessage: text('error_message'),
     recapKind: varchar('recap_kind', { length: 64 }).notNull().default('success_rate_daily'),
+    catalogEntryId: varchar('catalog_entry_id', { length: 128 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (t) => ({
     appDateIdx: index('idx_app_processing_date').on(t.appName, t.processingDate),
     statusIdx: index('idx_apl_status').on(t.status, t.createdAt),
     processingDateIdx: index('idx_app_processing_log_processing_date').on(t.processingDate),
+    catalogEntryDateIdx: index('idx_apl_catalog_entry_date').on(t.catalogEntryId, t.processingDate),
   })
 )
 

@@ -92,8 +92,6 @@ export default function SuperadminPage() {
   })
 
   // Application Data Processing State
-  const [applications, setApplications] = useState<Array<{ id: number; app_name: string }>>([])
-  const [applicationsLoading, setApplicationsLoading] = useState(true)
   const [processingLogs, setProcessingLogs] = useState<Array<{
     id: number
     app_name: string
@@ -104,14 +102,16 @@ export default function SuperadminPage() {
     start_time: string
     end_time: string | null
     error_message: string | null
+    recap_kind: string
+    catalog_entry_id: string | null
   }>>([])
   const [processingLogsLoading, setProcessingLogsLoading] = useState(false)
   const [processingFilters, setProcessingFilters] = useState({
-    app_name: '',
+    catalog_entry_id: '',
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
-    recap_kind: 'success_rate_daily',
   })
+  const [processingJobSearch, setProcessingJobSearch] = useState('')
   const [processingStates, setProcessingStates] = useState<{
     [date: string]: { loading: boolean; error: string | null }
   }>({})
@@ -148,7 +148,11 @@ export default function SuperadminPage() {
 
   const { data: recapCatalogData, isLoading: recapCatalogLoading, refetch: refetchRecapCatalog } =
     trpc.recap.listCatalog.useQuery(undefined, {
-      enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'daily-recaps'),
+      enabled: !!(
+        isAuthenticated &&
+        userRole === 'superadmin' &&
+        (activeTab === 'daily-recaps' || activeTab === 'app-processing')
+      ),
     })
   const recapTriggerMutation = trpc.recap.triggerManual.useMutation({
     onSuccess: () => refetchRecapCatalog(),
@@ -178,22 +182,37 @@ export default function SuperadminPage() {
       } else if (activeTab === 'audit-logs') {
         fetchAuditLogs()
         fetchStats()
-      } else if (activeTab === 'app-processing') {
-        fetchApplications()
       }
     }
   }, [isAuthenticated, userRole, activeTab, usersPage, usersFilters, auditPage, auditFilters])
 
   useEffect(() => {
     if (activeTab !== 'app-processing') return
-    if (!processingFilters.app_name) {
+    const entries = recapCatalogData?.data ?? []
+    if (!entries.length) {
       setProcessingLogs([])
       return
     }
-    if (processingFilters.app_name && processingFilters.month && processingFilters.year) {
+
+    if (
+      !processingFilters.catalog_entry_id ||
+      !entries.some((entry) => entry.id === processingFilters.catalog_entry_id)
+    ) {
+      setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: entries[0].id }))
+      return
+    }
+
+    if (processingFilters.month && processingFilters.year) {
       fetchProcessingLogs()
     }
-  }, [activeTab, processingFilters.app_name, processingFilters.month, processingFilters.year, processingFilters.recap_kind])
+  }, [activeTab, recapCatalogData, processingFilters.catalog_entry_id, processingFilters.month, processingFilters.year])
+
+  useEffect(() => {
+    if (activeTab !== 'app-processing') return
+    if (!processingFilters.catalog_entry_id) {
+      setProcessingLogs([])
+    }
+  }, [activeTab, processingFilters.catalog_entry_id])
 
   // User Management Functions
   const fetchUsers = async () => {
@@ -368,34 +387,17 @@ export default function SuperadminPage() {
   }
 
   // Application Data Processing Functions
-  const fetchApplications = async () => {
-    try {
-      setApplicationsLoading(true)
-      const response = await fetch('/api/applications')
-      const data = await response.json()
-
-      if (data.success) {
-        setApplications(data.data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching applications:', error)
-    } finally {
-      setApplicationsLoading(false)
-    }
-  }
-
   const fetchProcessingLogs = async () => {
-    if (!processingFilters.app_name || !processingFilters.month || !processingFilters.year) {
+    if (!processingFilters.catalog_entry_id || !processingFilters.month || !processingFilters.year) {
       return
     }
 
     try {
       setProcessingLogsLoading(true)
       const params = new URLSearchParams({
-        app_name: processingFilters.app_name,
+        catalog_entry_id: processingFilters.catalog_entry_id,
         month: processingFilters.month.toString(),
         year: processingFilters.year.toString(),
-        recap_kind: processingFilters.recap_kind,
       })
 
       const response = await fetch(`/api/processing-logs?${params}`)
@@ -434,7 +436,12 @@ export default function SuperadminPage() {
     })
   }
 
-  const handleDateProcessing = async (appName: string, date: string) => {
+  const handleDateProcessing = async (date: string) => {
+    if (!processingFilters.catalog_entry_id) {
+      alert('Please select a job before processing data.')
+      return
+    }
+
     // Validate date: cannot process future dates or current date
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -453,19 +460,12 @@ export default function SuperadminPage() {
     }))
 
     try {
-      const appKey = appName.toLowerCase().trim().replace(/[\s\-.]+/g, '_').replace(/[^a-z0-9_]/g, '')
-      const catalogEntryId =
-        processingFilters.recap_kind === 'cms_corp_daily'
-          ? 'cms_corp_daily'
-          : `sr:${appKey}`
-
       const response = await fetch('/api/processing/process-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          app_name: appName,
           date: date,
-          catalogEntryId,
+          catalogEntryId: processingFilters.catalog_entry_id,
         }),
       })
 
@@ -524,6 +524,19 @@ export default function SuperadminPage() {
     acc[log.processing_date] = log
     return acc
   }, {} as Record<string, typeof processingLogs[0]>)
+  const processingCatalogEntries = recapCatalogData?.data ?? []
+  const processingJobSearchTerm = processingJobSearch.trim().toLowerCase()
+  const filteredProcessingCatalogEntries = processingCatalogEntries.filter((entry) => {
+    if (!processingJobSearchTerm) return true
+    return (
+      entry.title.toLowerCase().includes(processingJobSearchTerm) ||
+      entry.id.toLowerCase().includes(processingJobSearchTerm) ||
+      entry.outputTable.toLowerCase().includes(processingJobSearchTerm)
+    )
+  })
+  const selectedProcessingJob = processingCatalogEntries.find(
+    (entry) => entry.id === processingFilters.catalog_entry_id,
+  )
 
   if (isAuthenticated === null) {
     return (
@@ -1071,7 +1084,7 @@ export default function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Application Data Processing</h3>
               <p className="text-white/70 text-sm mb-4">
-                View application data processing logs by selecting an application, month, and year.
+                View processing logs by selecting a job, month, and year.
               </p>
             </div>
 
@@ -1079,36 +1092,6 @@ export default function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Filters</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">App Name</label>
-                  {applicationsLoading ? (
-                    <div className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white/50 text-sm">
-                      Loading...
-                    </div>
-                  ) : (
-                    <select
-                      value={processingFilters.app_name}
-                      onChange={(e) => {
-                        setProcessingFilters((prev) => ({ ...prev, app_name: e.target.value }))
-                      }}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{ colorScheme: 'dark' }}
-                    >
-                      <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
-                        Select Application
-                      </option>
-                      {applications.map((app) => (
-                        <option 
-                          key={app.id} 
-                          value={app.app_name} 
-                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
-                        >
-                          {app.app_name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
                 <div>
                   <label className="block text-sm text-white/70 mb-1">Month</label>
                   <select
@@ -1157,29 +1140,58 @@ export default function SuperadminPage() {
                     })}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">Recap kind</label>
-                  <select
-                    value={processingFilters.recap_kind}
-                    onChange={(e) => {
-                      setProcessingFilters((prev) => ({ ...prev, recap_kind: e.target.value }))
-                    }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    style={{ colorScheme: 'dark' }}
-                  >
-                    <option value="success_rate_daily" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
-                      success_rate_daily
-                    </option>
-                    <option value="cms_corp_daily" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
-                      cms_corp_daily
-                    </option>
-                  </select>
+                <div className="lg:col-span-2">
+                  <label className="block text-sm text-white/70 mb-1">Search job</label>
+                  <input
+                    type="text"
+                    value={processingJobSearch}
+                    onChange={(e) => setProcessingJobSearch(e.target.value)}
+                    placeholder="Search by job title, ID, or output table"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="md:col-span-2 lg:col-span-4">
+                  <label className="block text-sm text-white/70 mb-1">Job</label>
+                  {recapCatalogLoading ? (
+                    <div className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white/50 text-sm">
+                      Loading jobs...
+                    </div>
+                  ) : (
+                    <select
+                      value={processingFilters.catalog_entry_id}
+                      onChange={(e) => {
+                        setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: e.target.value }))
+                      }}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ colorScheme: 'dark' }}
+                    >
+                      <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                        Select Job
+                      </option>
+                      {filteredProcessingCatalogEntries.map((entry) => (
+                        <option
+                          key={entry.id}
+                          value={entry.id}
+                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
+                        >
+                          {entry.title} ({entry.id})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {selectedProcessingJob && (
+                    <p className="mt-2 text-xs text-white/50">
+                      Output: <span className="font-mono text-white/70">{selectedProcessingJob.outputTable}</span>
+                      {' · '}
+                      Function: <span className="font-mono text-white/70">{selectedProcessingJob.functionName}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Processing Results */}
-            {processingFilters.app_name ? (
+            {processingFilters.catalog_entry_id ? (
               (() => {
                 const allDates = getAllDatesInMonth(processingFilters.month, processingFilters.year)
                 const today = new Date()
@@ -1426,7 +1438,7 @@ export default function SuperadminPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleDateProcessing(processingFilters.app_name, dateStr)
+                                      handleDateProcessing(dateStr)
                                     }}
                                     disabled={processingState.loading}
                                     className={`w-full bg-gradient-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
@@ -1552,7 +1564,7 @@ export default function SuperadminPage() {
               })()
             ) : (
               <div className="p-8 text-center text-white/70">
-                Select an application to view processing logs
+                Select a job to view processing logs
               </div>
             )}
           </div>
@@ -1565,8 +1577,7 @@ export default function SuperadminPage() {
               <h3 className="text-lg font-semibold text-white mb-2">Daily recaps</h3>
               <p className="text-white/70 text-sm mb-2">
                 All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and representative query text.
-                Use <strong className="text-white">Application Data Processing</strong> with the same{' '}
-                <strong className="text-white">Recap kind</strong> filter to inspect calendar logs.
+                Use <strong className="text-white">Application Data Processing</strong> with the same job to inspect calendar logs.
               </p>
             </div>
 
@@ -1687,7 +1698,7 @@ export default function SuperadminPage() {
                 </div>
                 {!recapCatalogLoading && recapTriggerMutation.isError && (
                   <p className="p-3 text-red-300 text-sm">
-                    {(recapTriggerMutation.error as Error)?.message ?? 'Trigger failed'}
+                    {recapTriggerMutation.error?.message ?? 'Trigger failed'}
                   </p>
                 )}
                 {!recapCatalogLoading && recapTriggerMutation.isSuccess && recapTriggerMutation.data?.data && (

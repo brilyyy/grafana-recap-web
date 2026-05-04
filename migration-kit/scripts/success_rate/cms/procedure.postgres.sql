@@ -41,8 +41,8 @@ BEGIN
     RAISE EXCEPTION 'Application CMS not found in app_identifier table';
   END IF;
 
-  INSERT INTO app_processing_log (app_name, id_app_identifier, processing_date, start_time, status)
-  VALUES (v_app_name, v_app_id, v_processing_date, NOW(), 'running')
+  INSERT INTO app_processing_log (app_name, id_app_identifier, processing_date, start_time, status, catalog_entry_id)
+  VALUES (v_app_name, v_app_id, v_processing_date, NOW(), 'running', 'sr:cms')
   RETURNING id INTO v_log_id;
 
   BEGIN

@@ -60,7 +60,7 @@ function successRateEntries(): RecapCatalogEntry[] {
 
 const CMS_CORP_BRIEF_QUERY = `FROM "cms_db_GCM_AGCM_LOG_ACTV" a
 WHERE a."ACTN_DT" >= v_start_timestamp AND a."ACTN_DT" <= v_end_timestamp
-GROUP BY date(a."ACTN_DT"), corp_id (normalized), jenis_transaksi, RC, RC description, status_transaksi
+GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (normalized), jenis_transaksi, RC, RC description, status_transaksi
 → COUNT(DISTINCT ID), SUM(AMT). Full SQL: scripts/recap_models/cms_corp_daily/raw.postgres.sql.`
 
 function customRecapEntries(): RecapCatalogEntry[] {
@@ -70,11 +70,11 @@ function customRecapEntries(): RecapCatalogEntry[] {
       out.push({
         id: 'cms_corp_daily',
         recapKind: 'cms_corp_daily',
-        title: 'CMS — daily recap by CORP_ID (dimensional)',
+        title: 'CMS — daily recap by ACTN_BY_CUST_ID (dimensional)',
         description:
-          'Aggregates CMS activity log by corporation, jenis transaksi, RC, and status per day into recap_cms_corp_daily.',
+          'Aggregates CMS activity log by corporation, jenis transaksi, RC, status, and error_type per day into recap_cms_corp_daily.',
         briefProcessSummary:
-          'For the processing date, deletes prior CMS rows for that day in recap_cms_corp_daily, rolls up cms_db_GCM_AGCM_LOG_ACTV with the same grain as the representative raw query, and inserts one row per (CORP, jenis, RC, deskripsi RC, status).',
+          'For the processing date, deletes prior CMS rows for that day in recap_cms_corp_daily, rolls up cms_db_GCM_AGCM_LOG_ACTV with the same grain as the representative raw query, and inserts one row per (CORP, jenis, RC, deskripsi RC, status). error_type is resolved like CMS daily success rate: normalized RC, lookup in response_code_dictionary for the CMS app identifier, unmapped_rc when missing, with rc stored normalized.',
         briefQuery: CMS_CORP_BRIEF_QUERY,
         outputTable: 'recap_cms_corp_daily',
         functionName: m.functionName,
@@ -93,4 +93,16 @@ export function buildRecapCatalog(): RecapCatalogEntry[] {
 
 export function getCatalogEntryById(id: string): RecapCatalogEntry | undefined {
   return buildRecapCatalog().find((e) => e.id === id)
+}
+
+export function catalogEntryToLogFilter(entry: RecapCatalogEntry): {
+  catalogEntryId: string
+  appName: string
+  recapKind: string
+} {
+  return {
+    catalogEntryId: entry.id,
+    appName: DISPLAY_APP[entry.scope.appKey] ?? entry.scope.appKey,
+    recapKind: entry.recapKind,
+  }
 }

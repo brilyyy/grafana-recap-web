@@ -1,5 +1,6 @@
--- Representative aggregation for CMS recap by CORP_ID with the same business dimensions as
+-- Representative aggregation for CMS recap by ACTN_BY_CUST_ID with the same business dimensions as
 -- scripts/success_rate/cms/raw.postgres.sql (Jenis Transaksi, RC, RC Description, totals, Status).
+-- error_type is not selected here; sp_recap_cms_corp_daily fills it via response_code_dictionary (CMS app id), same rules as sp_process_cms_daily.
 --
 -- Date filter — MUST match sp_recap_cms_corp_daily:
 --   v_start_timestamp := p_processing_date::timestamp
@@ -9,7 +10,7 @@
 -- Source: foreign table "cms_db_GCM_AGCM_LOG_ACTV"
 SELECT
   date(a."ACTN_DT") AS "Tanggal Transaksi",
-  COALESCE(NULLIF(BTRIM(a."CORP_ID"::text), ''), '(unknown)') AS corp_id,
+  COALESCE(NULLIF(BTRIM(a."ACTN_BY_CUST_ID"::text), ''), '(unknown)') AS corp_id,
   COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)') AS "Jenis Transaksi",
   COALESCE(a."ERR_MAP_CD"::text, '') AS "RC",
   COALESCE(a."ERR_MAP_NM"::text, '') AS "RC Description",
@@ -25,7 +26,7 @@ WHERE a."ACTN_DT" >= $1::timestamp
   AND a."ACTN_DT" <= $2::timestamp
 GROUP BY
   date(a."ACTN_DT"),
-  COALESCE(NULLIF(BTRIM(a."CORP_ID"::text), ''), '(unknown)'),
+  COALESCE(NULLIF(BTRIM(a."ACTN_BY_CUST_ID"::text), ''), '(unknown)'),
   COALESCE(NULLIF(BTRIM(COALESCE(a."SRVC_NM"::text, '')), ''), '(tidak ada jenis transaksi)'),
   COALESCE(a."ERR_MAP_CD"::text, ''),
   COALESCE(a."ERR_MAP_NM"::text, ''),

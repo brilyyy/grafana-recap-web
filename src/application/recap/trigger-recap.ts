@@ -2,7 +2,7 @@ import { pool } from '@/lib/db'
 import { env } from '@/env'
 import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
 import type { TriggerRecapParams, TriggerRecapResult } from '@/domain/recap/types'
-import { getCatalogEntryById } from '@/domain/recap/catalog'
+import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
 
 const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 
@@ -91,6 +91,7 @@ export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerR
   }
 
   const appRow = await resolveAppForEntry(entry)
+  const logFilter = catalogEntryToLogFilter(entry)
   const connection = await pool.getConnection()
   try {
     const targetDate = await resolveTargetDate(connection, dateParam)
@@ -100,12 +101,18 @@ export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerR
 
     const [logResult]: any = await connection.execute(
       `SELECT * FROM app_processing_log
-       WHERE app_name = ?
-         AND processing_date = ?
-         AND recap_kind = ?
+       WHERE processing_date = ?
+         AND (
+           catalog_entry_id = ?
+           OR (
+             catalog_entry_id IS NULL
+             AND app_name = ?
+             AND recap_kind = ?
+           )
+         )
        ORDER BY created_at DESC
        LIMIT 1`,
-      [appRow.app_name, targetDate, entry.recapKind],
+      [targetDate, logFilter.catalogEntryId, appRow.app_name, entry.recapKind],
     )
     const log = logResult[0] as Record<string, unknown> | undefined
 

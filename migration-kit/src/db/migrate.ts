@@ -556,6 +556,7 @@ async function runProcessingLogSchema() {
           "records_skipped"   INTEGER DEFAULT 0,
           "error_message"     TEXT,
           "recap_kind"        VARCHAR(64) NOT NULL DEFAULT 'success_rate_daily',
+          "catalog_entry_id"  VARCHAR(128),
           "created_at"        TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `)
@@ -574,7 +575,32 @@ async function runProcessingLogSchema() {
     `)
     console.log('  ✅ app_processing_log.recap_kind added')
   }
+  if (!(await columnExists('app_processing_log', 'catalog_entry_id'))) {
+    await exec(`
+      ALTER TABLE "app_processing_log"
+      ADD COLUMN "catalog_entry_id" VARCHAR(128)
+    `)
+    console.log('  ✅ app_processing_log.catalog_entry_id added')
+  }
+  await exec(`
+    UPDATE "app_processing_log"
+    SET "catalog_entry_id" = CASE
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'cms_corp_daily' AND "app_name" = 'CMS' THEN 'cms_corp_daily'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'Bale' THEN 'sr:bale'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'Bale Bisnis' THEN 'sr:bale_bisnis'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'OLOB' THEN 'sr:olob'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'EDC Agen' THEN 'sr:edc_agen'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'EDC Merchant' THEN 'sr:edc_merchant'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'EDC Merchant Ancol' THEN 'sr:edc_merchant_ancol'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'CMS' THEN 'sr:cms'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'Bale Korpora' THEN 'sr:bale_korpora'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'Debit Online' THEN 'sr:debit_online'
+      ELSE "catalog_entry_id"
+    END
+    WHERE "catalog_entry_id" IS NULL
+  `)
   await createIndexSafely('idx_apl_recap_kind_date', 'app_processing_log', ['recap_kind', 'processing_date'])
+  await createIndexSafely('idx_apl_catalog_entry_date', 'app_processing_log', ['catalog_entry_id', 'processing_date'])
 
   console.log('  ✅ Phase 3 done')
 }
@@ -595,6 +621,7 @@ async function runRecapModelTables() {
         "rc"                  VARCHAR(255) NOT NULL,
         "rc_description"      TEXT NOT NULL,
         "status_transaksi"    VARCHAR(64) NOT NULL,
+        "error_type"          "error_type_enum",
         "total_transaksi"     INTEGER DEFAULT 0,
         "total_nominal"       DECIMAL(20, 2) DEFAULT 0,
         "created_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
@@ -651,6 +678,16 @@ async function runRecapModelTables() {
       `)
       console.log('  ✅ recap_cms_corp_daily upgraded to CORP × jenis × RC × status grain')
     }
+  }
+  if (
+    (await tableExists('recap_cms_corp_daily')) &&
+    !(await columnExists('recap_cms_corp_daily', 'error_type'))
+  ) {
+    await exec(`
+      ALTER TABLE "recap_cms_corp_daily"
+      ADD COLUMN "error_type" "error_type_enum"
+    `)
+    console.log('  ✅ recap_cms_corp_daily error_type column added')
   }
   await createIndexSafely('idx_recap_cms_corp_daily_app_date', 'recap_cms_corp_daily', [
     'id_app_identifier',
