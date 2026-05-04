@@ -586,6 +586,7 @@ async function runProcessingLogSchema() {
     UPDATE "app_processing_log"
     SET "catalog_entry_id" = CASE
       WHEN COALESCE("recap_kind", 'success_rate_daily') = 'cms_corp_daily' AND "app_name" = 'CMS' THEN 'cms_corp_daily'
+      WHEN COALESCE("recap_kind", 'success_rate_daily') = 'bale_korpora_corp_daily' AND "app_name" = 'Bale Korpora' THEN 'bale_korpora_corp_daily'
       WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'Bale' THEN 'sr:bale'
       WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'Bale Bisnis' THEN 'sr:bale_bisnis'
       WHEN COALESCE("recap_kind", 'success_rate_daily') = 'success_rate_daily' AND "app_name" = 'OLOB' THEN 'sr:olob'
@@ -694,6 +695,52 @@ async function runRecapModelTables() {
     'tanggal_transaksi',
   ])
   await createIndexSafely('idx_recap_cms_corp_daily_app_date_corp', 'recap_cms_corp_daily', [
+    'id_app_identifier',
+    'tanggal_transaksi',
+    'corp_id',
+  ])
+
+  if (!(await tableExists('recap_bale_korpora_corp_daily'))) {
+    await exec(`
+      CREATE TABLE "recap_bale_korpora_corp_daily" (
+        "id"                  SERIAL PRIMARY KEY,
+        "id_app_identifier"   INTEGER NOT NULL REFERENCES "app_identifier"("id") ON DELETE CASCADE,
+        "tanggal_transaksi"   DATE NOT NULL,
+        "corp_id"             VARCHAR(255) NOT NULL,
+        "jenis_transaksi"     VARCHAR(1024) NOT NULL,
+        "rc"                  VARCHAR(255) NOT NULL,
+        "rc_description"      TEXT NOT NULL,
+        "status_transaksi"    VARCHAR(64) NOT NULL,
+        "error_type"          "error_type_enum",
+        "total_transaksi"     INTEGER DEFAULT 0,
+        "total_nominal"       DECIMAL(20, 2) DEFAULT 0,
+        "created_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
+        "updated_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
+        CONSTRAINT "recap_bale_korpora_corp_daily_grain_key" UNIQUE (
+          "id_app_identifier",
+          "tanggal_transaksi",
+          "corp_id",
+          "jenis_transaksi",
+          "rc",
+          "rc_description",
+          "status_transaksi"
+        )
+      )
+    `)
+    await exec(`
+      CREATE TRIGGER "upd_recap_bale_korpora_corp_daily_updated_at"
+        BEFORE UPDATE ON "recap_bale_korpora_corp_daily"
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `)
+    console.log('  ✅ recap_bale_korpora_corp_daily created')
+  } else {
+    console.log('  ⏭  recap_bale_korpora_corp_daily exists')
+  }
+  await createIndexSafely('idx_recap_bk_corp_daily_app_date', 'recap_bale_korpora_corp_daily', [
+    'id_app_identifier',
+    'tanggal_transaksi',
+  ])
+  await createIndexSafely('idx_recap_bk_corp_daily_app_date_corp', 'recap_bale_korpora_corp_daily', [
     'id_app_identifier',
     'tanggal_transaksi',
     'corp_id',

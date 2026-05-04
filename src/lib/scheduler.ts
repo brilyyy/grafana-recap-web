@@ -10,6 +10,7 @@ let olobProcessingTask: any = null
 let cmsProcessingTask: any = null
 let baleKorporaProcessingTask: any = null
 let cmsCorpRecapTask: any = null
+let baleKorporaCorpRecapTask: any = null
 
 /**
  * Execute the Bale daily processing stored procedure.
@@ -79,6 +80,22 @@ async function executeCmsCorpRecap(): Promise<void> {
   })
   try {
     await pool.query('SELECT public.sp_recap_cms_corp_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+async function executeBaleKorporaCorpRecap(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT ?? '5432', 10),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_recap_bale_korpora_corp_daily($1::date)', [null])
   } finally {
     await pool.end()
   }
@@ -272,6 +289,26 @@ async function setupProcessingSchedulers(): Promise<void> {
     console.log(`✅ CMS CORP recap scheduler configured: Schedule '${cmsCorpSchedule}' (timezone: ${timezone})`)
   }
 
+  // Bale Korpora recap by CORP + jenis/RC/status (recap_bale_korpora_corp_daily)
+  if (!baleKorporaCorpRecapTask) {
+    let bkCorpSchedule = getCronSchedule('BALE_KORPORA_CORP_RECAP_SCHEDULE')
+    if (!cron.validate(bkCorpSchedule)) bkCorpSchedule = '1 0 * * *'
+    baleKorporaCorpRecapTask = cron.schedule(
+      bkCorpSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled Bale Korpora CORP recap...')
+          await executeBaleKorporaCorpRecap()
+          console.log('✅ Scheduled Bale Korpora CORP recap completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled Bale Korpora CORP recap failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone },
+    )
+    console.log(`✅ Bale Korpora CORP recap scheduler configured: Schedule '${bkCorpSchedule}' (timezone: ${timezone})`)
+  }
+
   // Bale Korpora
   if (!baleKorporaProcessingTask) {
     let baleKorporaSchedule = getCronSchedule('BALE_KORPORA_PROCESSING_SCHEDULE')
@@ -320,6 +357,10 @@ export function stopScheduler(): void {
   if (cmsCorpRecapTask) {
     cmsCorpRecapTask.stop()
     cmsCorpRecapTask = null
+  }
+  if (baleKorporaCorpRecapTask) {
+    baleKorporaCorpRecapTask.stop()
+    baleKorporaCorpRecapTask = null
   }
   console.log('✅ Scheduler stopped')
 }

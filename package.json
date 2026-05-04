@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "node node_modules/next/dist/bin/next dev",
     "build": "node node_modules/next/dist/bin/next build",
+    "build:no-lint": "node node_modules/next/dist/bin/next build --no-lint",
+    "deploy:pack": "node scripts/deploy-pack.cjs",
+    "build:deploy": "npm run build:no-lint && npm run deploy:pack",
     "start": "node server.js",
     "lint": "node node_modules/next/dist/bin/next lint",
     "type-check": "tsc --noEmit",

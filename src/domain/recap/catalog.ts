@@ -63,6 +63,11 @@ WHERE a."ACTN_DT" >= v_start_timestamp AND a."ACTN_DT" <= v_end_timestamp
 GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (as corp_id), jenis_transaksi, ERR_MAP_CD, ERR_MAP_NM, IS_ERR (same split as CMS success rate, plus per-corp)
 → COUNT(DISTINCT ID), SUM(AMT). Full SQL: scripts/recap_models/cms_corp_daily/raw.postgres.sql.`
 
+const BALE_KORP_CORP_BRIEF_QUERY = `FROM "bale_korpora_db_GCM_AGCM_LOG_ACTV" a
+WHERE a."ACTN_DT" >= v_start_timestamp AND a."ACTN_DT" <= v_end_timestamp
+GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (as corp_id), jenis_transaksi, ERR_MAP_CD, ERR_MAP_NM, IS_ERR (same split as Bale Korpora success rate, plus per-corp)
+→ COUNT(DISTINCT ID), SUM(AMT). Full SQL: scripts/recap_models/bale_korpora_corp_daily/raw.postgres.sql.`
+
 function customRecapEntries(): RecapCatalogEntry[] {
   const out: RecapCatalogEntry[] = []
   for (const m of RECAP_MODEL_REGISTRY) {
@@ -81,6 +86,22 @@ function customRecapEntries(): RecapCatalogEntry[] {
         scheduleEnvVar: m.scheduleEnvVar,
         rawSqlRepoPath: 'scripts/recap_models/cms_corp_daily/raw.postgres.sql',
         scope: { type: 'fixed_app', appKey: 'cms' },
+      })
+    } else if (m.modelKey === 'bale_korpora_corp_daily') {
+      out.push({
+        id: 'bale_korpora_corp_daily',
+        recapKind: 'bale_korpora_corp_daily',
+        title: 'Bale Korpora — daily recap by ACTN_BY_CUST_ID (dimensional)',
+        description:
+          'Aggregates Bale Korpora activity log by corporation, jenis transaksi, RC, status, and error_type per day into recap_bale_korpora_corp_daily.',
+        briefProcessSummary:
+          'For the processing date, deletes prior Bale Korpora rows for that day in recap_bale_korpora_corp_daily, rolls up bale_korpora_db_GCM_AGCM_LOG_ACTV one row per corporation (ACTN_BY_CUST_ID), day, jenis, RC, RC description, and IS_ERR—aligned with Bale Korpora daily success rate plus corp_id. error_type matches sp_process_bale_korpora_daily (dictionary, unmapped_rc, normalized rc).',
+        briefQuery: BALE_KORP_CORP_BRIEF_QUERY,
+        outputTable: 'recap_bale_korpora_corp_daily',
+        functionName: m.functionName,
+        scheduleEnvVar: m.scheduleEnvVar,
+        rawSqlRepoPath: 'scripts/recap_models/bale_korpora_corp_daily/raw.postgres.sql',
+        scope: { type: 'fixed_app', appKey: 'bale_korpora' },
       })
     }
   }

@@ -33,6 +33,7 @@ export const env = createEnv({
     CMS_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     BALE_KORPORA_PROCESSING_SCHEDULE: z.string().default('1 0 * * *'),
     CMS_CORP_RECAP_SCHEDULE: z.string().default('1 0 * * *'),
+    BALE_KORPORA_CORP_RECAP_SCHEDULE: z.string().default('1 0 * * *'),
     HOUSEKEEPING_SCHEDULE: z.string().default('0 2 * * *'),
 
     /** Optional: allows POST /api/processing/process-manual without session when header matches */
@@ -76,6 +77,7 @@ export const env = createEnv({
     CMS_PROCESSING_SCHEDULE: process.env.CMS_PROCESSING_SCHEDULE,
     BALE_KORPORA_PROCESSING_SCHEDULE: process.env.BALE_KORPORA_PROCESSING_SCHEDULE,
     CMS_CORP_RECAP_SCHEDULE: process.env.CMS_CORP_RECAP_SCHEDULE,
+    BALE_KORPORA_CORP_RECAP_SCHEDULE: process.env.BALE_KORPORA_CORP_RECAP_SCHEDULE,
     HOUSEKEEPING_SCHEDULE: process.env.HOUSEKEEPING_SCHEDULE,
     RECAP_TRIGGER_API_KEY: process.env.RECAP_TRIGGER_API_KEY,
 
