@@ -1,0 +1,61 @@
+---
+description: Auth (BetterAuth + roles), API rate limiting, audit logging expectations, user-approval flows, and core domain data rules from docs/technical.
+alwaysApply: true
+---
+
+# Security, auth, audit, and core domain rules
+
+Align implementation with **`docs/technical/*.md`** for each area. This rule summarizes cross-cutting expectations from those docs plus current code patterns.
+
+## Authentication and sessions
+- **Sessions** are handled with **BetterAuth** (`src/lib/better-auth.ts` and related config). Server helpers live in **`src/lib/auth.ts`** (`getSession`, `requireAuth`, `requireRole`, `requireSuperAdmin`, `hasRole`, `isSuperAdmin`).
+- Older docs may say “JWT”; treat **BetterAuth cookie sessions** as authoritative when they differ from prose.
+- **Roles**: `superadmin` > `admin` > `user` (see `roleHierarchy` in `src/lib/auth.ts`).
+- **Route protection**: enforce authorization in **API handlers / tRPC procedures**, not only in the UI. Client pages may redirect, but the server must still reject unauthorized access.
+- **Verification endpoints**: e.g. session validation via auth check routes used by the client (`docs/technical/auth.md`).
+
+## Rate limiting
+- **`src/middleware.ts`** applies **rate limits to `/api/*`** (not to non-API routes). Respect existing limit categories (`AUTH`, `UPLOAD`, `READ`, `WRITE`, special cases like `restart-db`).
+- New sensitive or expensive `/api` routes should get an explicit limit strategy consistent with `src/lib/rateLimit.ts`.
+
+## Audit logging (`docs/technical/audit-logging.md`)
+- Log **authentication and operational** events where the product expects an audit trail.
+- **Superadmin-only** access for audit **read** surfaces (list/stats/dashboards).
+- **Audit write failures must not break the primary business flow** — handle logging errors without failing the main transaction unless the user explicitly requires strict failure.
+
+## User management (`docs/technical/user-management.md`)
+- **Pending registration** with **superadmin approval/rejection** workflow.
+- Enforce **superadmin-only** on approve/reject and related admin endpoints.
+- Generate audit events for approvals/rejections as per existing patterns.
+- **Data**: distinct pending vs final user entities; **unique** username and email constraints.
+
+## Application registry (`docs/technical/app-management.md`)
+- **`app_identifier`** is the **canonical** application key in the registry.
+- App id is the **foreign key** across dictionary and success-rate related tables — preserve this when adding features.
+
+## Dictionary (`docs/technical/dictionary-management.md`)
+- Upsert identity: **composite key** `(id_app_identifier, jenis_transaksi, rc)`.
+- **`response_code_dictionary`** is the mapping source of truth.
+- Upload flows should **validate file structure** before committing writes.
+- Dictionary updates may drive **error-type remaps** for dependent success-rate rows — keep behavior consistent with existing procedures/jobs.
+
+## Success rate upload (`docs/technical/success-rate-upload.md`)
+- **Transactional** ingestion into **`app_success_rate`**.
+- **Exact dictionary lookup** for error-type mapping; **unmatched** rows go to **`unmapped_rc`**.
+- **RC normalization**: support **null, empty, and dash** representations per existing logic.
+- Success paths may **auto-assign RC `00`** where the product already does.
+- **PostgreSQL** is the supported implementation path.
+
+## Unmapped RC (`docs/technical/unmapped-rc.md`)
+- Controlled remediation: **dictionary update + success-rate backfill** should remain consistent (often **one transaction** where the code already does so).
+- **Batch** endpoints: preserve **all-or-nothing** semantics where documented.
+
+## No RC transaction (`docs/technical/no-rc-transaction.md`)
+- Manual RC assignment for rows missing RC; **dictionary lookup** after assignment.
+- If the assigned RC is still unknown, route to **`unmapped_rc`** for follow-up.
+- Verify **single and batch** paths stay consistent.
+
+## Agent rules
+- When adding endpoints or tRPC procedures, **check role requirements** against the feature + technical doc for that area.
+- Prefer **extending existing routers** (`src/server/trpc/routers/*`) and **auth helpers** rather than ad-hoc cookie parsing.
+- Do not weaken audit or approval gates without explicit product approval in the task.

@@ -1,0 +1,39 @@
+---
+description: PostgreSQL migrations, migration-kit, success-rate SQL/procedures, scheduler (pg_cron vs app-level), and FDW — aligned with README + docs/technical/processing-scheduler.md.
+alwaysApply: true
+---
+
+# PostgreSQL migrations, scheduler, and SQL assets
+
+## Policy
+- **PostgreSQL only** for new migration and SQL work. Do not extend MySQL migration branches unless the user explicitly requests it (see `.cursor/rules/deprecated-mysql.mdc`).
+
+## Main application migrations
+- **Runner**: `src/db/migrate.ts` (invoked via `npm run db:migrate` and flags in root `README.md`).
+- Typical phases (match user intent to the right flag):
+  - `--schema-only` — `npm run db:migrate:schema`
+  - `--procedures-only` — `npm run db:migrate:procedures`
+  - `--cron-only` — `npm run db:migrate:cron`
+  - `--seed-only` — `npm run db:migrate:seed`
+  - `--fdw-only` — `npm run db:migrate:fdw`
+- When editing migration behavior, keep **main project** and **`migration-kit`** in sync when the kit is meant to mirror production runs (`migration-kit/README.md` calls this out).
+
+## Migration kit (standalone runner)
+- **Purpose**: run DB migrations **without** deploying the full Next.js app on a server.
+- **Location**: `migration-kit/`
+- **Commands**: `npm run migrate`, `migrate:schema`, `migrate:procedures`, `migrate:cron`, `migrate:seed`, `migrate:fdw` (see `migration-kit/README.md`).
+- If you change `src/db/migrate.ts` or shared SQL under `scripts/success_rate/`, verify whether **`migration-kit/src/db/migrate.ts`** and **`migration-kit/scripts/success_rate/*`** need the same change.
+
+## Processing scheduler (technical reference)
+- Per `docs/technical/processing-scheduler.md`:
+  - **PostgreSQL** path may use **pg_cron**-based scheduling where available.
+  - Some environments use an **app-level** scheduler option when DB scheduler tooling is not available.
+  - **Procedure definitions** are sourced from **`scripts/success_rate`** (see that folder’s README).
+- When touching scheduled processing, read `docs/technical/processing-scheduler.md` and `scripts/success_rate/README.md` before changing behavior.
+
+## FDW
+- Foreign Data Wrapper setup is a **dedicated migration phase** (`db:migrate:fdw` / `migrate:fdw`). Do not fold FDW into unrelated changes unless the task requires it.
+
+## Agent rules
+- Prefer **Postgres** artifacts (`*.postgres.sql`, Postgres branches in migrate logic) over MySQL.
+- After SQL or migrate changes, mention which **npm script** the operator should run (full vs phase-only) when that matters for safety.

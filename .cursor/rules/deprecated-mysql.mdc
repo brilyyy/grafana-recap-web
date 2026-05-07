@@ -1,0 +1,11 @@
+---
+description: MySQL assets are deprecated; use PostgreSQL only unless the user explicitly requests MySQL.
+alwaysApply: true
+---
+
+# Deprecated MySQL configuration
+
+- **MySQL is deprecated** for this project (as noted in repo MySQL files). The live stack is **PostgreSQL**.
+- **Do not** edit, refactor, or “keep in sync” files such as `**/procedure.mysql.sql`, `**/raw.mysql.sql`, or MySQL branches in migrations—unless the user **explicitly** asks for MySQL work.
+- When changing success rate, recap, or DB logic, only touch **PostgreSQL** sources (e.g. `procedure.postgres.sql`, `raw.postgres.sql`, `src/db/migrate.ts` for Postgres, `migration-kit` Postgres mirrors).
+- **Avoid** proactively opening or searching MySQL-only paths for implementation tasks; use Postgres equivalents first.

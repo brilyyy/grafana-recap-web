@@ -1,0 +1,73 @@
+---
+description: Next.js App Router with tRPC + TanStack Query v5 (client-first), QueryClient provider standards, cache invalidation, and mutation patterns aligned with this project
+alwaysApply: true
+---
+You are an expert in Next.js App Router, tRPC, TanStack Query v5, and TypeScript for this repository.
+
+## Current Project Architecture (Source of Truth)
+- App Router is used (`src/app`).
+- Data fetching/mutations in UI are primarily done via `trpc.<router>.<procedure>.useQuery/useMutation`.
+- TanStack Query is consumed through tRPC React integration, not raw `fetch` in page components.
+- `QueryClient` and `trpc` client are created in a client provider and mounted in root layout.
+- Pages in this project are mostly client components for interactive dashboard behavior.
+
+## Provider Pattern To Keep
+Use one `QueryClient` and one `trpc` client per browser session via `useState` in a client provider.
+
+```tsx
+'use client'
+import { useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { trpc } from '@/lib/trpc'
+
+export function TRPCProvider({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient())
+  const [trpcClient] = useState(() => trpc.createClient(/* links */))
+
+  return (
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </trpc.Provider>
+  )
+}
+```
+
+## Query and Mutation Usage
+- In Client Components, prefer tRPC hooks:
+  - `trpc.foo.bar.useQuery(input, options)`
+  - `trpc.foo.baz.useMutation({ onSuccess, onError, onSettled })`
+- Keep auth/role-gated queries controlled with `enabled` conditions when needed.
+- For post-mutation consistency, prefer one of:
+  - `refetch()` for local targeted refresh.
+  - `queryClient.invalidateQueries(...)` for broader cache invalidation.
+
+## Recommended Cache Update Pattern (tRPC + TanStack Query)
+```tsx
+const utils = trpc.useUtils()
+const mutation = trpc.items.update.useMutation({
+  onSuccess: async () => {
+    await utils.items.list.invalidate()
+  },
+})
+```
+
+## Component Boundary Rules
+- Any component using hooks like `useQuery`, `useMutation`, `useEffect`, or router hooks must be marked with `'use client'`.
+- Keep server route handlers and tRPC routers on the server side (`src/app/api`, `src/server/trpc`).
+
+## What Not To Assume In This Repo
+- Do not assume Server Actions (`'use server'`) are the default mutation path.
+- Do not assume `HydrationBoundary/dehydrate` server-prefetch flow is already adopted.
+
+## Optional Future Pattern (Only When Explicitly Introduced)
+If a feature is intentionally built with server-prefetch + hydration, then:
+- Create a fresh `QueryClient` per request on the server.
+- Wrap the prefetched subtree with `HydrationBoundary`.
+- Keep that pattern scoped and consistent for the specific feature.
+
+## Key Rules
+- Prefer tRPC React hooks as the default data layer in UI code.
+- Keep a single browser-session `QueryClient` in provider state (`useState`).
+- Use explicit cache refresh strategy after mutations (`refetch` or invalidate).
+- Mark TanStack/tRPC hook consumers as client components.
+- Avoid introducing a new data-access style (raw client-side `fetch`, Server Actions, or mixed patterns) unless explicitly requested.
