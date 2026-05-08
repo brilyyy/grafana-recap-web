@@ -1,18 +1,141 @@
 /**
  * Scheduler instance storage
  * Using 'any' type because node-cron is dynamically imported
+ *
+ * Note: MySQL branches are deprecated. Use PostgreSQL + pg_cron instead.
  */
 let baleProcessingTask: any = null
+let baleBisnisProcessingTask: any = null
+let olobProcessingTask: any = null
+let cmsProcessingTask: any = null
+let baleKorporaProcessingTask: any = null
+let cmsCorpRecapTask: any = null
+let baleKorporaCorpRecapTask: any = null
 
 /**
- * Lazy load database modules to prevent webpack from bundling them in client
+ * Execute the Bale daily processing stored procedure.
  */
-async function getDatabaseModules() {
-  // Dynamic import to prevent static analysis by webpack
-  const { default: pool, getDb } = await import('./db.ts')
-  return {
-    pool,
-    adapter: getDb(),
+async function executeBaleProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_bale_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Execute the Bale Bisnis daily processing stored procedure.
+ */
+async function executeBaleBisnisProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_bale_bisnis_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Execute the CMS daily processing stored procedure.
+ */
+async function executeCmsProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_cms_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+async function executeCmsCorpRecap(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT ?? '5432', 10),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_recap_cms_corp_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+async function executeBaleKorporaCorpRecap(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT ?? '5432', 10),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_recap_bale_korpora_corp_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Execute the Bale Korpora daily processing stored procedure.
+ */
+async function executeBaleKorporaProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_bale_korpora_daily($1::date)', [null])
+  } finally {
+    await pool.end()
+  }
+}
+
+/**
+ * Execute the OLOB daily processing stored procedure.
+ */
+async function executeOlobProcessing(): Promise<void> {
+  const { Pool } = await import('pg')
+  const pool = new Pool({
+    host:     process.env.DB_HOST,
+    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+    user:     process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  })
+  try {
+    await pool.query('SELECT public.sp_process_olob_daily($1::date)', [null])
+  } finally {
+    await pool.end()
   }
 }
 
@@ -20,113 +143,191 @@ async function getDatabaseModules() {
  * Check if application-level scheduler should be used
  */
 function shouldUseAppLevelScheduler(): boolean {
-  console.log('USE_APP_LEVEL_SCHEDULER : ', process.env.USE_APP_LEVEL_SCHEDULER)
-  return process.env.USE_APP_LEVEL_SCHEDULER === 'true'
+  const value = process.env.USE_APP_LEVEL_SCHEDULER
+  console.log('USE_APP_LEVEL_SCHEDULER : ', value)
+  return value === 'true'
 }
 
 /**
  * Get scheduler timezone from environment or use default
  */
 function getSchedulerTimezone(): string {
-  return process.env.SCHEDULER_TIMEZONE || 'Asia/Jakarta'
+  return process.env.SCHEDULER_TIMEZONE ?? 'Asia/Jakarta'
 }
 
 /**
  * Get cron schedule from environment or use default
- * Default: '1 0 * * *' (00:01 every day)
  * Format: minute hour day month dayOfWeek
  */
-function getCronSchedule(): string {
-  const schedule = process.env.BALE_PROCESSING_SCHEDULE || '1 0 * * *'
-  
-  // Validate cron format (basic validation)
+function getCronSchedule(envVar: string, defaultSchedule: string = '1 0 * * *'): string {
+  const schedule = process.env[envVar] ?? defaultSchedule
   const cronPattern = /^(\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([12]?\d|3[01])) (\*|([1-9]|1[0-2])) (\*|([0-6]))$/
-  
   if (!cronPattern.test(schedule.trim())) {
-    console.warn(`⚠️  Invalid cron schedule format: ${schedule}. Using default: '1 0 * * *'`)
-    return '1 0 * * *'
+    console.warn(`⚠️  Invalid cron schedule format: ${schedule}. Using default: '${defaultSchedule}'`)
+    return defaultSchedule
   }
-  
   return schedule.trim()
 }
 
 /**
- * Setup BALE daily processing scheduler
- * Runs at 00:01 every day
+ * Setup BALE and Bale Bisnis daily processing schedulers
+ * Each app uses its own schedule from env (BALE_PROCESSING_SCHEDULE, BALE_BISNIS_PROCESSING_SCHEDULE)
  */
-async function setupBaleProcessingScheduler(): Promise<void> {
-  // Check if already scheduled
-  if (baleProcessingTask) {
-    console.log('ℹ️  BALE processing scheduler already initialized')
-    return
-  }
-
-  // Ensure we're on server-side before importing node-cron
+async function setupProcessingSchedulers(): Promise<void> {
   if (typeof window !== 'undefined') {
     console.warn('⚠️  Cannot setup scheduler in browser environment')
     return
   }
 
-  // Dynamic import node-cron - only at runtime, never during build
-  // Webpack is configured to ignore this in client bundle
   let cron: any
   try {
-    // Dynamic import - webpack will ignore this for client bundle
     cron = await import('node-cron')
   } catch (error: any) {
     console.error('❌ Failed to import node-cron:', error.message)
-    console.error('   Make sure node-cron is installed: npm install node-cron')
     return
   }
 
   const timezone = getSchedulerTimezone()
-  let cronSchedule = getCronSchedule()
-  
-  // Validate cron schedule format using node-cron
-  if (!cron.validate(cronSchedule)) {
-    console.error(`❌ Invalid cron schedule format: ${cronSchedule}. Using default: '1 0 * * *'`)
-    cronSchedule = '1 0 * * *'
-  }
-  
-  // Schedule from environment variable (or default if invalid)
-  // Cron format: minute hour day month dayOfWeek
-  baleProcessingTask = cron.schedule(
-    cronSchedule,
-    async () => {
-      try {
-        console.log('🔄 Starting scheduled BALE processing...')
-        
-        // Lazy load database modules only when needed (at runtime)
-        const { pool, adapter } = await getDatabaseModules()
-        const isPostgres = adapter.getDatabaseType() === 'postgresql'
-        const connection = await pool.getConnection()
-        
+
+  // Bale
+  if (!baleProcessingTask) {
+    let baleSchedule = getCronSchedule('BALE_PROCESSING_SCHEDULE')
+    if (!cron.validate(baleSchedule)) baleSchedule = '1 0 * * *'
+    baleProcessingTask = cron.schedule(
+      baleSchedule,
+      async () => {
         try {
-          const dateParamForDB = null // NULL means H-1 (yesterday)
-          
-          if (isPostgres) {
-            await connection.execute('SELECT sp_process_bale_daily($1)', [dateParamForDB])
-          } else {
-            await connection.execute('CALL sp_process_bale_daily(?)', [dateParamForDB])
-          }
-          
+          console.log('🔄 Starting scheduled BALE processing...')
+          await executeBaleProcessing()
           console.log('✅ Scheduled BALE processing completed successfully')
         } catch (error: any) {
           console.error('❌ Scheduled BALE processing failed:', error.message)
-        } finally {
-          connection.release()
         }
-      } catch (error: any) {
-        console.error('❌ Error in scheduled BALE processing:', error.message)
-      }
-    },
-    {
-      scheduled: true,
-      timezone: timezone,
-    }
-  )
-  
-  console.log(`✅ BALE processing scheduler configured: Schedule '${cronSchedule}' (timezone: ${timezone})`)
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ BALE processing scheduler configured: Schedule '${baleSchedule}' (timezone: ${timezone})`)
+  }
+
+  // Bale Bisnis
+  if (!baleBisnisProcessingTask) {
+    let bisnisSchedule = getCronSchedule('BALE_BISNIS_PROCESSING_SCHEDULE')
+    if (!cron.validate(bisnisSchedule)) bisnisSchedule = '1 0 * * *'
+    baleBisnisProcessingTask = cron.schedule(
+      bisnisSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled Bale Bisnis processing...')
+          await executeBaleBisnisProcessing()
+          console.log('✅ Scheduled Bale Bisnis processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled Bale Bisnis processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ Bale Bisnis processing scheduler configured: Schedule '${bisnisSchedule}' (timezone: ${timezone})`)
+  }
+
+  // OLOB
+  if (!olobProcessingTask) {
+    let olobSchedule = getCronSchedule('OLOB_PROCESSING_SCHEDULE')
+    if (!cron.validate(olobSchedule)) olobSchedule = '1 0 * * *'
+    olobProcessingTask = cron.schedule(
+      olobSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled OLOB processing...')
+          await executeOlobProcessing()
+          console.log('✅ Scheduled OLOB processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled OLOB processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ OLOB processing scheduler configured: Schedule '${olobSchedule}' (timezone: ${timezone})`)
+  }
+
+  // CMS
+  if (!cmsProcessingTask) {
+    let cmsSchedule = getCronSchedule('CMS_PROCESSING_SCHEDULE')
+    if (!cron.validate(cmsSchedule)) cmsSchedule = '1 0 * * *'
+    cmsProcessingTask = cron.schedule(
+      cmsSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled CMS processing...')
+          await executeCmsProcessing()
+          console.log('✅ Scheduled CMS processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled CMS processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ CMS processing scheduler configured: Schedule '${cmsSchedule}' (timezone: ${timezone})`)
+  }
+
+  // CMS recap by CORP + jenis/RC/status (recap_cms_corp_daily)
+  if (!cmsCorpRecapTask) {
+    let cmsCorpSchedule = getCronSchedule('CMS_CORP_RECAP_SCHEDULE')
+    if (!cron.validate(cmsCorpSchedule)) cmsCorpSchedule = '1 0 * * *'
+    cmsCorpRecapTask = cron.schedule(
+      cmsCorpSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled CMS CORP recap...')
+          await executeCmsCorpRecap()
+          console.log('✅ Scheduled CMS CORP recap completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled CMS CORP recap failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone },
+    )
+    console.log(`✅ CMS CORP recap scheduler configured: Schedule '${cmsCorpSchedule}' (timezone: ${timezone})`)
+  }
+
+  // Bale Korpora recap by CORP + jenis/RC/status (recap_bale_korpora_corp_daily)
+  if (!baleKorporaCorpRecapTask) {
+    let bkCorpSchedule = getCronSchedule('BALE_KORPORA_CORP_RECAP_SCHEDULE')
+    if (!cron.validate(bkCorpSchedule)) bkCorpSchedule = '1 0 * * *'
+    baleKorporaCorpRecapTask = cron.schedule(
+      bkCorpSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled Bale Korpora CORP recap...')
+          await executeBaleKorporaCorpRecap()
+          console.log('✅ Scheduled Bale Korpora CORP recap completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled Bale Korpora CORP recap failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone },
+    )
+    console.log(`✅ Bale Korpora CORP recap scheduler configured: Schedule '${bkCorpSchedule}' (timezone: ${timezone})`)
+  }
+
+  // Bale Korpora
+  if (!baleKorporaProcessingTask) {
+    let baleKorporaSchedule = getCronSchedule('BALE_KORPORA_PROCESSING_SCHEDULE')
+    if (!cron.validate(baleKorporaSchedule)) baleKorporaSchedule = '1 0 * * *'
+    baleKorporaProcessingTask = cron.schedule(
+      baleKorporaSchedule,
+      async () => {
+        try {
+          console.log('🔄 Starting scheduled Bale Korpora processing...')
+          await executeBaleKorporaProcessing()
+          console.log('✅ Scheduled Bale Korpora processing completed successfully')
+        } catch (error: any) {
+          console.error('❌ Scheduled Bale Korpora processing failed:', error.message)
+        }
+      },
+      { scheduled: true, timezone }
+    )
+    console.log(`✅ Bale Korpora processing scheduler configured: Schedule '${baleKorporaSchedule}' (timezone: ${timezone})`)
+  }
 }
 
 /**
@@ -136,8 +337,32 @@ export function stopScheduler(): void {
   if (baleProcessingTask) {
     baleProcessingTask.stop()
     baleProcessingTask = null
-    console.log('✅ Scheduler stopped')
   }
+  if (baleBisnisProcessingTask) {
+    baleBisnisProcessingTask.stop()
+    baleBisnisProcessingTask = null
+  }
+  if (olobProcessingTask) {
+    olobProcessingTask.stop()
+    olobProcessingTask = null
+  }
+  if (cmsProcessingTask) {
+    cmsProcessingTask.stop()
+    cmsProcessingTask = null
+  }
+  if (baleKorporaProcessingTask) {
+    baleKorporaProcessingTask.stop()
+    baleKorporaProcessingTask = null
+  }
+  if (cmsCorpRecapTask) {
+    cmsCorpRecapTask.stop()
+    cmsCorpRecapTask = null
+  }
+  if (baleKorporaCorpRecapTask) {
+    baleKorporaCorpRecapTask.stop()
+    baleKorporaCorpRecapTask = null
+  }
+  console.log('✅ Scheduler stopped')
 }
 
 /**
@@ -157,16 +382,6 @@ export async function initializeScheduler(): Promise<void> {
     return
   }
 
-  // Lazy load adapter to check database type
-  const { adapter } = await getDatabaseModules()
-  const dbType = adapter.getDatabaseType()
-  
-  // Only setup for PostgreSQL when app-level scheduler is enabled
-  // MySQL should continue using Event Scheduler
-  if (dbType === 'postgresql') {
-    console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
-    await setupBaleProcessingScheduler()
-  } else {
-    console.log('ℹ️  Application-level scheduler only available for PostgreSQL. MySQL uses Event Scheduler.')
-  }
+  console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
+  await setupProcessingSchedulers()
 }

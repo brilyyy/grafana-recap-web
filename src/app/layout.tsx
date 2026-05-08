@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { TRPCProvider } from '@/components/providers/TRPCProvider'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Setup Data Success Rate Grafana',
@@ -20,8 +23,10 @@ export default function RootLayout({
           async
         />
       </head>
-      <body className="font-sans bg-gray-50">
-        {children}
+      <body className="font-sans">
+        <TRPCProvider>
+          {children}
+        </TRPCProvider>
       </body>
     </html>
   )

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import type { ApiResponse, SuccessRateEntry } from '@/types'
 
 // GET - List semua transaksi tanpa RC dari app_success_rate WHERE rc IS NULL

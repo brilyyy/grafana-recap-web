@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 import { requireSuperAdmin } from '@/lib/auth'
 import type { ApiResponse } from '@/types'
 
@@ -7,7 +10,7 @@ import type { ApiResponse } from '@/types'
 export async function GET(request: NextRequest) {
   try {
     // Require superadmin role
-    const session = requireSuperAdmin(request)
+    const session = await requireSuperAdmin(request)
 
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '30') // Default: last 30 days
@@ -15,7 +18,7 @@ export async function GET(request: NextRequest) {
     const connection = await pool.getConnection()
     try {
       // Build date filter based on database type
-      const dbType = getDb().getDatabaseType()
+      const dbType = isPostgres ? 'postgresql' : 'mysql'
       let dateFilter: string
       let dateParams: any[] = []
       

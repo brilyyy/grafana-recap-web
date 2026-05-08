@@ -1,8 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useState, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import LogoutButton from '@/components/LogoutButton'
+import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
 
 interface User {
   id: number
@@ -45,7 +49,7 @@ interface AuditStats {
   topUsers: Array<{ username: string; count: number }>
 }
 
-type TabType = 'users' | 'audit-logs' | 'app-processing'
+type TabType = 'users' | 'audit-logs' | 'app-processing' | 'job-list' | 'app-config' | 'housekeeping'
 
 export default function SuperadminPage() {
   const router = useRouter()
@@ -88,8 +92,6 @@ export default function SuperadminPage() {
   })
 
   // Application Data Processing State
-  const [applications, setApplications] = useState<Array<{ id: number; app_name: string }>>([])
-  const [applicationsLoading, setApplicationsLoading] = useState(true)
   const [processingLogs, setProcessingLogs] = useState<Array<{
     id: number
     app_name: string
@@ -100,50 +102,77 @@ export default function SuperadminPage() {
     start_time: string
     end_time: string | null
     error_message: string | null
+    recap_kind: string
+    catalog_entry_id: string | null
   }>>([])
   const [processingLogsLoading, setProcessingLogsLoading] = useState(false)
   const [processingFilters, setProcessingFilters] = useState({
-    app_name: '',
+    catalog_entry_id: '',
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   })
+  const [processingJobSearch, setProcessingJobSearch] = useState('')
   const [processingStates, setProcessingStates] = useState<{
     [date: string]: { loading: boolean; error: string | null }
   }>({})
 
+  // Housekeeping state
+  const [editingRetention, setEditingRetention] = useState<{ id: number; value: string } | null>(null)
+  const [editingDateConfig, setEditingDateConfig] = useState<{
+    id: number
+    date_column: string
+    date_column_type: 'timestamp' | 'int_1yymmdd'
+  } | null>(null)
+  const [newHkForm, setNewHkForm] = useState({
+    db_name: '',
+    table_name: '',
+    date_column: '',
+    date_column_type: 'timestamp' as 'timestamp' | 'int_1yymmdd',
+    retention_days: '',
+    notes: '',
+  })
+  const [housekeepingRunning, setHousekeepingRunning] = useState<{ [id: number]: boolean }>({})
+  const [housekeepingMessages, setHousekeepingMessages] = useState<{ [id: number]: { type: 'success' | 'error'; text: string } }>({})
+
+  const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
+  const { data: fdwData, refetch: refetchFdw } = trpc.fdw.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
+  const fdwAddMutation = trpc.fdw.add.useMutation({ onSuccess: () => { refetchFdw(); setNewFdwForm({ source_db_name: '', table_name: '', schema_name: 'public' }) } })
+  const fdwRemoveMutation = trpc.fdw.remove.useMutation({ onSuccess: () => refetchFdw() })
+  const [newFdwForm, setNewFdwForm] = useState({ source_db_name: '', table_name: '', schema_name: 'public' })
+  const { data: housekeepingData, refetch: refetchHousekeeping, isLoading: housekeepingLoading } = trpc.housekeeping.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
+  const { data: housekeepingScheduleData } = trpc.housekeeping.getSchedule.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
+  const updateConfigMutation = trpc.housekeeping.updateConfig.useMutation({ onSuccess: () => refetchHousekeeping() })
+  const upsertHousekeepingMutation = trpc.housekeeping.upsertRow.useMutation({ onSuccess: () => { refetchHousekeeping(); setNewHkForm({ db_name: '', table_name: '', date_column: '', date_column_type: 'timestamp', retention_days: '', notes: '' }) } })
+  const deleteHousekeepingMutation = trpc.housekeeping.deleteRow.useMutation({ onSuccess: () => refetchHousekeeping() })
+  const runHousekeepingMutation = trpc.housekeeping.run.useMutation()
+
+  const { data: recapCatalogData, isLoading: recapCatalogLoading, refetch: refetchRecapCatalog } =
+    trpc.recap.listCatalog.useQuery(undefined, {
+      enabled: !!(
+        isAuthenticated &&
+        userRole === 'superadmin' &&
+        (activeTab === 'job-list' || activeTab === 'app-processing')
+      ),
+    })
+  const recapTriggerMutation = trpc.recap.triggerManual.useMutation({
+    onSuccess: () => refetchRecapCatalog(),
+  })
+  const [recapExpandedId, setRecapExpandedId] = useState<string | null>(null)
+  const [recapManualDates, setRecapManualDates] = useState<Record<string, string>>({})
+
   useEffect(() => {
-    let isMounted = true
-
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check')
-        if (!isMounted) return
-
-        const data = await response.json()
-
-        if (data.success && data.data.authenticated) {
-          setIsAuthenticated(true)
-          setUserRole(data.data.user.role)
-
-          if (data.data.user.role !== 'superadmin') {
-            router.replace('/')
-            return
-          }
-        } else {
-          router.replace('/login')
-        }
-      } catch (error) {
-        if (!isMounted) return
+    if (!authLoading && authCheck !== undefined) {
+      if (!authCheck?.data?.authenticated) {
         router.replace('/login')
+      } else {
+        const role = (authCheck.data as any)?.user?.role
+        setIsAuthenticated(true)
+        setUserRole(role)
+        if (role !== 'superadmin') router.replace('/')
       }
     }
+  }, [authCheck, authLoading, router])
 
-    checkAuth()
-
-    return () => {
-      isMounted = false
-    }
-  }, [router])
 
   useEffect(() => {
     if (isAuthenticated && userRole === 'superadmin') {
@@ -153,11 +182,37 @@ export default function SuperadminPage() {
       } else if (activeTab === 'audit-logs') {
         fetchAuditLogs()
         fetchStats()
-      } else if (activeTab === 'app-processing') {
-        fetchApplications()
       }
     }
   }, [isAuthenticated, userRole, activeTab, usersPage, usersFilters, auditPage, auditFilters])
+
+  useEffect(() => {
+    if (activeTab !== 'app-processing') return
+    const entries = recapCatalogData?.data ?? []
+    if (!entries.length) {
+      setProcessingLogs([])
+      return
+    }
+
+    if (
+      !processingFilters.catalog_entry_id ||
+      !entries.some((entry) => entry.id === processingFilters.catalog_entry_id)
+    ) {
+      setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: entries[0].id }))
+      return
+    }
+
+    if (processingFilters.month && processingFilters.year) {
+      fetchProcessingLogs()
+    }
+  }, [activeTab, recapCatalogData, processingFilters.catalog_entry_id, processingFilters.month, processingFilters.year])
+
+  useEffect(() => {
+    if (activeTab !== 'app-processing') return
+    if (!processingFilters.catalog_entry_id) {
+      setProcessingLogs([])
+    }
+  }, [activeTab, processingFilters.catalog_entry_id])
 
   // User Management Functions
   const fetchUsers = async () => {
@@ -332,31 +387,15 @@ export default function SuperadminPage() {
   }
 
   // Application Data Processing Functions
-  const fetchApplications = async () => {
-    try {
-      setApplicationsLoading(true)
-      const response = await fetch('/api/applications')
-      const data = await response.json()
-
-      if (data.success) {
-        setApplications(data.data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching applications:', error)
-    } finally {
-      setApplicationsLoading(false)
-    }
-  }
-
   const fetchProcessingLogs = async () => {
-    if (!processingFilters.app_name || !processingFilters.month || !processingFilters.year) {
+    if (!processingFilters.catalog_entry_id || !processingFilters.month || !processingFilters.year) {
       return
     }
 
     try {
       setProcessingLogsLoading(true)
       const params = new URLSearchParams({
-        app_name: processingFilters.app_name,
+        catalog_entry_id: processingFilters.catalog_entry_id,
         month: processingFilters.month.toString(),
         year: processingFilters.year.toString(),
       })
@@ -397,7 +436,12 @@ export default function SuperadminPage() {
     })
   }
 
-  const handleDateProcessing = async (appName: string, date: string) => {
+  const handleDateProcessing = async (date: string) => {
+    if (!processingFilters.catalog_entry_id) {
+      alert('Please select a job before processing data.')
+      return
+    }
+
     // Validate date: cannot process future dates or current date
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -420,8 +464,8 @@ export default function SuperadminPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          app_name: appName,
           date: date,
+          catalogEntryId: processingFilters.catalog_entry_id,
         }),
       })
 
@@ -480,13 +524,26 @@ export default function SuperadminPage() {
     acc[log.processing_date] = log
     return acc
   }, {} as Record<string, typeof processingLogs[0]>)
+  const processingCatalogEntries = recapCatalogData?.data ?? []
+  const processingJobSearchTerm = processingJobSearch.trim().toLowerCase()
+  const filteredProcessingCatalogEntries = processingCatalogEntries.filter((entry) => {
+    if (!processingJobSearchTerm) return true
+    return (
+      entry.title.toLowerCase().includes(processingJobSearchTerm) ||
+      entry.id.toLowerCase().includes(processingJobSearchTerm) ||
+      entry.outputTable.toLowerCase().includes(processingJobSearchTerm)
+    )
+  })
+  const selectedProcessingJob = processingCatalogEntries.find(
+    (entry) => entry.id === processingFilters.catalog_entry_id,
+  )
 
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-white/70">Loading...</p>
         </div>
       </div>
     )
@@ -497,7 +554,7 @@ export default function SuperadminPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 superadmin-page" data-page="superadmin">
+    <main className="min-h-screen p-4 md:p-6 superadmin-page" data-page="superadmin">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -508,12 +565,14 @@ export default function SuperadminPage() {
             <p className="text-white/70 text-sm">Manage users and monitor system activities</p>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => router.push('/')}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="bg-gray-700/80 hover:bg-gray-600/80 text-white border-white/10"
             >
               Back to Dashboard
-            </button>
+            </Button>
             <LogoutButton />
           </div>
         </div>
@@ -549,6 +608,36 @@ export default function SuperadminPage() {
             }`}
           >
             Application Data Processing
+          </button>
+          <button
+            onClick={() => setActiveTab('job-list')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'job-list'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Job List
+          </button>
+          <button
+            onClick={() => setActiveTab('app-config')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'app-config'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            FDW Configuration
+          </button>
+          <button
+            onClick={() => setActiveTab('housekeeping')}
+            className={`px-6 py-3 font-semibold transition-colors ${
+              activeTab === 'housekeeping'
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/70 hover:text-white'
+            }`}
+          >
+            Housekeeping
           </button>
         </div>
 
@@ -995,44 +1084,14 @@ export default function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Application Data Processing</h3>
               <p className="text-white/70 text-sm mb-4">
-                View application data processing logs by selecting an application, month, and year.
+                View processing logs by selecting a job, month, and year.
               </p>
             </div>
 
             {/* Filters */}
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Filters</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm text-white/70 mb-1">App Name</label>
-                  {applicationsLoading ? (
-                    <div className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white/50 text-sm">
-                      Loading...
-                    </div>
-                  ) : (
-                    <select
-                      value={processingFilters.app_name}
-                      onChange={(e) => {
-                        setProcessingFilters((prev) => ({ ...prev, app_name: e.target.value }))
-                      }}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      style={{ colorScheme: 'dark' }}
-                    >
-                      <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
-                        Select Application
-                      </option>
-                      {applications.map((app) => (
-                        <option 
-                          key={app.id} 
-                          value={app.app_name} 
-                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
-                        >
-                          {app.app_name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm text-white/70 mb-1">Month</label>
                   <select
@@ -1081,50 +1140,90 @@ export default function SuperadminPage() {
                     })}
                   </select>
                 </div>
-              </div>
-              <div className="mt-4">
-                <button
-                  onClick={fetchProcessingLogs}
-                  disabled={!processingFilters.app_name || processingLogsLoading}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
-                  {processingLogsLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Loading...
-                    </span>
+                <div className="lg:col-span-2">
+                  <label className="block text-sm text-white/70 mb-1">Search job</label>
+                  <input
+                    type="text"
+                    value={processingJobSearch}
+                    onChange={(e) => setProcessingJobSearch(e.target.value)}
+                    placeholder="Search by job title, ID, or output table"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="md:col-span-2 lg:col-span-4">
+                  <label className="block text-sm text-white/70 mb-1">Job</label>
+                  {recapCatalogLoading ? (
+                    <div className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white/50 text-sm">
+                      Loading jobs...
+                    </div>
                   ) : (
-                    'Search'
+                    <select
+                      value={processingFilters.catalog_entry_id}
+                      onChange={(e) => {
+                        setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: e.target.value }))
+                      }}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ colorScheme: 'dark' }}
+                    >
+                      <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                        Select Job
+                      </option>
+                      {filteredProcessingCatalogEntries.map((entry) => (
+                        <option
+                          key={entry.id}
+                          value={entry.id}
+                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
+                        >
+                          {entry.title} ({entry.id})
+                        </option>
+                      ))}
+                    </select>
                   )}
-                </button>
+                  {selectedProcessingJob && (
+                    <p className="mt-2 text-xs text-white/50">
+                      Output: <span className="font-mono text-white/70">{selectedProcessingJob.outputTable}</span>
+                      {' · '}
+                      Function: <span className="font-mono text-white/70">{selectedProcessingJob.functionName}</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Processing Results */}
-            {processingLogsLoading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                <p className="text-white/70">Loading processing logs...</p>
-              </div>
-            ) : processingFilters.app_name ? (
+            {processingFilters.catalog_entry_id ? (
               (() => {
                 const allDates = getAllDatesInMonth(processingFilters.month, processingFilters.year)
                 const today = new Date()
                 today.setHours(0, 0, 0, 0)
 
-                // Calculate statistics
-                const stats = {
-                  total: allDates.length,
-                  success: allDates.filter(d => logsByDate[d]?.status === 'success').length,
-                  failed: allDates.filter(d => logsByDate[d]?.status === 'failed').length,
-                  processing: allDates.filter(d => logsByDate[d]?.status === 'running').length,
-                  notProcessed: allDates.filter(d => !logsByDate[d]).length,
-                }
-
                 return (
                   <div className="space-y-4">
                     {/* Summary Statistics */}
+                    {processingLogsLoading ? (
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-4 h-4 rounded bg-white/20 animate-pulse" />
+                              <div className="h-3 w-16 rounded bg-white/20 animate-pulse" />
+                            </div>
+                            <div className="h-6 w-10 rounded bg-white/20 animate-pulse mt-1" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {(() => {
+                        const stats = {
+                          total: allDates.length,
+                          success: allDates.filter(d => logsByDate[d]?.status === 'success').length,
+                          failed: allDates.filter(d => logsByDate[d]?.status === 'failed').length,
+                          processing: allDates.filter(d => logsByDate[d]?.status === 'running').length,
+                          notProcessed: allDates.filter(d => !logsByDate[d]).length,
+                        }
+                        return (
+                          <>
                       <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1170,7 +1269,11 @@ export default function SuperadminPage() {
                         </div>
                         <p className="text-xl font-bold text-white">{stats.total}</p>
                       </div>
+                          </>
+                        )
+                      })()}
                     </div>
+                    )}
 
                     {/* Calendar Grid */}
                     <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
@@ -1204,7 +1307,23 @@ export default function SuperadminPage() {
                         ))}
                       </div>
                       <div className="grid grid-cols-7 gap-2">
-                        {(() => {
+                        {processingLogsLoading ? (
+                          (() => {
+                            const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
+                            const emptyDays = Array(firstDay).fill(null)
+                            return [...emptyDays, ...allDates].map((dateStr, idx) => {
+                              if (!dateStr) {
+                                return <div key={`empty-${idx}`} className="aspect-square" />
+                              }
+                              return (
+                                <div
+                                  key={dateStr}
+                                  className="aspect-square bg-white/10 rounded-lg animate-pulse"
+                                />
+                              )
+                            })
+                          })()
+                        ) : (() => {
                           const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
                           const emptyDays = Array(firstDay).fill(null)
                           return [...emptyDays, ...allDates].map((dateStr, idx) => {
@@ -1319,7 +1438,7 @@ export default function SuperadminPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleDateProcessing(processingFilters.app_name, dateStr)
+                                      handleDateProcessing(dateStr)
                                     }}
                                     disabled={processingState.loading}
                                     className={`w-full bg-gradient-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
@@ -1350,7 +1469,8 @@ export default function SuperadminPage() {
                       </div>
                     </div>
 
-                    {/* Detailed View Toggle */}
+                    {/* Detailed View Toggle - Hidden when loading */}
+                    {!processingLogsLoading && (
                     <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                       <details className="group">
                         <summary className="cursor-pointer flex items-center justify-between text-white font-medium hover:text-blue-300 transition-colors">
@@ -1438,10 +1558,582 @@ export default function SuperadminPage() {
                         </div>
                       </details>
                     </div>
+                    )}
                   </div>
                 )
               })()
-            ) : null}
+            ) : (
+              <div className="p-8 text-center text-white/70">
+                Select a job to view processing logs
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Job list: schedulable recap jobs (success rate + custom models) */}
+        {activeTab === 'job-list' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">Job List</h3>
+              <p className="text-white/70 text-sm mb-2">
+                All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and representative query text.
+                Use <strong className="text-white">Application Data Processing</strong> with the same job to inspect calendar logs.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-white/5 text-left text-white/80">
+                    <tr>
+                      <th className="px-3 py-2">Title</th>
+                      <th className="px-3 py-2">ID</th>
+                      <th className="px-3 py-2">Kind</th>
+                      <th className="px-3 py-2">Output table</th>
+                      <th className="px-3 py-2">Schedule (env)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recapCatalogLoading ? (
+                      Array.from({ length: 8 }).map((_, i) => (
+                        <tr key={`recap-catalog-skeleton-${i}`} className="border-t border-white/10">
+                          <td className="px-3 py-2">
+                            <div className="h-4 w-40 max-w-full rounded bg-white/20 animate-pulse mb-2" />
+                            <div className="h-7 w-[11rem] max-w-full rounded bg-white/15 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-28 rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-24 rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-32 rounded bg-white/20 animate-pulse" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="h-3 w-36 rounded bg-white/20 animate-pulse mb-1" />
+                            <div className="h-2 w-24 rounded bg-white/10 animate-pulse" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      (recapCatalogData?.data ?? []).map((row) => (
+                        <Fragment key={row.id}>
+                          <tr
+                            className="border-t border-white/10 hover:bg-white/5 cursor-pointer"
+                            onClick={() =>
+                              setRecapExpandedId((id) => (id === row.id ? null : row.id))
+                            }
+                          >
+                            <td className="px-3 py-2 text-white">
+                              <div className="font-medium">{row.title}</div>
+                              <div
+                                className="mt-2 flex flex-wrap items-center gap-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="date"
+                                  className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs max-w-[11rem]"
+                                  value={recapManualDates[row.id] ?? ''}
+                                  onChange={(e) =>
+                                    setRecapManualDates((prev) => ({
+                                      ...prev,
+                                      [row.id]: e.target.value,
+                                    }))
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  className="px-2 py-1 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs disabled:opacity-50"
+                                  disabled={recapTriggerMutation.isPending}
+                                  onClick={() => {
+                                    const d = recapManualDates[row.id]?.trim()
+                                    recapTriggerMutation.mutate({
+                                      catalogEntryId: row.id,
+                                      date: d || undefined,
+                                    })
+                                  }}
+                                >
+                                  Run now (empty date = H-1)
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-white/90 font-mono text-xs">{row.id}</td>
+                            <td className="px-3 py-2 text-white/80">{row.recapKind}</td>
+                            <td className="px-3 py-2 text-white/80 font-mono text-xs">{row.outputTable}</td>
+                            <td className="px-3 py-2 text-white/70 text-xs">
+                              {row.scheduleEnvVar ?? '—'}
+                              <br />
+                              <span className="text-white/50">
+                                {(row as { scheduleCronResolved?: string }).scheduleCronResolved ?? ''}
+                              </span>
+                            </td>
+                          </tr>
+                          {recapExpandedId === row.id && (
+                            <tr className="bg-black/20">
+                              <td colSpan={5} className="px-4 py-3 text-white/90">
+                                <p className="text-sm mb-2">{row.description}</p>
+                                <p className="text-xs text-white/70 mb-2">{row.briefProcessSummary}</p>
+                                <p className="text-xs text-white/50 mb-1">
+                                  Function: <code className="text-white/80">{row.functionName}</code> · Doc:{' '}
+                                  <code className="text-white/80">{row.rawSqlRepoPath}</code>
+                                </p>
+                                <details open className="mt-2">
+                                  <summary className="cursor-pointer text-blue-300 text-sm mb-1">
+                                    Representative query (brief)
+                                  </summary>
+                                  <pre className="mt-2 p-3 rounded bg-black/40 border border-white/10 text-xs overflow-x-auto whitespace-pre-wrap">
+                                    {row.briefQuery}
+                                  </pre>
+                                </details>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))
+                    )}
+                  </tbody>
+                  </table>
+                </div>
+                {!recapCatalogLoading && recapTriggerMutation.isError && (
+                  <p className="p-3 text-red-300 text-sm">
+                    {recapTriggerMutation.error?.message ?? 'Trigger failed'}
+                  </p>
+                )}
+                {!recapCatalogLoading && recapTriggerMutation.isSuccess && recapTriggerMutation.data?.data && (
+                  <p className="p-3 text-green-300 text-sm">
+                    {recapTriggerMutation.data.data.message} — status:{' '}
+                    {recapTriggerMutation.data.data.logEntry?.status ?? '—'}
+                  </p>
+                )}
+              </div>
+          </div>
+        )}
+
+        {/* FDW Configuration Tab */}
+        {activeTab === 'app-config' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">FDW Configuration</h3>
+              <p className="text-white/70 text-sm">
+                Manage Foreign Data Wrapper (FDW) source tables. These are shared tables imported from external databases (e.g. itm_db) used by apps like EDC Agen and EDC Merchant. Run migration to apply changes: <code className="bg-white/10 px-1 rounded text-xs">DB_NAME=platform_db npm run db:migrate</code>
+              </p>
+            </div>
+
+            {/* FDW Config Section */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">FDW Source Tables</h3>
+              <p className="text-white/70 text-sm mb-4">
+                Add or remove source tables imported via postgres_fdw. Includes both app database connections (e.g. bale_db, bale_bisnis_db) and shared external tables (e.g. itm_db). After changes, run migration to recreate the foreign server and table mappings.
+              </p>
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Source DB</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Table Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Schema</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {(fdwData?.data?.fdwSources ?? []).map((row: { id: number; source_db_name: string; table_name: string; schema_name?: string }) => (
+                        <tr key={row.id} className="hover:bg-white/5">
+                          <td className="px-4 py-3 text-sm text-white/90">{row.source_db_name}</td>
+                          <td className="px-4 py-3 text-sm text-white/90">{row.table_name}</td>
+                          <td className="px-4 py-3 text-sm text-white/90">{row.schema_name || 'public'}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <button
+                              onClick={() => fdwRemoveMutation.mutate({ id: row.id })}
+                              disabled={fdwRemoveMutation.isPending}
+                              className="px-2 py-1 bg-red-600/80 hover:bg-red-500 text-white rounded text-xs disabled:opacity-50"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex flex-wrap gap-4 items-end">
+                  <input
+                    type="text"
+                    placeholder="Source DB (e.g. itm_db)"
+                    value={newFdwForm.source_db_name}
+                    onChange={(e) => setNewFdwForm((p) => ({ ...p, source_db_name: e.target.value }))}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[120px]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Table name"
+                    value={newFdwForm.table_name}
+                    onChange={(e) => setNewFdwForm((p) => ({ ...p, table_name: e.target.value }))}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[180px]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Schema (default: public)"
+                    value={newFdwForm.schema_name}
+                    onChange={(e) => setNewFdwForm((p) => ({ ...p, schema_name: e.target.value }))}
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm min-w-[100px]"
+                  />
+                  <button
+                    onClick={() => fdwAddMutation.mutate(newFdwForm)}
+                    disabled={fdwAddMutation.isPending || !newFdwForm.source_db_name || !newFdwForm.table_name}
+                    className="px-3 py-2 bg-green-600/80 hover:bg-green-500 text-white rounded text-sm disabled:opacity-50"
+                  >
+                    {fdwAddMutation.isPending ? 'Adding...' : 'Add FDW'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Housekeeping Tab */}
+        {activeTab === 'housekeeping' && (
+          <div className="space-y-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-2">Housekeeping Rules</h3>
+              <p className="text-white/70 text-sm">
+                Configure retention per raw table. Raw tables that are shared across multiple apps (e.g. EDC Agen, EDC Merchant, and EDC Merchant Ancol all use the same <code className="bg-white/10 px-1 rounded">itm_db</code> tables) appear as a single row. Running housekeeping deletes rows older than the configured retention period directly from the raw table.
+              </p>
+            </div>
+
+            {/* pg_cron schedule info */}
+            <div className="flex items-start gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-4 py-3">
+              <svg className="w-4 h-4 text-indigo-300 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm text-indigo-200 space-y-1">
+                <p>
+                  <span className="font-semibold text-indigo-100">pg_cron auto-schedule: </span>
+                  <code className="bg-indigo-500/20 px-1.5 py-0.5 rounded text-xs font-mono text-indigo-100">
+                    {housekeepingScheduleData?.data?.schedule ?? '0 2 * * *'}
+                  </code>
+                </p>
+                <p className="text-indigo-300/80 text-xs">
+                  One job <code className="bg-indigo-500/20 px-1 rounded">housekeeping-all</code> runs <code className="bg-indigo-500/20 px-1 rounded">sp_run_all_raw_housekeeping()</code> on the platform DB. New rows you add below are included on the next run — no app redeploy. Register or refresh that job with <code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>. To change the schedule, set <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 space-y-3">
+              <h4 className="text-sm font-semibold text-white">Add raw table</h4>
+              <p className="text-xs text-white/60">
+                Use the platform relation name (prefixed FDW foreign table when applicable, e.g. <code className="bg-white/10 px-1 rounded">bale_db_raw_bale</code>), not only the short view name.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <input
+                  placeholder="db_name"
+                  value={newHkForm.db_name}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, db_name: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm font-mono"
+                />
+                <input
+                  placeholder="table_name"
+                  value={newHkForm.table_name}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, table_name: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm font-mono"
+                />
+                <input
+                  placeholder="date_column (optional)"
+                  value={newHkForm.date_column}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, date_column: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm font-mono"
+                />
+                <select
+                  value={newHkForm.date_column_type}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm"
+                  style={{ colorScheme: 'dark' }}
+                >
+                  <option value="timestamp" className="bg-gray-800">timestamp / date</option>
+                  <option value="int_1yymmdd" className="bg-gray-800">integer 1YYMMDD (e.g. TRXMDT)</option>
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="retention days (optional)"
+                  value={newHkForm.retention_days}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, retention_days: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm"
+                />
+                <input
+                  placeholder="notes (optional)"
+                  value={newHkForm.notes}
+                  onChange={(e) => setNewHkForm((p) => ({ ...p, notes: e.target.value }))}
+                  className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm sm:col-span-2"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newHkForm.db_name.trim() || !newHkForm.table_name.trim()) return
+                  const rd = newHkForm.retention_days.trim() ? parseInt(newHkForm.retention_days, 10) : null
+                  upsertHousekeepingMutation.mutate({
+                    db_name: newHkForm.db_name.trim(),
+                    table_name: newHkForm.table_name.trim(),
+                    date_column: newHkForm.date_column.trim() === '' ? null : newHkForm.date_column.trim(),
+                    date_column_type: newHkForm.date_column_type,
+                    retention_days: rd !== null && !Number.isNaN(rd) && rd > 0 ? rd : null,
+                    notes: newHkForm.notes.trim() === '' ? null : newHkForm.notes.trim(),
+                  })
+                }}
+                disabled={upsertHousekeepingMutation.isPending || !newHkForm.db_name.trim() || !newHkForm.table_name.trim()}
+                className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 text-white rounded text-sm disabled:opacity-50"
+              >
+                {upsertHousekeepingMutation.isPending ? 'Saving…' : 'Save row'}
+              </button>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
+              {housekeepingLoading ? (
+                <div className="p-8 text-center text-white/50">Loading...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Database</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Table</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Date Column</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Retention (days)</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {(housekeepingData?.data ?? []).map((row: {
+                        id: number
+                        db_name: string
+                        table_name: string
+                        date_column: string | null
+                        date_column_type: string | null
+                        retention_days: number | null
+                        notes: string | null
+                      }) => {
+                        const canRun = !!row.date_column && !!row.retention_days
+                        const isRefNoDate = !row.date_column && (row.notes?.toLowerCase().includes('reference') ?? false)
+                        return (
+                        <tr key={row.id} className={`hover:bg-white/5 ${!row.date_column ? 'opacity-70' : ''}`}>
+                          <td className="px-4 py-3 text-sm text-white/80 font-mono">{row.db_name}</td>
+                          <td className="px-4 py-3 text-sm text-white font-mono font-medium">{row.table_name}</td>
+
+                          {/* Date column cell */}
+                          <td className="px-4 py-3 text-sm">
+                            {editingDateConfig?.id === row.id ? (
+                              <div className="flex flex-col gap-2 max-w-[220px]">
+                                <input
+                                  value={editingDateConfig.date_column}
+                                  onChange={(e) => setEditingDateConfig((p) => p ? { ...p, date_column: e.target.value } : null)}
+                                  className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono"
+                                  placeholder="column_name"
+                                />
+                                <select
+                                  value={editingDateConfig.date_column_type}
+                                  onChange={(e) => setEditingDateConfig((p) => p ? { ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' } : null)}
+                                  className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
+                                  style={{ colorScheme: 'dark' }}
+                                >
+                                  <option value="timestamp" className="bg-gray-800">timestamp / date</option>
+                                  <option value="int_1yymmdd" className="bg-gray-800">integer 1YYMMDD</option>
+                                </select>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const col = editingDateConfig.date_column.trim()
+                                      if (!col) return
+                                      updateConfigMutation.mutate(
+                                        {
+                                          id: row.id,
+                                          date_column: col,
+                                          date_column_type: editingDateConfig.date_column_type,
+                                        },
+                                        { onSuccess: () => setEditingDateConfig(null) },
+                                      )
+                                    }}
+                                    disabled={updateConfigMutation.isPending || !editingDateConfig.date_column.trim()}
+                                    className="px-2 py-0.5 bg-green-600/80 text-white rounded text-xs"
+                                  >
+                                    Save
+                                  </button>
+                                  <button type="button" onClick={() => setEditingDateConfig(null)} className="px-2 py-0.5 bg-white/20 text-white rounded text-xs">Cancel</button>
+                                </div>
+                              </div>
+                            ) : row.date_column ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-blue-300">{row.date_column}</code>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingDateConfig({
+                                      id: row.id,
+                                      date_column: row.date_column ?? '',
+                                      date_column_type: row.date_column_type === 'int_1yymmdd' ? 'int_1yymmdd' : 'timestamp',
+                                    })}
+                                    className="px-1.5 py-0.5 bg-blue-600/50 text-white rounded text-[10px]"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                                {row.date_column_type === 'int_1yymmdd' && (
+                                  <p className="text-xs text-white/40">integer 1YYMMDD format</p>
+                                )}
+                              </div>
+                            ) : isRefNoDate ? (
+                              <div className="space-y-0.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/10 text-white/60 rounded text-xs" title={row.notes ?? ''}>
+                                  Not applicable
+                                </span>
+                                {row.notes && (
+                                  <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded text-xs">
+                                  Pending setup
+                                </span>
+                                {row.notes && (
+                                  <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingDateConfig({
+                                    id: row.id,
+                                    date_column: '',
+                                    date_column_type: 'timestamp',
+                                  })}
+                                  className="text-xs text-blue-300 hover:underline"
+                                >
+                                  Set date column
+                                </button>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Retention days cell */}
+                          <td className="px-4 py-3 text-sm">
+                            {editingRetention?.id === row.id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={editingRetention.value}
+                                  onChange={(e) => setEditingRetention((p) => p ? { ...p, value: e.target.value } : null)}
+                                  className="w-24 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                  placeholder="days"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const days = parseInt(editingRetention.value)
+                                    if (!isNaN(days) && days > 0) {
+                                      updateConfigMutation.mutate(
+                                        { id: row.id, retention_days: days },
+                                        { onSuccess: () => setEditingRetention(null) }
+                                      )
+                                    }
+                                  }}
+                                  disabled={updateConfigMutation.isPending}
+                                  className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
+                                >
+                                  {updateConfigMutation.isPending ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={() => setEditingRetention(null)}
+                                  className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {row.date_column || !isRefNoDate ? (
+                                  <>
+                                    <span className={row.retention_days ? 'text-white' : 'text-white/40 italic'}>
+                                      {row.retention_days ? `${row.retention_days} days` : 'Not set'}
+                                    </span>
+                                    <button
+                                      onClick={() => setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })}
+                                      className="px-2 py-0.5 bg-blue-600/60 hover:bg-blue-500 text-white rounded text-xs"
+                                      disabled={isRefNoDate}
+                                    >
+                                      Edit
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-white/30 italic text-xs">N/A</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Actions cell */}
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={async () => {
+                                  setHousekeepingRunning((p) => ({ ...p, [row.id]: true }))
+                                  setHousekeepingMessages((p) => { const n = { ...p }; delete n[row.id]; return n })
+                                  try {
+                                    const result = await runHousekeepingMutation.mutateAsync({ id: row.id })
+                                    setHousekeepingMessages((p) => ({ ...p, [row.id]: { type: 'success', text: result.message } }))
+                                  } catch (e: any) {
+                                    setHousekeepingMessages((p) => ({ ...p, [row.id]: { type: 'error', text: e?.message ?? 'Error running housekeeping' } }))
+                                  } finally {
+                                    setHousekeepingRunning((p) => ({ ...p, [row.id]: false }))
+                                  }
+                                }}
+                                disabled={!canRun || housekeepingRunning[row.id]}
+                                className="px-3 py-1 bg-orange-600/80 hover:bg-orange-500 text-white rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                                title={!row.date_column ? 'Configure date column and retention first' : !row.retention_days ? 'Set retention days first' : 'Run housekeeping'}
+                              >
+                                {housekeepingRunning[row.id] ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                                    Running...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Run Housekeeping
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!window.confirm(`Remove housekeeping config for ${row.db_name}.${row.table_name}?`)) return
+                                  deleteHousekeepingMutation.mutate({ id: row.id })
+                                }}
+                                disabled={deleteHousekeepingMutation.isPending}
+                                className="px-3 py-1 bg-red-900/50 hover:bg-red-800/60 text-red-200 rounded text-xs disabled:opacity-50"
+                              >
+                                Delete row
+                              </button>
+                              {housekeepingMessages[row.id] && (
+                                <p className={`text-xs ${housekeepingMessages[row.id].type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+                                  {housekeepingMessages[row.id].text}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {(housekeepingData?.data?.length ?? 0) === 0 && (
+                    <div className="p-8 text-center text-white/50">No raw tables configured. Run migration to seed from apps, or add a row above.</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

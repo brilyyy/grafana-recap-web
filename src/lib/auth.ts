@@ -1,8 +1,28 @@
-import jwt, { type SignOptions, type Secret } from 'jsonwebtoken'
-import bcrypt from 'bcryptjs'
+/**
+ * Auth helpers – BetterAuth edition
+ *
+ * Exports the same surface used by existing API route handlers so that
+ * those routes work without changes during the migration:
+ *   requireAuth, requireRole, requireSuperAdmin, getSession, hasRole, isSuperAdmin
+ *
+ * JWT / bcrypt utilities are no longer used for sessions; BetterAuth owns
+ * session management. hashPassword / verifyPassword are kept as thin wrappers
+ * for the pending-user-request flow that still hashes passwords in app code.
+ */
+
+import { headers } from 'next/headers'
 import { NextRequest } from 'next/server'
+import { auth } from './better-auth'
+
+// ─── Public types (unchanged) ─────────────────────────────────────────────────
 
 export type UserRole = 'superadmin' | 'admin' | 'user'
+
+export interface SessionPayload {
+  userId: number
+  username: string
+  role: UserRole
+}
 
 export interface User {
   id: number
@@ -12,151 +32,99 @@ export interface User {
   created_at: Date
 }
 
-export interface SessionPayload {
-  userId: number
-  username: string
-  role: UserRole
+// ─── Role hierarchy ────────────────────────────────────────────────────────────
+
+const roleHierarchy: Record<UserRole, number> = {
+  user: 1,
+  admin: 2,
+  superadmin: 3,
 }
 
-const JWT_SECRET: Secret = (process.env.JWT_SECRET || 'change-this-secret-key-in-production') as Secret
-const JWT_EXPIRES_IN: string | number = process.env.JWT_EXPIRES_IN || '7d'
-const SESSION_COOKIE_NAME = 'auth_session'
-
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12
-  return bcrypt.hash(password, saltRounds)
-}
-
-/**
- * Verify a password against a hash
- */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash)
-}
-
-/**
- * Generate a JWT token for a user session
- */
-export function generateToken(payload: SessionPayload): string {
-  const options: SignOptions = {
-    // Cast to any to satisfy jsonwebtoken's stricter typing while still allowing string like '7d'
-    expiresIn: JWT_EXPIRES_IN as any,
-  }
-
-  return jwt.sign(payload, JWT_SECRET, options)
-}
-
-/**
- * Verify and decode a JWT token
- */
-export function verifyToken(token: string): SessionPayload | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET as Secret) as SessionPayload
-    return decoded
-  } catch (error) {
-    return null
-  }
-}
-
-/**
- * Get session from request cookies
- */
-export function getSession(request: NextRequest): SessionPayload | null {
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value
-
-  if (!token) {
-    return null
-  }
-
-  return verifyToken(token)
-}
-
-export function setSessionCookie(payload: SessionPayload): string {
-  const token = generateToken(payload)
-  
-  const shouldUseSecure = process.env.COOKIE_SECURE === 'true' || process.env.COOKIE_SECURE === '1'
-  
-  const cookieOptions = [
-    `${SESSION_COOKIE_NAME}=${token}`,
-    'HttpOnly',
-    shouldUseSecure ? 'Secure' : '',
-    'SameSite=Lax',
-    `Max-Age=${60 * 60 * 24 * 7}`, // 7 days
-    'Path=/',
-  ].filter(Boolean).join('; ')
-
-  return cookieOptions
-}
-
-export function clearSessionCookie(): string {
-  // Only set Secure flag if explicitly enabled via environment variable
-  const shouldUseSecure = process.env.COOKIE_SECURE === 'true' || process.env.COOKIE_SECURE === '1'
-  const secureFlag = shouldUseSecure ? '; Secure' : ''
-  
-  return `${SESSION_COOKIE_NAME}=; HttpOnly${secureFlag}; Path=/; Max-Age=0`
-}
-
-/**
- * Check if user has required role
- */
 export function hasRole(userRole: UserRole, requiredRole: UserRole): boolean {
-  const roleHierarchy: Record<UserRole, number> = {
-    user: 1,
-    admin: 2,
-    superadmin: 3,
-  }
-
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
 }
 
-/**
- * Check if user is superadmin
- */
 export function isSuperAdmin(userRole: UserRole): boolean {
   return userRole === 'superadmin'
 }
 
+// ─── Session helpers (server-side) ────────────────────────────────────────────
+
 /**
- * Require superadmin role - throws if user is not superadmin
+ * Get BetterAuth session from an incoming NextRequest (reads cookie header).
+ * Returns SessionPayload or null.
  */
-export function requireSuperAdmin(request: NextRequest): SessionPayload {
-  const session = requireAuth(request)
+export async function getSession(request: NextRequest): Promise<SessionPayload | null> {
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  })
 
-  if (session.role !== 'superadmin') {
-    throw new Error('Forbidden: superadmin role required')
+  if (!session?.user) return null
+
+  return {
+    userId: Number(session.user.id),
+    username: (session.user as any).username ?? session.user.name ?? session.user.email,
+    role: ((session.user as any).role as UserRole) ?? 'user',
   }
-
-  return session
 }
 
 /**
- * Require authentication - throws if not authenticated
+ * Get BetterAuth session from Next.js headers() (for Server Components / Server Actions).
  */
-export function requireAuth(request: NextRequest): SessionPayload {
-  const session = getSession(request)
+export async function getServerSession(): Promise<SessionPayload | null> {
+  const session = await auth.api.getSession({ headers: await headers() })
 
-  if (!session) {
-    throw new Error('Unauthorized: Authentication required')
+  if (!session?.user) return null
+
+  return {
+    userId: Number(session.user.id),
+    username: (session.user as any).username ?? session.user.name ?? session.user.email,
+    role: ((session.user as any).role as UserRole) ?? 'user',
   }
+}
 
+// ─── Route guards (async) ──────────────────────────────────────────────────────
+
+export async function requireAuth(request: NextRequest): Promise<SessionPayload> {
+  const session = await getSession(request)
+  if (!session) throw new Error('Unauthorized: Authentication required')
   return session
 }
 
-/**
- * Require specific role - throws if user doesn't have required role
- */
-export function requireRole(
-  request: NextRequest,
-  requiredRole: UserRole
-): SessionPayload {
-  const session = requireAuth(request)
-
+export async function requireRole(request: NextRequest, requiredRole: UserRole): Promise<SessionPayload> {
+  const session = await requireAuth(request)
   if (!hasRole(session.role, requiredRole)) {
     throw new Error(`Forbidden: ${requiredRole} role required`)
   }
-
   return session
+}
+
+export async function requireSuperAdmin(request: NextRequest): Promise<SessionPayload> {
+  return requireRole(request, 'superadmin')
+}
+
+// ─── Password utilities (kept for pending-user-request flow) ─────────────────
+
+import bcrypt from 'bcryptjs'
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12)
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash)
+}
+
+// ─── Cookie helpers (stubs – BetterAuth manages cookies now) ─────────────────
+
+/**
+ * @deprecated BetterAuth manages cookies automatically via the nextCookies plugin.
+ * These stubs exist only to avoid breaking old callers during migration.
+ */
+export function setSessionCookie(_payload: SessionPayload): string {
+  return ''
+}
+
+export function clearSessionCookie(): string {
+  return ''
 }

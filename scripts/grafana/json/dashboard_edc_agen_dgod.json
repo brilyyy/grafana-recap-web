@@ -1,0 +1,1181 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Dashboard Bale DGOD – Optimized: flat queries, consistent timezone, correct thresholds, trend panels",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 102,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
+      "panels": [],
+      "title": "All Trx Type/Category",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        t.status_transaksi,\r\n        t.result_code,\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            dc.error_type AS status_transaksi\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type IS NOT NULL\r\n    ) t\r\n    GROUP BY\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.status_transaksi,\r\n        t.result_code,\r\n        t.\"TRRSPC\"\r\n)\r\n\r\nSELECT\r\n  date_trunc('second', sr.transaction_date),\r\n  SUM(sr.total_transaksi) AS \"TPS\"\r\nFROM data2 sr\r\nWHERE sr.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1\r\nORDER BY 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TPS Last 10 Min",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 7,
+        "x": 3,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            dc.error_type AS status_transaksi\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n    ) t\r\n    GROUP BY\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\"\r\n)\r\n\r\nSELECT \r\n  date_trunc('minute', sr.transaction_date) AS time,\r\n  SUM(sr.total_transaksi) AS \"Jumlah Trx\"\r\nFROM data2 sr\r\nWHERE\r\n  sr.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n  GROUP BY 1\r\nORDER BY 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Transaksi Bale - All Trx",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sukses"
+            },
+            "properties": [
+              {
+                "id": "color"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 97
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bisnis"
+            },
+            "properties": [
+              {
+                "id": "color"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 2
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sistem"
+            },
+            "properties": [
+              {
+                "id": "color"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 2
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 14,
+        "x": 10,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        t.status_transaksi,\r\n        t.result_code,\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            dc.error_type AS status_transaksi\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n    ) t\r\n    GROUP BY\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.status_transaksi,\r\n        t.result_code,\r\n        t.\"TRRSPC\"\r\n)\r\n\r\nSELECT\r\n    date_trunc('minute', sr.transaction_date) AS time,\r\n    (SUM(CASE WHEN sr.status_transaksi IN ('Sukses') THEN sr.total_transaksi ELSE 0 END)::numeric / NULLIF(SUM(sr.total_transaksi),0)) * 100 AS \"Sukses\",\r\n    (SUM(CASE WHEN sr.status_transaksi IN ('N') THEN sr.total_transaksi ELSE 0 END)::numeric / NULLIF(SUM(sr.total_transaksi),0)) * 100 AS \"Bisnis\",\r\n    (SUM(CASE WHEN sr.status_transaksi IN ('S') THEN sr.total_transaksi ELSE 0 END)::numeric / NULLIF(SUM(sr.total_transaksi),0)) * 100 AS \"Sistem\"\r\nFROM data2 sr\r\nWHERE sr.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1\r\nORDER BY 1;\r\n\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Volume Sukses"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyIDR"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Volume Bisnis Error"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyIDR"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Volume Sistem Error"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyIDR"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Jumlah Sukses"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Jumlah Bisnis Error"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Jumlah Sistem Error"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 0,
+        "y": 6
+      },
+      "id": 421,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        t.result_code,\r\n        t.\"TRTRN$\",\r\n        t.error_type,\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            tr.\"TRTRN$\",\r\n            dc.error_type\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type IS NOT NULL\r\n    ) t\r\n    GROUP BY 1, 2, 3, 4, 5, 6\r\n)\r\n\r\n\r\nSELECT date_trunc('second', th.transaction_date) AS time,\r\n  SUM(th.\"TRTRN$\") FILTER(WHERE th.error_type IN ('Sukses')) AS \"Volume Sukses\",\r\n  SUM(th.\"TRTRN$\") FILTER(WHERE th.error_type IN ('N')) AS \"Volume Bisnis Error\",\r\n  SUM(th.\"TRTRN$\") FILTER(WHERE th.error_type IN ('S')) AS \"Volume Sistem Error\",\r\n  SUM(th.total_transaksi) FILTER(WHERE th.error_type IN ('Sukses'))AS \"Jumlah Sukses\",\r\n  SUM(th.total_transaksi) FILTER(WHERE th.error_type IN ('N'))AS \"Jumlah Bisnis Error\",\r\n  SUM(th.total_transaksi) FILTER(WHERE th.error_type IN ('S'))AS \"Jumlah Sistem Error\"\r\nFROM data2 th\r\nWHERE \r\n  th.error_type IN ('Sukses')\r\n  AND th.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1\r\nORDER BY 1;\r\n\r\n-- SELECT \"TRTRN$\" FROM \"ASID160448_ZTRANS0P\" LIMIT 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gagal Bisnis"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gagal Sistem"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sukses"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 14,
+        "x": 10,
+        "y": 6
+      },
+      "id": 100,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        t.error_type,\r\n        t.result_code,\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            dc.error_type\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type IS NOT NULL\r\n    ) t\r\n    GROUP BY\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.error_type,\r\n        t.result_code,\r\n        t.\"TRRSPC\"\r\n)\r\n\r\nSELECT date_trunc('minute', th.transaction_date) AS time,\r\n  SUM(CASE WHEN th.error_type = 'Sukses' OR th.result_code IS NULL OR th.result_code = '' THEN 1 ELSE 0 END) AS \"Sukses\",\r\n  SUM(CASE WHEN th.error_type = 'N' THEN 1 ELSE 0 END) AS \"Gagal Bisnis\",\r\n  SUM(CASE WHEN th.error_type = 'S' THEN 1 ELSE 0 END) AS \"Gagal Sistem\"\r\nFROM data2 th\r\nWHERE th.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1 ORDER BY 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Tren Transaksi - All Categories (Sukses / Gagal Bisnis / Gagal Sistem)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "id": 7,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        t.error_type,\r\n        t.result_code,\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            dc.error_type\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type IS NOT NULL\r\n    ) t\r\n    GROUP BY\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.error_type,\r\n        t.result_code,\r\n        t.\"TRRSPC\"\r\n)\r\n\r\nSELECT CONCAT(th.result_code, ' > ', th.\"TRTRTY\") AS nama_error,\r\n  SUM(th.total_transaksi) AS \"Sistem Error\"\r\nFROM data2 th\r\nWHERE th.error_type = 'S'\r\n  AND th.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1\r\nORDER BY 2 DESC\r\nLIMIT 5;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Top 5 Gagal Sistem",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "id": 9,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data2 AS (\r\n    SELECT\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.\"TRRSPC\",\r\n        t.error_type,\r\n        t.result_code,\r\n        COUNT(DISTINCT t.\"TRSTAN\") AS total_transaksi\r\n    FROM (\r\n        SELECT\r\n            TO_TIMESTAMP(\r\n                SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n                LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n                'YYMMDDHH24MISS'\r\n            ) AS transaction_date,\r\n            tr.\"TRRSPC\" AS result_code,\r\n            r.\"RSSHTD\" AS rc_description,\r\n            tr.\"TRRSPC\",\r\n            tr.\"TRSTAN\",\r\n            tr.\"TRTRTY\",\r\n            dc.error_type\r\n        FROM \"ASID160448_ZTRANS0P\" tr\r\n        JOIN \"ASID160448_ZRSPCD0P\" r\r\n            ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n        LEFT JOIN response_code_dictionary dc\r\n            ON tr.\"TRRSPC\"::text = dc.rc\r\n            AND dc.id_app_identifier = 7\r\n        WHERE\r\n            tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type IS NOT NULL\r\n    ) t\r\n    GROUP BY\r\n        t.transaction_date,\r\n        t.\"TRTRTY\",\r\n        t.error_type,\r\n        t.result_code,\r\n        t.\"TRRSPC\"\r\n)\r\n\r\nSELECT CONCAT(th.result_code, ' > ', th.\"TRTRTY\") AS nama_error,\r\n  SUM(th.total_transaksi) AS \"Sistem Error\"\r\nFROM data2 th\r\nWHERE th.error_type = 'N'\r\n  AND th.transaction_date BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1\r\nORDER BY 2 DESC\r\nLIMIT 5;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Top 5 Gagal Bisnis",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TRTRTY"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom.viz",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rnk"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom.viz",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error_type"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom.viz",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH base AS (\r\n    SELECT\r\n        TO_TIMESTAMP(\r\n            SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n            LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n            'YYMMDDHH24MISS'\r\n        ) AS transaction_date,\r\n        tr.\"TRRSPC\" AS result_code,\r\n        tr.\"TRTRTY\",\r\n        tr.\"TRSTAN\",\r\n        tr.\"TRRRF#\",\r\n        dc.rc_description,\r\n        dc.error_type\r\n    FROM \"ASID160448_ZTRANS0P\" tr\r\n    JOIN \"ASID160448_ZRSPCD0P\" r\r\n        ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n    LEFT JOIN response_code_dictionary dc\r\n        ON tr.\"TRRSPC\"::text = dc.rc\r\n        AND dc.id_app_identifier = 61\r\n    WHERE\r\n    tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type = 'S'\r\n),\r\n\r\ntop_errors AS (\r\n    SELECT\r\n        result_code,\r\n        \"TRTRTY\",\r\n        COUNT(*) AS total_count\r\n    FROM base\r\n    WHERE transaction_date BETWEEN $__timeFrom() AND $__timeTo()\r\n    GROUP BY 1,2\r\n    ORDER BY total_count DESC\r\n    LIMIT 5\r\n),\r\n\r\nranked AS (\r\n    SELECT\r\n        CONCAT(b.result_code, ' > ', b.\"TRTRTY\") AS nama_error,\r\n        b.*,\r\n        ROW_NUMBER() OVER (\r\n            PARTITION BY b.result_code, b.\"TRTRTY\"\r\n            ORDER BY b.transaction_date DESC\r\n        ) AS rnk\r\n    FROM base b\r\n    JOIN top_errors t\r\n        ON b.result_code = t.result_code\r\n        AND b.\"TRTRTY\" = t.\"TRTRTY\"\r\n)\r\n\r\nSELECT *\r\nFROM ranked\r\nWHERE rnk <= 5;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Sample Transaksi Gagal Sistem",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TRTRTY"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom.viz",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rnk"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom.viz",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error_type"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom.viz",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH base AS (\r\n    SELECT\r\n        TO_TIMESTAMP(\r\n            SUBSTRING(tr.\"TRXMDT\"::text FROM 2) ||\r\n            LPAD(SUBSTRING(tr.\"TRXMTM\"::text FROM 1),6,'0'),\r\n            'YYMMDDHH24MISS'\r\n        ) AS transaction_date,\r\n        tr.\"TRRSPC\" AS result_code,\r\n        tr.\"TRTRTY\",\r\n        tr.\"TRSTAN\",\r\n        tr.\"TRRRF#\",\r\n        dc.rc_description,\r\n        dc.error_type\r\n    FROM \"ASID160448_ZTRANS0P\" tr\r\n    JOIN \"ASID160448_ZRSPCD0P\" r\r\n        ON tr.\"TRRSPC\" = r.\"RSRSPC\"\r\n    LEFT JOIN response_code_dictionary dc\r\n        ON tr.\"TRRSPC\"::text = dc.rc\r\n        AND dc.id_app_identifier = 61\r\n    WHERE\r\n    tr.\"TRTRTY\" NOT IN ('21','6A','6B','C1','C2')\r\n            AND tr.\"TRPROD\" = 'POS'\r\n            AND dc.error_type = 'N'\r\n),\r\n\r\ntop_errors AS (\r\n    SELECT\r\n        result_code,\r\n        \"TRTRTY\",\r\n        COUNT(*) AS total_count\r\n    FROM base\r\n    WHERE transaction_date BETWEEN $__timeFrom() AND $__timeTo()\r\n    GROUP BY 1,2\r\n    ORDER BY total_count DESC\r\n    LIMIT 5\r\n),\r\n\r\nranked AS (\r\n    SELECT\r\n        CONCAT(b.result_code, ' > ', b.\"TRTRTY\") AS nama_error,\r\n        b.*,\r\n        ROW_NUMBER() OVER (\r\n            PARTITION BY b.result_code, b.\"TRTRTY\"\r\n            ORDER BY b.transaction_date DESC\r\n        ) AS rnk\r\n    FROM base b\r\n    JOIN top_errors t\r\n        ON b.result_code = t.result_code\r\n        AND b.\"TRTRTY\" = t.\"TRTRTY\"\r\n)\r\n\r\nSELECT *\r\nFROM ranked\r\nWHERE rnk <= 5;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Sample Transaksi Gagal Bisnis",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "DGOD"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard EDC Agent DGOD",
+  "uid": "db4sbs9",
+  "version": 35
+}

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
-import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
 import type { ApiResponse } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+const rcDictUpsertSql = isPostgres
+  ? `INSERT INTO "response_code_dictionary" ("id_app_identifier","jenis_transaksi","rc","error_type") VALUES (?,?,?,?) ON CONFLICT ("id_app_identifier","jenis_transaksi","rc") DO UPDATE SET "error_type"=EXCLUDED."error_type"`
+  : 'INSERT INTO `response_code_dictionary` (`id_app_identifier`,`jenis_transaksi`,`rc`,`error_type`) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE `error_type`=VALUES(`error_type`)'
 
 // POST - Submit multiple mappings for unmapped RCs
 export async function POST(request: NextRequest) {
@@ -60,44 +66,29 @@ export async function POST(request: NextRequest) {
           const { id, id_app_identifier, jenis_transaksi, rc, error_type } = mapping
 
           // 1. Insert into response_code_dictionary with upsert
-          const upsertQuery = buildSimpleUpsertQuery(
-            getDb(),
-            'response_code_dictionary',
-            ['id_app_identifier', 'jenis_transaksi', 'rc', 'error_type'],
-            ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
-            ['error_type'] // update columns
-          )
-          await connection.execute(
-            upsertQuery,
-            [id_app_identifier, jenis_transaksi || '', rc, error_type]
-          )
+          await connection.execute(rcDictUpsertSql, [id_app_identifier, jenis_transaksi || '', rc, error_type])
 
-          // 2. Update all app_success_rate entries that match this RC
-          // This includes:
-          // - Entries with error_type IS NULL (failed status)
-          // - Entries with status_transaksi = 'pending' AND error_type = 'S' (pending status that was defaulted to 'S')
-          // - Entries with status_transaksi = 'suspect' AND error_type = 'S' (suspect status that was defaulted to 'S')
-          // - Entries with status_transaksi = 'cancelled' AND error_type = 'S' (cancelled status that was defaulted to 'S')
+          // 2. Update every app_success_rate row for the same composite key (aligned with dictionary PATCH)
+          const jt = jenis_transaksi
           let updateQuery: string
           let updateParams: any[]
-          
-          if (jenis_transaksi && jenis_transaksi !== '') {
+
+          if (jt != null && String(jt).trim() !== '') {
             updateQuery = `UPDATE app_success_rate 
              SET error_type = ?
              WHERE id_app_identifier = ? 
-             AND rc = ? 
-             AND jenis_transaksi = ?
-             AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
-            updateParams = [error_type, id_app_identifier, rc, jenis_transaksi]
+               AND jenis_transaksi = ?
+               AND rc = ?`
+            updateParams = [error_type, id_app_identifier, jt, rc]
           } else {
             updateQuery = `UPDATE app_success_rate 
              SET error_type = ?
              WHERE id_app_identifier = ? 
-             AND rc = ?
-             AND (error_type IS NULL OR (status_transaksi = 'pending' AND error_type = 'S') OR (status_transaksi = 'suspect' AND error_type = 'S') OR (status_transaksi = 'cancelled' AND error_type = 'S'))`
+               AND rc = ?
+               AND (jenis_transaksi IS NULL OR jenis_transaksi = '')`
             updateParams = [error_type, id_app_identifier, rc]
           }
-          
+
           await connection.execute(updateQuery, updateParams)
 
           // 3. Delete from unmapped_rc

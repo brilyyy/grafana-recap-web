@@ -4,7 +4,7 @@ import type { ApiResponse } from '@/types'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = getSession(request)
+    const session = await getSession(request)
 
     if (!session) {
       return NextResponse.json({
@@ -28,12 +28,6 @@ export async function GET(request: NextRequest) {
     } as ApiResponse)
   } catch (error: any) {
     console.error('Auth check error:', error.message)
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Internal server error',
-      } as ApiResponse,
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, message: 'Internal server error' } as ApiResponse, { status: 500 })
   }
 }

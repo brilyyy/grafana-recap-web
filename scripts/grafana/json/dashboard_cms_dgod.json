@@ -1,0 +1,1635 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 97,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#f8fbf8",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \r\n  date_trunc('minute', \"ACTN_DT\") AS time,\r\n  count(\"ID\") AS \"Jumlah Trx\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY 1\r\nORDER BY 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Transaksi",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "/^Persentase$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- -- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10\r\n\r\nSELECT\r\n    (SUM(CASE WHEN \"IS_ERR\" IN ('N') THEN 1 ELSE 0 END)::numeric / \r\n     NULLIF(COUNT(\"ID\"), 0)) * 100 AS \"Persentase\"\r\nFROM \"GCM_AGCM_LOG_ACTV\" \r\nWHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\n\r\n\r\n-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" WHERE DATE(\"ACTN_DT\") = '2026-04-14' LIMIT 10",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Success",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyIDR"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 8,
+        "y": 0
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "/^volume$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10\r\n\r\nSELECT\r\n    SUM(\"AMT\") AS Volume\r\nFROM \"GCM_AGCM_LOG_ACTV\" \r\nWHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp) and (\"IS_ERR\" = 'N') AND \"AMT_CCY_CD\" = 'IDR'",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Volume Trx Sukses",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 11,
+        "y": 0
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10\r\n\r\nSELECT\r\n    SUM(CASE WHEN \"IS_ERR\" IN ('N') THEN 1 ELSE 0 END)::numeric AS \"Total N\",\r\n    SUM(CASE WHEN \"IS_ERR\" IN ('Y') THEN 1 ELSE 0 END)::numeric AS \"Total Y\"\r\nFROM \"GCM_AGCM_LOG_ACTV\" \r\nWHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-orange",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- SELECT DISTINCT \"ACTN_TYP_NM\" FROM \"GCM_AGCM_LOG_ACTV\" \r\nSELECT \"ERR_MAP_CD\", COUNT(\"ERR_MAP_CD\") AS \"Error Map\" FROM \"GCM_AGCM_LOG_ACTV\" WHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)  GROUP BY \"ERR_MAP_CD\" ORDER BY 2 DESC LIMIT 10\r\n\r\n-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "New panel",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0%",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": 0
+              },
+              {
+                "color": "dark-red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 4
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "/^Persentase$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10\r\n\r\nSELECT\r\n    (SUM(CASE WHEN \"IS_ERR\" IN ('Y') THEN 1 ELSE 0 END)::numeric / \r\n     NULLIF(COUNT(\"ID\"), 0)) * 100 AS \"Persentase\"\r\nFROM \"GCM_AGCM_LOG_ACTV\" \r\nWHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": 0
+              },
+              {
+                "color": "dark-red",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "currencyIDR"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 8,
+        "y": 4
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "/^volume$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10\r\n\r\nSELECT\r\n    SUM(\"AMT\") AS Volume\r\nFROM \"GCM_AGCM_LOG_ACTV\" \r\nWHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp) and (\"IS_ERR\" = 'Y') AND \"AMT_CCY_CD\" = 'IDR'",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Volume Trx Failed",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#f6f9f6",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 5
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \r\n  date_trunc('second', \"ACTN_DT\") AS time,\r\n  count(\"ID\") AS \"Jumlah Trx\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE\r\n  \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY 1\r\nORDER BY 1;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TPS",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Persentase Sukses"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "-- SELECT * FROM \"GCM_AGCM_LOG_ACTV\" LIMIT 10\r\n\r\nSELECT \r\n    date_trunc('minute',\"ACTN_DT\") AS time,\r\n    COUNT(\"ID\") AS total_transaksi,\r\n    (SUM(CASE WHEN \"IS_ERR\" IN ('N') THEN 1 ELSE 0 END)::numeric / \r\n     NULLIF(COUNT(\"ID\"), 0)) * 100 AS \"Persentase Sukses\"\r\nFROM \"GCM_AGCM_LOG_ACTV\" \r\nWHERE \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY time\r\nORDER BY time;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    \"SRVC_NM\" AS \"Fitur\",\r\n    COUNT(*) AS \"Total\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed\",\r\n    ROUND(\r\n        COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N')::numeric \r\n        / NULLIF(COUNT(*),0) * 100, 0\r\n    ) AS \"% Failed\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"SRVC_NM\" NOT ILIKE '%Payroll%' AND \"SRVC_NM\" NOT ILIKE '%BULK%'\r\nAND \"ACTN_TYP_NM\" ILIKE '%Execute%' AND \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY \"SRVC_NM\"\r\nORDER BY \"SRVC_NM\";",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Single",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    \"SRVC_NM\" AS \"Fitur\",\r\n    COUNT(*) AS \"Total\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed\",\r\n    ROUND(\r\n        COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N')::numeric \r\n        / NULLIF(COUNT(*),0) * 100, 0\r\n    ) AS \"% Failed\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"SRVC_NM\" ILIKE '%Payroll%' AND \"ACTN_TYP_NM\" ILIKE '%Execute%' AND \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY \"SRVC_NM\"\r\nORDER BY \"SRVC_NM\";",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Payroll",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    \"SRVC_NM\" AS \"Fitur\",\r\n    COUNT(*) AS \"Total\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed\",\r\nROUND(\r\n        COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N')::numeric \r\n        / NULLIF(COUNT(*),0) * 100, 0\r\n    ) AS \"% Failed\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"SRVC_NM\" ILIKE '%BULK%' AND \"ACTN_TYP_NM\" ILIKE '%Execute%' AND \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY \"SRVC_NM\"\r\nORDER BY \"SRVC_NM\";",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Bulk",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 21
+      },
+      "id": 18,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \r\n    \"ACTN_BY_CUST_ID\",\r\n    \"SRVC_NM\" AS \"Fitur\",\r\n    COUNT(*) AS \"Total\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed\",\r\n    ROUND(\r\n        COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N')::numeric \r\n        / NULLIF(COUNT(*),0) * 100, 0\r\n    ) AS \"% Failed\",\r\n    STRING_AGG(DISTINCT \"TRX_STS_NM\", ', ') \r\n        FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed Type\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"SRVC_NM\" ILIKE '%Payroll%' \r\n  AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY \r\n    \"ACTN_BY_CUST_ID\",\r\n    \"SRVC_NM\"\r\nORDER BY \"SRVC_NM\";",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Payroll Detail",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 21
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \r\n    \"ACTN_BY_CUST_ID\",\r\n    \"SRVC_NM\" AS \"Fitur\",\r\n    COUNT(*) AS \"Total\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n    COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed\",\r\n    ROUND(\r\n        COUNT(*) FILTER (WHERE \"IS_ERR\" != 'N')::numeric \r\n        / NULLIF(COUNT(*),0) * 100, 0\r\n    ) AS \"% Failed\",\r\n    STRING_AGG(DISTINCT \"TRX_STS_NM\", ', ') \r\n        FILTER (WHERE \"IS_ERR\" != 'N') AS \"Failed Type\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"SRVC_NM\" ILIKE '%BULK%' \r\n  AND \"ACTN_TYP_NM\" ILIKE '%Execute%'\r\n  AND \"ACTN_DT\"  >= ($__timeFrom()::timestamp) AND \"ACTN_DT\"  <= ($__timeTo()::timestamp)\r\nGROUP BY \r\n    \"ACTN_BY_CUST_ID\",\r\n    \"SRVC_NM\"\r\nORDER BY \"SRVC_NM\";",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Bulk Detail",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error"
+            },
+            "properties": [
+              {
+                "id": "custom.axisColorMode",
+                "value": "text"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 13,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 1,
+        "fullHighlight": false,
+        "groupWidth": 0.93,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"ACTN_TYP_NM\",\r\n  COUNT(*) FILTER(WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n  COUNT(*) FILTER(WHERE \"IS_ERR\" = 'Y') AS \"Error\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_TYP_NM\" IS NOT NULL\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp)\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp)\r\nGROUP BY 1\r\nORDER BY 2 DESC\r\nLIMIT 5",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Top 5 Type",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "eff6ebx1i01z4f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "eff6ebx1i01z4f"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"ACTN_TYP_NM\",\r\n  COUNT(*) AS \"Total\",\r\n  COUNT(*) FILTER(WHERE \"IS_ERR\" = 'N') AS \"Success\",\r\n  COUNT(*) FILTER(WHERE \"IS_ERR\" = 'Y') AS \"Error\"\r\nFROM \"GCM_AGCM_LOG_ACTV\"\r\nWHERE \"ACTN_TYP_NM\" IS NOT NULL\r\n  AND \"ACTN_DT\" >= ($__timeFrom()::timestamp)\r\n  AND \"ACTN_DT\" <= ($__timeTo()::timestamp)\r\nGROUP BY 1\r\nORDER BY 2 DESC\r\nLIMIT 50",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "New panel",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT * FROM \"cms_db_GCM_AGCM_LOG_EXECUTION\"  LIMIT 10\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "New panel",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard CMS - Development",
+  "uid": "db9cxgt",
+  "version": 52
+}

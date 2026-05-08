@@ -1,0 +1,1691 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 140,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 21,
+      "panels": [],
+      "title": "Recap",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 23,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"text-align: center;\">\n<h1>\n  <p style=\"font-size: 38px;\">\n    <b>Dashboard Debit Online</b>\n  </p>\n    </h1>\n</div>",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.2.1",
+      "title": "",
+      "transparent": true,
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-green",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "fieldMinMax": true,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 3
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time, \r\n      COALESCE(rc.error_type::text, 'NA') AS error_type, \r\n      itm.\"TRTDAT\", itm.\"TRTTIM\",\r\n      itm.\"TRRSPC\",\r\n      COUNT(*) AS jumlah,\r\n      COUNT(*) FILTER(WHERE rc.error_type = 'Sukses') AS sukses,\r\n      COUNT(*) FILTER(WHERE rc.error_type = 'N') AS bisnis\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm LEFT JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59  \r\n      GROUP BY 1, 2, 3, 4, 5\r\n)     \r\n\r\nSELECT \r\n   (SUM(sukses) + SUM(bisnis)) / SUM(jumlah)\r\nFROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Success Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 5,
+        "y": 3
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" \r\n      WHERE \r\n          \"TRTRTY\" = '21' AND \"TRPCCD\" = 59\r\n      GROUP BY 1\r\n)     \r\n\r\nSELECT date_trunc('minute', time) as time, COUNT(*) FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ORDER BY 1\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TPM",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 7,
+        "y": 3
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" \r\n      WHERE \r\n        \"TRTRTY\" = '21' AND \"TRPCCD\" = 59\r\n      GROUP BY 1\r\n)     \r\n\r\nSELECT date_trunc('second', time) as time, COUNT(*) FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ORDER BY 1\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TPS",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "fieldMinMax": true,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 9,
+        "y": 3
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time, COALESCE(rc.error_type::text, 'NA') AS error_type, \r\n      rc.rc_description, \"TRRSPC\",\r\n      COUNT(*) AS jumlah,\r\n      COUNT(*) FILTER(WHERE rc.error_type = 'Sukses') AS sukses\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm LEFT JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 \r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT \r\n    SUM(sukses) / SUM(jumlah) AS persentase\r\nFROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Persentase Sukses",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "fieldMinMax": true,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 14,
+        "y": 3
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time, COALESCE(rc.error_type::text, 'NA') AS error_type, \r\n      rc.rc_description, \"TRRSPC\",\r\n      COUNT(*) AS jumlah,\r\n      COUNT(*) FILTER (WHERE rc.error_type = 'S' OR rc.error_type IS NULL) AS \"Sistem\"\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm LEFT JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6 \r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59\r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT \r\n    (SUM(\"Sistem\")/SUM(jumlah)) AS persentase\r\nFROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Persentase Sistem Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "fieldMinMax": true,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 19,
+        "y": 3
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time, COALESCE(rc.error_type::text, 'NA') AS error_type, \r\n      rc.rc_description, \"TRRSPC\",\r\n      COUNT(*) AS jumlah,\r\n      COUNT(*) FILTER(WHERE rc.error_type = 'N') AS bisnis\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm LEFT JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59  \r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT \r\n    SUM(bisnis) / SUM(jumlah) \r\nFROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Persentase Bisnis Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 9,
+        "x": 0,
+        "y": 7
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" \r\n      WHERE \r\n        \"TRTRTY\" = '21' AND \"TRPCCD\" = 59\r\n      GROUP BY 1\r\n)     \r\n\r\nSELECT * FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Trx",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 9,
+        "y": 7
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time, COALESCE(rc.error_type::text, 'NA') AS error_type, \r\n      rc.rc_description, \"TRRSPC\",\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'Sukses'\r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT * FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Trx Sukses",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 14,
+        "y": 7
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n  LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS') AS time, \r\n      -- rc.rc_description\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm LEFT JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND (rc.error_type IS NULL OR rc.error_type = 'S')\r\n      GROUP BY 1, 2\r\n)     \r\n\r\nSELECT * FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Sistem Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 7
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time,\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n      rc.rc_description, \r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'N'\r\n      GROUP BY 1, 2, 3\r\n)     \r\n\r\nSELECT * FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "-- WITH data AS (\r\n-- SELECT TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n--   LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n--       'YYMMDDHH24MISS')::timestamp AT TIME ZONE 'Asia/Jakarta' AS time, \"TRRSPC\", \"TRTDAT\", \"TRTTIM\",\r\n--       COUNT(*) AS jumlah\r\n--       FROM \"itm_db_ASID160448_ZTRANS0P\" itm\r\n--       WHERE \r\n--           itm.\"TRXMDT\" = 1260420 AND itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 \r\n--       GROUP BY 1,2, 3, 4\r\n-- )     \r\n\r\n-- SELECT * FROM data \r\n-- WHERE $__timeFilter(time)\r\n\r\n-- -- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" LIMIT 10",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Bisnis Error",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "text",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "jumlah_transaksi"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.barWidthFactor",
+                "value": 0.7
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Persentase Sukses"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time, COALESCE(rc.error_type::text, 'NA') AS error_type, \r\n      rc.rc_description, \"TRRSPC\",\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 \r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT \r\n    date_trunc('minute', time) AS minute_bucket,\r\n    SUM(jumlah) AS jumlah_transaksi,\r\n    (\r\n        SUM(CASE \r\n            WHEN error_type IN ('Sukses', 'N')\r\n            THEN jumlah \r\n            ELSE 0 \r\n        END)::numeric\r\n        /\r\n        NULLIF(SUM(jumlah), 0)\r\n    ) * 100 AS \"Persentase Sukses\"\r\nFROM data\r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY 1\r\nORDER BY 1;\r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Jumlah Persentase & Success Rate",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-orange",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 11,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time,\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n      rc.rc,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'S'\r\n      GROUP BY 1, 2, 3\r\n)     \r\n\r\nSELECT rc, SUM(jumlah) AS sum FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY rc ORDER BY sum DESC LIMIT 10 \r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 RC Sistem Error",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-orange",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 10,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time,\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type, rc.rc,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'N'\r\n      GROUP BY 1, 2, 3\r\n)     \r\n\r\nSELECT rc, SUM(jumlah) AS sum FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour') GROUP BY rc ORDER BY sum DESC LIMIT 10 \r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 RC Bisnis Error",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-orange",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time,\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n      rc.rc_description, rc.rc,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'S'\r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT rc, rc_description, SUM(jumlah) AS Jumlah FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour') GROUP BY rc, 2 ORDER BY Jumlah DESC LIMIT 10 \r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 RC Sistem Error",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-orange",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n    LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time,\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n      rc.rc_description, rc.rc,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'N'\r\n      GROUP BY 1, 2, 3, 4\r\n)     \r\n\r\nSELECT rc, rc_description, SUM(jumlah) AS Jumlah FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour') GROUP BY rc, 2 ORDER BY Jumlah DESC LIMIT 10 \r\n\r\n-- SELECT * FROM \"itm_db_ASID160448_ZTRANS0P\" WHERE \"TRXMDT\" = 1260420 AND \"TRTRTY\" = '21' AND \"TRPCCD\" = 59 LIMIT 20\r\n\r\n-- SELECT * FROM response_code_dictionary WHERE id_app_identifier = 6\r\n\r\n-- TRDOC2",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TOP 10 RC BisnisError",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 22,
+      "panels": [],
+      "title": "Keterangan",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "persentase_sukses"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 19,
+      "options": {
+        "cellHeight": "sm",
+        "frameIndex": 2,
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\n    SELECT \r\n        (TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n        LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS')) AS time_col,\r\n        COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n        rc.rc_description, \r\n        rc.rc,\r\n        CASE WHEN \"TRCATA\" LIKE 'Grab%' THEN 'Grab'\r\n        WHEN \"TRCATA\" ILIKE 'Traveloka%' THEN 'Traveloka' \r\n        WHEN \"TRCATA\" ILIKE 'DANA QR%'THEN 'DANA QR'\r\n        WHEN \"TRCATA\" ILIKE 'DAN+DAN%'THEN 'DAN+DAN'\r\n        WHEN \"TRCATA\" ILIKE 'Spotify%' THEN 'Spotify'\r\n        WHEN \"TRCATA\" ILIKE 'Canva%' THEN 'Canva'\r\n        WHEN \"TRCATA\" ILIKE '%ELZATTA%' THEN 'ELZATTA'\r\n        WHEN \"TRCATA\" ILIKE 'TTS by TKPD%' THEN 'TTS by TKPD'\r\n        WHEN \"TRCATA\" ILIKE 'AZKO%' THEN 'AZKO'\r\n        WHEN \"TRCATA\" ILIKE '%MR DIY%' OR \"TRCATA\" ILIKE '%MR.D.I.Y%' THEN 'MR DIY'\r\n        WHEN \"TRCATA\" ILIKE 'Upwork%'THEN 'Upwork'\r\n        WHEN \"TRCATA\" ILIKE 'AGODA%'THEN 'AGODA.COM'\r\n        WHEN \"TRCATA\" ILIKE 'FACEBK%' THEN 'FACEBK'\r\n        WHEN \"TRCATA\" ILIKE 'NETFLIX%' THEN 'NETFLIX'\r\n        WHEN \"TRCATA\" ILIKE 'GOOGLECLOUD%' THEN 'GOOGLECLOUD'\r\n        WHEN \"TRCATA\" ILIKE 'GoPayQR%' THEN 'GoPayQR'\r\n        WHEN \"TRCATA\" ILIKE 'DANA TOP UP%' THEN 'DANA TOP UP'\r\n        \r\n        ELSE \"TRCATA\" END AS \"Merchant\",\r\n        COUNT(*) AS jumlah,\r\n        COUNT(*) FILTER(WHERE error_type = 'Sukses') AS sukses,\r\n        COUNT(*) FILTER(WHERE error_type = 'N') AS bisnis,\r\n        COUNT(*) FILTER(WHERE error_type = 'S') AS sistem\r\n    FROM \"itm_db_ASID160448_ZTRANS0P\" itm \r\n    JOIN response_code_dictionary rc ON itm.\"TRRSPC\" = rc.rc \r\n        AND rc.id_app_identifier = 6\r\n    WHERE \r\n        itm.\"TRTRTY\" = '21' \r\n        AND itm.\"TRPCCD\" = 59 \r\n    GROUP BY 1, 2, 3, 4, 5\r\n)    \r\n\r\nSELECT\r\n    \"Merchant\",  \r\n    SUM(jumlah) AS total_transaksi,\r\n    SUM(sukses) AS total_sukses,\r\n    SUM(bisnis) AS total_bisnis_error,\r\n    SUM(sistem) AS total_sistem_error,\r\n    SUM(sukses)/SUM(jumlah) * 100 AS persentase_sukses,\r\n    (SUM(sukses) + SUM(bisnis))/SUM(jumlah) * 100 AS success_rate\r\nFROM data \r\nWHERE time_col BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour')\r\nGROUP BY \"Merchant\"\r\nORDER BY total_transaksi DESC;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": true,
+          "rawQuery": true,
+          "rawSql": "SELECT \"TRCATA\" FROM \"itm_db_ASID160448_ZTRANS0P\" where UPPER(\"TRCATA\") ILIKE 'DANA%'",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Merchant",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "dffg7sdbqvhfld"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-orange",
+            "mode": "fixed"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "id": 20,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "dbs_db",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "dffg7sdbqvhfld"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH data AS (\r\nSELECT TO_TIMESTAMP(SUBSTRING(itm.\"TRTDAT\"::text, 2) || \r\n  LPAD(SUBSTRING(itm.\"TRTTIM\"::text FROM 1),6,'0'),\r\n      'YYMMDDHH24MISS') AS time,\r\n      COALESCE(rc.error_type::text, 'NA') AS error_type,\r\n      itm.\"TRDOC2\",\r\n      rc.rc_description, rc.rc,\r\n      COUNT(*) AS jumlah\r\n      FROM \"itm_db_ASID160448_ZTRANS0P\" itm JOIN response_code_dictionary rc ON  itm.\"TRRSPC\" = rc.rc AND rc.id_app_identifier = 6\r\n      WHERE \r\n        itm.\"TRTRTY\" = '21' AND itm.\"TRPCCD\" = 59 AND rc.error_type = 'N'\r\n        AND \"TRDOC2\" IN ('R3CYE', 'RE2YE', 'RECYE')\r\n      GROUP BY 1, 2, 3, 4, 5\r\n)     \r\n\r\nSELECT \"TRDOC2\", SUM(jumlah) AS jumlah FROM data \r\nWHERE time BETWEEN ($__timeFrom()::timestamp + interval '7 hour') AND ($__timeTo()::timestamp + interval '7 hour') GROUP BY 1 ORDER BY jumlah DESC LIMIT 10 \r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "TRDOC2",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now/d",
+    "to": "now/d"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard Debit Online",
+  "uid": "db5x4q6",
+  "version": 35
+}

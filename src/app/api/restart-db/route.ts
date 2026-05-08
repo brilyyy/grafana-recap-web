@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import type { ApiResponse } from '@/types'
 
 export async function POST() {
@@ -41,7 +41,7 @@ export async function POST() {
           ('SMS Notif'),
           ('QRIS'),
           ('EDC Merchant'),
-          ('EDC Agent'),
+          ('EDC Agen'),
           ('Bale Korpora')
       `)
 
@@ -54,7 +54,7 @@ export async function POST() {
           bulan VARCHAR(20) NOT NULL,
           tahun INT NOT NULL,
           jenis_transaksi VARCHAR(255) NOT NULL,
-          rc VARCHAR(50) NULL,
+          rc VARCHAR(255) NULL,
           rc_description VARCHAR(500) NULL,
           total_transaksi INT NULL,
           total_nominal DECIMAL(20, 2) NULL,
@@ -73,7 +73,7 @@ export async function POST() {
           id INT AUTO_INCREMENT PRIMARY KEY,
           id_app_identifier INT NOT NULL,
           jenis_transaksi VARCHAR(255),
-          rc VARCHAR(50),
+          rc VARCHAR(255),
           rc_description VARCHAR(500),
           error_type ENUM('S', 'N', 'Sukses') NOT NULL,
           FOREIGN KEY (id_app_identifier) REFERENCES app_identifier(id) ON DELETE CASCADE,
@@ -87,7 +87,7 @@ export async function POST() {
           id INT AUTO_INCREMENT PRIMARY KEY,
           id_app_identifier INT NOT NULL,
           jenis_transaksi VARCHAR(255),
-          rc VARCHAR(50),
+          rc VARCHAR(255),
           rc_description VARCHAR(500),
           status_transaksi VARCHAR(255) NULL,
           error_type ENUM('S', 'N', 'Sukses'),

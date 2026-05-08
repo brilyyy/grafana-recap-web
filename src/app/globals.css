@@ -10,7 +10,7 @@
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: linear-gradient(135deg, #003366 0%, #004080 25%, #DC143C 50%, #C41E3A 75%, #003366 100%);
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #1e3a5f, #0f172a);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
   min-height: 100vh;
@@ -155,6 +155,23 @@ body {
   flex: 1;
 }
 
+/* Light-background form controls: override the near-white foreground inherited from :root */
+.glass-card select,
+.glass-card input[type="text"],
+.glass-card input[type="email"],
+.glass-card input[type="password"],
+.glass-card input[type="number"],
+.glass-card input[type="search"],
+.glass-card textarea {
+  color: #111827; /* gray-900 */
+  color-scheme: light;
+}
+
+.glass-card select option {
+  color: #111827;
+  background-color: #ffffff;
+}
+
 /* Dark theme for select dropdowns - only in superadmin page */
 [data-page="superadmin"] select,
 .superadmin-page select {
@@ -185,4 +202,42 @@ body {
 .superadmin-page select option:focus {
   background-color: #374151 !important; /* gray-700 */
   color: #ffffff !important;
+}
+
+
+
+@layer base {
+  :root {
+    --background: 220 15% 8%;
+    --foreground: 210 40% 98%;
+    --card: 220 13% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 13% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 13% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 220 13% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 220 13% 22%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 20%;
+    --input: 220 13% 16%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.625rem;
+  }
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

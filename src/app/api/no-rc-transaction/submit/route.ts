@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool, { getDb } from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
-import { buildSimpleUpsertQuery } from '@/lib/sql-helpers'
+import { env } from '@/env'
 import type { ApiResponse } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+const unmappedRcUpsertSql = isPostgres
+  ? `INSERT INTO "unmapped_rc" ("id_app_identifier","jenis_transaksi","rc","rc_description","status_transaksi","error_type") VALUES (?,?,?,?,?,?) ON CONFLICT ("id_app_identifier","jenis_transaksi","rc") DO UPDATE SET "rc_description"=EXCLUDED."rc_description","status_transaksi"=EXCLUDED."status_transaksi"`
+  : 'INSERT INTO `unmapped_rc` (`id_app_identifier`,`jenis_transaksi`,`rc`,`rc_description`,`status_transaksi`,`error_type`) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE `rc_description`=VALUES(`rc_description`),`status_transaksi`=VALUES(`status_transaksi`)'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = requireAuth(request)
+    const session = await requireAuth(request)
     const body = await request.json()
     const { id, rc, rc_description } = body
 
@@ -87,16 +93,8 @@ export async function POST(request: NextRequest) {
         )
         const status_transaksi = statusResult.length > 0 ? statusResult[0].status_transaksi : null
 
-        // Use upsert query
-        const upsertQuery = buildSimpleUpsertQuery(
-          getDb(),
-          'unmapped_rc',
-          ['id_app_identifier', 'jenis_transaksi', 'rc', 'rc_description', 'status_transaksi', 'error_type'],
-          ['id_app_identifier', 'jenis_transaksi', 'rc'], // conflict columns (unique key)
-          ['rc_description', 'status_transaksi'] // update columns
-        )
         await connection.execute(
-          upsertQuery,
+          unmappedRcUpsertSql,
           [id_app_identifier, jenis_transaksi || '', rc.trim(), rc_description?.trim() || null, status_transaksi, null]
         )
         // error_type tetap NULL di app_success_rate

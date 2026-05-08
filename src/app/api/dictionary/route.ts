@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import type { ApiResponse, DictionaryViewEntry } from '@/types'
 
 // GET - Fetch all dictionary entries with rc_description

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { hashPassword, requireAuth, isSuperAdmin } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
-import { getInsertId, normalizeDbError } from '@/lib/db-helpers'
+import { env } from '@/env'
 import type { ApiResponse } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+function isDuplicateError(error: any): boolean {
+  return error?.code === 'ER_DUP_ENTRY' || error?.code === 1062 || error?.code === '23505'
+}
 
 /**
  * Create a new user
@@ -13,7 +19,7 @@ import type { ApiResponse } from '@/types'
 export async function POST(request: NextRequest) {
   try {
     // Require authentication
-    const session = requireAuth(request)
+    const session = await requireAuth(request)
     const isSuperAdminUser = isSuperAdmin(session.role)
 
     const body = await request.json()
@@ -144,12 +150,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert user directly
-    const [rows, result] = await pool.execute(
-      'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-      [username, email, passwordHash, role]
-    )
-
-    const userId = getInsertId(result)
+    const insertSql = isPostgres
+      ? 'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?) RETURNING id'
+      : 'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
+    const [rows] = await pool.execute(insertSql, [username, email, passwordHash, role])
+    const userId = isPostgres
+      ? (rows[0] as any)?.id
+      : (rows[0] as any)?.insertId ?? 0
 
     // Log the action
     await logAuditEvent(
@@ -185,12 +192,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Normalize error for database-agnostic handling
-    const normalizedError = normalizeDbError(error)
-
-    // Handle duplicate entry
-    if (normalizedError.code === 'DUPLICATE_ENTRY') {
-      const field = error.message.includes('username') ? 'username' : 'email'
+    if (isDuplicateError(error)) {
+      const field = error.message?.includes('username') ? 'username' : 'email'
       return NextResponse.json(
         {
           success: false,

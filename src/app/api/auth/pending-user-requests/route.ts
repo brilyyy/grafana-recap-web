@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireSuperAdmin } from '@/lib/auth'
 import type { ApiResponse } from '@/types'
 
@@ -9,7 +9,7 @@ import type { ApiResponse } from '@/types'
 export async function GET(request: NextRequest) {
   try {
     // Require superadmin role
-    const session = requireSuperAdmin(request)
+    const session = await requireSuperAdmin(request)
 
     // Get all pending requests
     const [requests]: any = await pool.execute(

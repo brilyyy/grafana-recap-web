@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { hashPassword, getSession } from '@/lib/auth'
-import { normalizeDbError } from '@/lib/db-helpers'
 import type { ApiResponse } from '@/types'
+
+function isDuplicateError(error: any): boolean {
+  return error?.code === 'ER_DUP_ENTRY' || error?.code === 1062 || error?.code === '23505'
+}
 
 /**
  * Submit a user registration request (creates pending request, not actual user)
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password)
 
     // Get current user session if exists (for requested_by field)
-    const session = getSession(request)
+    const session = await getSession(request)
     const requestedById = session?.userId || null
 
     // Insert pending request
@@ -115,12 +118,8 @@ export async function POST(request: NextRequest) {
       },
     } as ApiResponse)
   } catch (error: any) {
-    // Normalize error for database-agnostic handling
-    const normalizedError = normalizeDbError(error)
-    
-    // Handle duplicate entry
-    if (normalizedError.code === 'DUPLICATE_ENTRY') {
-      const field = error.message.includes('username') ? 'username' : 'email'
+    if (isDuplicateError(error)) {
+      const field = error.message?.includes('username') ? 'username' : 'email'
       return NextResponse.json(
         {
           success: false,

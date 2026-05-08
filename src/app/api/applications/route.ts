@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
-import { getInsertId, normalizeDbError } from '@/lib/db-helpers'
+import { pool } from '@/lib/db'
+import { env } from '@/env'
 import type { ApiResponse, Application } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+function isDuplicateError(error: any): boolean {
+  return error?.code === 'ER_DUP_ENTRY' || error?.code === 1062 || error?.code === '23505'
+}
 
 // GET - Fetch all applications
 export async function GET() {
   try {
     const [rows] = await pool.execute(
-      'SELECT id, app_name FROM app_identifier ORDER BY app_name'
+      'SELECT id, app_name, db_name, raw_table_name FROM app_identifier ORDER BY app_name'
     )
     
     return NextResponse.json({
@@ -42,12 +48,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const [rows, result] = await pool.execute(
-      'INSERT INTO app_identifier (app_name) VALUES (?)',
-      [appName.trim()]
-    )
-
-    const insertId = getInsertId(result)
+    const base = appName.toLowerCase().trim().replace(/[\s\-\.]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'unknown'
+    const dbName = `${base}_db`
+    const rawTableName = `raw_${base}`
+    const insertSql = isPostgres
+      ? 'INSERT INTO app_identifier (app_name, db_name, raw_table_name) VALUES (?, ?, ?) RETURNING id'
+      : 'INSERT INTO app_identifier (app_name, db_name, raw_table_name) VALUES (?, ?, ?)'
+    const [rows] = await pool.execute(insertSql, [appName.trim(), dbName, rawTableName])
+    const insertId = isPostgres
+      ? (rows[0] as any)?.id
+      : (rows[0] as any)?.insertId ?? 0
 
     return NextResponse.json({
       success: true,
@@ -60,11 +70,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error adding application:', error.message)
 
-    // Normalize error for database-agnostic handling
-    const normalizedError = normalizeDbError(error)
-    
-    // Check for duplicate entry
-    if (normalizedError.code === 'DUPLICATE_ENTRY') {
+    if (isDuplicateError(error)) {
       return NextResponse.json(
         {
           success: false,
@@ -84,3 +90,39 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH - Update app config (db_name, raw_table_name)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, db_name, raw_table_name } = body
+
+    if (!id || !db_name || !raw_table_name) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'id, db_name, and raw_table_name are required',
+        } as ApiResponse,
+        { status: 400 }
+      )
+    }
+
+    await pool.execute(
+      'UPDATE app_identifier SET db_name = ?, raw_table_name = ? WHERE id = ?',
+      [db_name, raw_table_name, id]
+    )
+
+    return NextResponse.json({
+      success: true,
+      message: 'Application config updated',
+    } as ApiResponse)
+  } catch (error: any) {
+    console.error('Error updating application config:', error.message)
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      } as ApiResponse,
+      { status: 500 }
+    )
+  }
+}

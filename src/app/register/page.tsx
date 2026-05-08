@@ -1,8 +1,16 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, UserPlus, Info } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -13,47 +21,18 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [adminExists, setAdminExists] = useState<boolean | null>(null)
-  const [checking, setChecking] = useState(true)
 
-  // Check if admin exists and if already authenticated
+  const { data: authCheck } = trpc.auth.check.useQuery(undefined, { retry: false })
+  const { data: adminCheck, isLoading: checking } = trpc.auth.checkAdmin.useQuery()
+  const createAdmin = trpc.auth.createAdmin.useMutation()
+
+  const adminExists = adminCheck?.data?.adminExists ?? null
+
   useEffect(() => {
-    let isMounted = true
-    
-    const checkStatus = async () => {
-      try {
-        // Check authentication
-        const authResponse = await fetch('/api/auth/check')
-        if (!isMounted) return
-        
-        const authData = await authResponse.json()
-        if (authData.success && authData.data.authenticated) {
-          router.replace('/')
-          return
-        }
-
-        // Check if admin exists
-        const adminResponse = await fetch('/api/auth/check-admin')
-        if (!isMounted) return
-        
-        const adminData = await adminResponse.json()
-        if (adminData.success) {
-          setAdminExists(adminData.data.adminExists)
-        }
-      } catch (error) {
-        console.error('Check error:', error)
-      } finally {
-        if (isMounted) {
-          setChecking(false)
-        }
-      }
+    if (authCheck?.data?.authenticated) {
+      router.replace('/')
     }
-    checkStatus()
-    
-    return () => {
-      isMounted = false
-    }
-  }, []) // Remove router from dependencies
+  }, [authCheck, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,13 +40,11 @@ export default function RegisterPage() {
     setSuccess('')
     setLoading(true)
 
-    // Validation
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       setLoading(false)
       return
     }
-
     if (password.length < 8) {
       setError('Password must be at least 8 characters long')
       setLoading(false)
@@ -75,38 +52,20 @@ export default function RegisterPage() {
     }
 
     try {
-      // create-admin API will handle:
-      // - If no admin exists: create admin directly (first-time setup)
-      // - If admin exists: create pending request (needs superadmin approval)
-      const response = await fetch('/api/auth/create-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          username, 
-          email, 
-          password
-        }),
-      })
-
-      const data = await response.json()
+      const data = await createAdmin.mutateAsync({ username, email, password })
 
       if (data.success) {
-        // Check if it's a pending request or direct creation
-        if (data.data && data.data.status === 'pending') {
+        if (data.data && (data.data as any).status === 'pending') {
           setSuccess('Registration request submitted successfully! Please wait for superadmin approval before you can login.')
         } else {
           setSuccess('Admin user created successfully! Redirecting to login...')
-          setTimeout(() => {
-            router.push('/login')
-          }, 2000)
+          setTimeout(() => router.push('/login'), 2000)
         }
       } else {
-        setError(data.message || 'Registration failed')
+        setError((data as any).message || 'Registration failed')
       }
     } catch (error: any) {
-      setError('An error occurred. Please try again.')
+      setError(error?.message || 'An error occurred. Please try again.')
       console.error('Registration error:', error)
     } finally {
       setLoading(false)
@@ -117,7 +76,7 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-4" />
           <p className="text-white">Loading...</p>
         </div>
       </div>
@@ -126,293 +85,146 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Animated background particles effect */}
+      {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-400/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
       </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Registration Card with Glassmorphism */}
-        <div className="rounded-3xl shadow-2xl p-8 md:p-10 space-y-6 animate-fade-in border border-white/30 bg-black/40 backdrop-blur-xl">
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
+        <div className="rounded-2xl shadow-2xl p-8 md:p-10 space-y-6 border border-white/10 bg-black/40 backdrop-blur-xl">
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/30">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/20">
+              <UserPlus className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
               {adminExists ? 'Request Admin Account' : 'Create First Admin Account'}
             </h1>
-            <p className="text-white/80 text-sm md:text-base font-medium">
-              {adminExists 
-                ? 'Submit a request for admin account. Superadmin approval required. Multiple admins can be created.'
+            <p className="text-white/70 text-sm md:text-base">
+              {adminExists
+                ? 'Submit a request for admin account. Superadmin approval required.'
                 : 'Set up your first admin account to access the dashboard'}
             </p>
             {adminExists && (
-              <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 text-white px-4 py-3 rounded-xl text-sm">
+              <div className="bg-blue-500/20 border border-blue-400/30 text-white px-4 py-3 rounded-xl text-sm">
                 <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                  <Info className="w-4 h-4 flex-shrink-0" />
                   <span>Your request will be reviewed by a superadmin before you can login.</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Registration Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label
-                htmlFor="username"
-                className="block text-sm font-semibold text-white/90 mb-2"
-              >
-                Username
-              </label>
+              <Label htmlFor="username" className="text-white/90 font-semibold">Username</Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="w-5 h-5 text-white/50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="text"
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
+                <Input
                   id="username"
+                  type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Enter your username"
                   disabled={loading}
+                  placeholder="Enter your username"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="block text-sm font-semibold text-white/90 mb-2"
-              >
-                Email
-              </label>
+              <Label htmlFor="email" className="text-white/90 font-semibold">Email</Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="w-5 h-5 text-white/50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="email"
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
+                <Input
                   id="email"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Enter your email"
                   disabled={loading}
+                  placeholder="Enter your email"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-white/90 mb-2"
-              >
-                Password
-              </label>
+              <Label htmlFor="password" className="text-white/90 font-semibold">Password</Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="w-5 h-5 text-white/50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="password"
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
+                <Input
                   id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Enter your password (min 8 characters)"
                   disabled={loading}
+                  placeholder="Enter your password (min 8 characters)"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-semibold text-white/90 mb-2"
-              >
-                Confirm Password
-              </label>
+              <Label htmlFor="confirmPassword" className="text-white/90 font-semibold">Confirm Password</Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg
-                    className="w-5 h-5 text-white/50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="password"
+                <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
+                <Input
                   id="confirmPassword"
+                  type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:border-white/50 focus:ring-2 focus:ring-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Confirm your password"
                   disabled={loading}
+                  placeholder="Confirm your password"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-white px-4 py-3 rounded-xl text-sm animate-slide-in shadow-lg">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>{error}</span>
-                </div>
-              </div>
+              <Alert variant="destructive" className="bg-red-500/20 border-red-400/30 text-white animate-slide-in">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
             {success && (
-              <div className="bg-green-500/20 backdrop-blur-sm border border-green-400/30 text-white px-4 py-3 rounded-xl text-sm animate-slide-in shadow-lg">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>{success}</span>
-                </div>
-              </div>
+              <Alert className="bg-green-500/20 border-green-400/30 text-white animate-slide-in">
+                <CheckCircle className="h-4 w-4 text-green-400" />
+                <AlertDescription className="text-green-200">{success}</AlertDescription>
+              </Alert>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-6 border-0"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   {adminExists ? 'Submitting request...' : 'Creating account...'}
-                </span>
+                </>
               ) : (
                 adminExists ? 'Submit Admin Request' : 'Create Admin Account'
               )}
-            </button>
+            </Button>
           </form>
 
           {/* Footer */}
           <div className="pt-4 border-t border-white/10">
-            <p className="text-center text-white/60 text-xs mb-3">
+            <p className="text-center text-white/50 text-xs mb-3">
               Already have an account?
             </p>
             <Link
               href="/login"
-              className="block w-full text-center text-white/80 hover:text-white font-medium py-2 rounded-xl hover:bg-white/10 transition-all"
+              className="block w-full text-center text-white/70 hover:text-white font-medium py-2 rounded-xl hover:bg-white/10 transition-all"
             >
               Sign in
             </Link>

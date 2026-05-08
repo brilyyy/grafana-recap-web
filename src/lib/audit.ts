@@ -1,5 +1,4 @@
-import pool from '@/lib/db'
-import type { UserRole } from './auth'
+import { pool } from '@/lib/db'
 
 export interface AuditLog {
   id?: number
@@ -14,9 +13,6 @@ export interface AuditLog {
   created_at?: Date
 }
 
-/**
- * Log an audit event to the database
- */
 export async function logAuditEvent(
   userId: number | null,
   username: string | null,
@@ -29,38 +25,23 @@ export async function logAuditEvent(
 ): Promise<void> {
   try {
     await pool.execute(
-      `INSERT INTO audit_logs 
-       (user_id, username, action, resource_type, resource_id, details, ip_address, user_agent)
+      `INSERT INTO audit_logs (user_id, username, action, resource_type, resource_id, details, ip_address, user_agent)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [userId, username, action, resourceType, resourceId, details, ipAddress, userAgent]
     )
   } catch (error) {
-    // Don't throw - audit logging failures shouldn't break the application
     console.error('Failed to log audit event:', error)
   }
 }
 
-/**
- * Get client IP address from request
- */
 export function getClientIp(request: Request): string | null {
   const forwarded = request.headers.get('x-forwarded-for')
   const realIp = request.headers.get('x-real-ip')
-  
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  
-  if (realIp) {
-    return realIp.trim()
-  }
-  
+  if (forwarded) return forwarded.split(',')[0].trim()
+  if (realIp) return realIp.trim()
   return null
 }
 
-/**
- * Get user agent from request
- */
 export function getUserAgent(request: Request): string | null {
   return request.headers.get('user-agent')
 }

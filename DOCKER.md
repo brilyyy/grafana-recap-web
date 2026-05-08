@@ -2,6 +2,8 @@
 
 Panduan untuk menjalankan aplikasi Dashboard Grafana menggunakan Docker.
 
+> **Note:** MySQL is deprecated. Use PostgreSQL + pg_cron instead. See [SERVER_CONFIG.md](SERVER_CONFIG.md).
+
 ## 📋 Prerequisites
 
 - Docker Desktop atau Docker Engine terinstall

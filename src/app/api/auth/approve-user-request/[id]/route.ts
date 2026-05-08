@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
+import { pool } from '@/lib/db'
 import { requireSuperAdmin, hashPassword } from '@/lib/auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
-import { getInsertId } from '@/lib/db-helpers'
+import { env } from '@/env'
 import type { ApiResponse } from '@/types'
+
+const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+
+function isDuplicateError(error: any): boolean {
+  return error?.code === 'ER_DUP_ENTRY' || error?.code === 1062 || error?.code === '23505'
+}
 
 /**
  * Approve a pending user request (superadmin only)
@@ -15,7 +21,7 @@ export async function POST(
 ) {
   try {
     // Require superadmin role
-    const session = requireSuperAdmin(request)
+    const session = await requireSuperAdmin(request)
 
     const { id } = await params
     const requestId = parseInt(id)
@@ -67,13 +73,15 @@ export async function POST(
 
     try {
       // Create user with approved role
-      const [userRows, userResult] = await connection.execute(
-        'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+      const insertSql = isPostgres
+        ? 'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?) RETURNING id'
+        : 'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
+      const [userRows] = await connection.execute(insertSql,
         [pendingRequest.username, pendingRequest.email, pendingRequest.password_hash, approvedRole]
       )
-
-      // Get insert ID using adapter
-      const userId = getInsertId(userResult)
+      const userId = isPostgres
+        ? (userRows[0] as any)?.id
+        : (userRows[0] as any)?.insertId ?? 0
 
       // Update pending request status
       await connection.execute(
@@ -115,13 +123,8 @@ export async function POST(
       // Rollback transaction
       await connection.rollback()
 
-      // Normalize error for database-agnostic handling
-      const { normalizeDbError } = await import('@/lib/db-helpers')
-      const normalizedError = normalizeDbError(error)
-
-      // Handle duplicate entry
-      if (normalizedError.code === 'DUPLICATE_ENTRY') {
-        const field = error.message.includes('username') ? 'username' : 'email'
+      if (isDuplicateError(error)) {
+        const field = error.message?.includes('username') ? 'username' : 'email'
         return NextResponse.json(
           {
             success: false,

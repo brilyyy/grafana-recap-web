@@ -1,0 +1,39 @@
+---
+description: Project purpose, tech stack, repository layout, and where to read official docs (README + docs/features vs docs/technical).
+alwaysApply: true
+---
+
+# Dashboard Grafana — stack and documentation map
+
+## What this repo is
+- Next.js app for **transaction success-rate monitoring**, **RC dictionary management**, and **operational reconciliation** (unmapped RC, no-RC flows).
+- **PostgreSQL** is the live database stack. Treat MySQL-related assets as legacy only; follow `.cursor/rules/deprecated-mysql.mdc`.
+
+## Tech stack (source of truth: root `README.md`)
+- **Next.js 14** (App Router), **TypeScript**, **Node.js 18+**
+- **PostgreSQL** (with **pg_cron** and **postgres_fdw** where used in your environment)
+- UI data layer: **tRPC + TanStack Query v5** — see `.cursor/rules/nextjs-tanstack-query.mdc`
+
+## Commands agents should know
+- Dev: `npm run dev`
+- Build / prod start: `npm run build` then `npm start` (app uses `server.js` for start — see `package.json`)
+- DB migrations (main app): `npm run db:migrate` and phase scripts (`db:migrate:schema`, `db:migrate:procedures`, `db:migrate:cron`, `db:migrate:seed`, `db:migrate:fdw`) — details in `.cursor/rules/postgres-migrations-and-scheduler.mdc`
+- Standalone production migrations: `migration-kit/` (`npm run migrate` and variants) — see `migration-kit/README.md`
+
+## Where code lives
+- **Routes & pages**: `src/app/` (App Router)
+- **tRPC HTTP adapter**: `src/app/api/trpc/`
+- **REST-style API routes**: `src/app/api/**` (uploads, auth bridges, legacy paths as present)
+- **tRPC routers / server logic**: `src/server/trpc/`
+- **DB migration runner**: `src/db/migrate.ts`
+- **Success-rate SQL / procedures** (referenced by migrations and scheduler docs): `scripts/success_rate/` — see `scripts/success_rate/README.md`
+
+## Documentation map (prefer these over guessing)
+- **Hub**: `docs/README.md`
+- **Product behavior & permissions**: `docs/features/` (index: `docs/features/README.md`)
+- **Implementation, schema, migration, runtime**: `docs/technical/` (index: `docs/technical/README.md`)
+- When changing behavior, cross-check the matching **feature** doc and **technical** doc for the same area.
+
+## Agent rules
+- For new work, **start from the relevant `docs/technical/*.md` file** for that feature, then implement in the paths above.
+- Do not introduce a parallel documentation system; update existing docs only when the user asks or when keeping docs in sync is part of the task.
