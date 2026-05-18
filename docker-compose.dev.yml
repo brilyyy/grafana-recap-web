@@ -1,35 +1,42 @@
 version: '3.8'
 
-# MySQL is deprecated. Use PostgreSQL + pg_cron instead. See SERVER_CONFIG.md.
-
 services:
-  # MySQL Database (deprecated – use PostgreSQL + pg_cron)
-  mysql:
-    image: mysql:8.0
-    container_name: dashboard-grafana-mysql-dev
+  # PostgreSQL Database with pg_cron extension (development)
+  postgres:
+    image: postgres:16-alpine
+    container_name: dashboard-grafana-postgres-dev
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${DB_NAME:-grafana_dashboard}
-      MYSQL_USER: ${DB_USER:-grafana_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-grafana_password}
+      POSTGRES_USER: ${DB_USER:-grafana_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-grafana_password}
+      POSTGRES_DB: ${DB_NAME:-grafana_dashboard}
     ports:
-      - "${DB_PORT:-3307}:3306"
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - mysql_data_dev:/var/lib/mysql
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./scripts/init-pg-cron.sh:/docker-entrypoint-initdb.d/init-pg-cron.sh:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-grafana_user} -d ${DB_NAME:-grafana_dashboard}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - dashboard-network-dev
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_cron"
+      - "-c"
+      - "cron.database_name=${DB_NAME:-grafana_dashboard}"
+      - "-c"
+      - "cron.use_background_workers=on"
+      - "-c"
+      - "cron.timezone=Asia/Jakarta"
 
 volumes:
-  mysql_data_dev:
+  postgres_data_dev:
     driver: local
 
 networks:
   dashboard-network-dev:
     driver: bridge
-

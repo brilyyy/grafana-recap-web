@@ -6,7 +6,6 @@ const nextConfig = {
     serverComponentsExternalPackages: [
       'pg',
       'node-cron',
-      'mysql2',
     ],
   },
 }

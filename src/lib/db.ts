@@ -8,11 +8,8 @@
 
 import { sql as drizzleSql, type SQL } from 'drizzle-orm'
 import { db } from '@/db'
-import { env } from '@/env'
 
 export { db as default, db }
-
-const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
 
 /**
  * Convert a query string with `?` placeholders and a params array into a
@@ -34,15 +31,8 @@ function buildSql(query: string, params: any[] = []): SQL {
  * Normalize Drizzle execute result to [rows, result] format (same shape as old pool).
  */
 function normalizeResult(result: any): [any[], any] {
-  if (isPostgres) {
-    // node-postgres via Drizzle: { rows: [...], rowCount, ... }
-    return [result.rows ?? [], result]
-  }
-  // mysql2 via Drizzle: [rows, fields] native format
-  if (Array.isArray(result)) {
-    return [Array.isArray(result[0]) ? result[0] : result, result]
-  }
-  return [result?.rows ?? [], result]
+  // node-postgres via Drizzle: { rows: [...], rowCount, ... }
+  return [result.rows ?? [], result]
 }
 
 /**
@@ -75,34 +65,20 @@ export const pool = {
    */
   async getConnection() {
     const rawPool = (db as any).$client
-
-    if (isPostgres) {
-      const client = await rawPool.connect()
-      return {
-        release: () => client.release(),
-        execute: async (q: string, p?: any[]): Promise<[any[], any]> => {
-          const r = await client.query(convertPgPlaceholders(q), p)
-          return [r.rows, r]
-        },
-        query: async (q: string, p?: any[]): Promise<[any[], any]> => {
-          const r = await client.query(convertPgPlaceholders(q), p)
-          return [r.rows, r]
-        },
-        beginTransaction: () => client.query('BEGIN'),
-        commit: () => client.query('COMMIT'),
-        rollback: () => client.query('ROLLBACK'),
-      }
-    }
-
-    // MySQL
-    const conn = await rawPool.getConnection()
+    const client = await rawPool.connect()
     return {
-      release: () => conn.release(),
-      execute: async (q: string, p?: any[]): Promise<[any[], any]> => conn.execute(q, p),
-      query: async (q: string, p?: any[]): Promise<[any[], any]> => conn.query(q, p),
-      beginTransaction: () => conn.beginTransaction(),
-      commit: () => conn.commit(),
-      rollback: () => conn.rollback(),
+      release: () => client.release(),
+      execute: async (q: string, p?: any[]): Promise<[any[], any]> => {
+        const r = await client.query(convertPgPlaceholders(q), p)
+        return [r.rows, r]
+      },
+      query: async (q: string, p?: any[]): Promise<[any[], any]> => {
+        const r = await client.query(convertPgPlaceholders(q), p)
+        return [r.rows, r]
+      },
+      beginTransaction: () => client.query('BEGIN'),
+      commit: () => client.query('COMMIT'),
+      rollback: () => client.query('ROLLBACK'),
     }
   },
 }
