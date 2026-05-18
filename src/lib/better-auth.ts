@@ -4,23 +4,19 @@ import { admin } from 'better-auth/plugins'
 import { nextCookies } from 'better-auth/next-js'
 import { db } from '@/db'
 import { env } from '@/env'
-import * as mysqlSchema from '@/db/schema/mysql'
 import * as pgSchema from '@/db/schema/pg'
-
-const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
-const schema = isPostgres ? pgSchema : mysqlSchema
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
 
   database: drizzleAdapter(db as any, {
-    provider: isPostgres ? 'pg' : 'mysql',
+    provider: 'pg',
     schema: {
-      user: schema.users,
-      session: schema.sessions,
-      account: schema.accounts,
-      verification: schema.verifications,
+      user: pgSchema.users,
+      session: pgSchema.sessions,
+      account: pgSchema.accounts,
+      verification: pgSchema.verifications,
     },
     usePlural: false,
   }),

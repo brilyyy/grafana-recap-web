@@ -111,20 +111,3 @@ DB_NAME=postgres
 DB_HOST=172.17.7.74
 DB_PORT=5432
 ```
-
-## MySQL Server Setup
-
-For MySQL, the event scheduler must be enabled:
-
-```sql
-SET GLOBAL event_scheduler = ON;
-```
-
-To persist across restarts, add to `my.cnf`:
-
-```ini
-[mysqld]
-event_scheduler = ON
-```
-
-No additional server configuration is required for the scheduled procedures.

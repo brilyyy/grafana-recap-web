@@ -2,8 +2,6 @@
 
 Panduan untuk menjalankan aplikasi Dashboard Grafana menggunakan Docker.
 
-> **Note:** MySQL is deprecated. Use PostgreSQL + pg_cron instead. See [SERVER_CONFIG.md](SERVER_CONFIG.md).
-
 ## 📋 Prerequisites
 
 - Docker Desktop atau Docker Engine terinstall
@@ -16,21 +14,23 @@ Panduan untuk menjalankan aplikasi Dashboard Grafana menggunakan Docker.
 Buat file `.env` di root directory dengan konfigurasi berikut:
 
 ```env
-# Database Configuration
-# Note: DB_PORT adalah port HOST (default 3307 untuk menghindari konflik dengan MySQL lokal)
-# Di dalam container, MySQL tetap berjalan di port 3306
-DB_HOST=mysql
-DB_PORT=3307
+# Database Configuration (PostgreSQL)
+DB_TYPE=postgres
+DB_HOST=postgres
+DB_PORT=5432
 DB_USER=grafana_user
 DB_PASSWORD=grafana_password
 DB_NAME=grafana_dashboard
-DB_ROOT_PASSWORD=rootpassword
 
 # Application Configuration
 APP_PORT=3000
 
 # Node Environment
 NODE_ENV=production
+
+# Better Auth
+BETTER_AUTH_SECRET=your-secret-key-here
+BETTER_AUTH_URL=http://localhost:3000
 ```
 
 ### 2. Build dan Run dengan Docker Compose
@@ -46,7 +46,7 @@ docker-compose up -d --build
 ### 3. Akses Aplikasi
 
 - **Aplikasi**: http://localhost:3000
-- **MySQL (Docker)**: localhost:3307 (default, untuk menghindari konflik dengan MySQL lokal di port 3306)
+- **PostgreSQL (Docker)**: localhost:5432
 
 ## 📝 Docker Commands
 
@@ -77,13 +77,13 @@ docker-compose logs -f
 
 # Specific service
 docker-compose logs -f app
-docker-compose logs -f mysql
+docker-compose logs -f postgres
 ```
 
 ### Restart Service
 ```bash
 docker-compose restart app
-docker-compose restart mysql
+docker-compose restart postgres
 ```
 
 ### Execute Commands di Container
@@ -91,21 +91,22 @@ docker-compose restart mysql
 # Masuk ke container app
 docker-compose exec app sh
 
-# Masuk ke MySQL
-docker-compose exec mysql mysql -u grafana_user -p grafana_dashboard
+# Masuk ke PostgreSQL
+docker-compose exec postgres psql -U grafana_user -d grafana_dashboard
 ```
 
 ## 🔧 Development Mode
 
-Untuk development, gunakan MySQL dari Docker tapi jalankan Next.js secara lokal:
+Untuk development, gunakan PostgreSQL dari Docker tapi jalankan Next.js secara lokal:
 
 ```bash
-# Start hanya MySQL
+# Start hanya PostgreSQL
 docker-compose -f docker-compose.dev.yml up -d
 
 # Setup .env.local untuk development
+DB_TYPE=postgres
 DB_HOST=localhost
-DB_PORT=3307
+DB_PORT=5432
 DB_USER=grafana_user
 DB_PASSWORD=grafana_password
 DB_NAME=grafana_dashboard
@@ -125,8 +126,9 @@ docker build -t dashboard-grafana:latest .
 
 # Run container
 docker run -p 3000:3000 \
-  -e DB_HOST=mysql \
-  -e DB_PORT=3306 \
+  -e DB_TYPE=postgres \
+  -e DB_HOST=postgres \
+  -e DB_PORT=5432 \
   -e DB_USER=grafana_user \
   -e DB_PASSWORD=grafana_password \
   -e DB_NAME=grafana_dashboard \
@@ -137,12 +139,12 @@ docker run -p 3000:3000 \
 
 ### Backup Database
 ```bash
-docker-compose exec mysql mysqldump -u grafana_user -p grafana_dashboard > backup.sql
+docker-compose exec postgres pg_dump -U grafana_user grafana_dashboard > backup.sql
 ```
 
 ### Restore Database
 ```bash
-docker-compose exec -T mysql mysql -u grafana_user -p grafana_dashboard < backup.sql
+docker-compose exec -T postgres psql -U grafana_user -d grafana_dashboard < backup.sql
 ```
 
 ### Reset Database (Hapus semua data)
@@ -156,19 +158,17 @@ Atau gunakan fitur "Restart Database" di aplikasi.
 ## 🐛 Troubleshooting
 
 ### Port Already in Use
-Jika port 3000 atau 3307 sudah digunakan, ubah di `.env`:
+Jika port 3000 atau 5432 sudah digunakan, ubah di `.env`:
 ```env
 APP_PORT=3001
-DB_PORT=3308
+DB_PORT=5433
 ```
 
-**Catatan**: Default port MySQL Docker adalah 3307 untuk menghindari konflik dengan MySQL lokal yang biasanya berjalan di port 3306. Jika Anda tidak punya MySQL lokal, Anda bisa mengubah `DB_PORT=3306` di file `.env`.
-
 ### Database Connection Error
-1. Pastikan MySQL container sudah running: `docker-compose ps`
-2. Cek logs MySQL: `docker-compose logs mysql`
+1. Pastikan PostgreSQL container sudah running: `docker-compose ps`
+2. Cek logs PostgreSQL: `docker-compose logs postgres`
 3. Pastikan environment variables di `.env` sudah benar
-4. Tunggu beberapa detik setelah MySQL start (healthcheck)
+4. Tunggu beberapa detik setelah PostgreSQL start (healthcheck)
 
 ### Build Error
 1. Hapus cache: `docker-compose build --no-cache`
@@ -186,6 +186,7 @@ sudo chown -R $USER:$USER public/uploads
 - **Base Image**: node:18-alpine (lightweight)
 - **Multi-stage Build**: Optimized untuk production
 - **Non-root User**: Security best practice
+- **PostgreSQL**: Official postgres:16-alpine image with pg_cron extension
 
 ## 🔒 Security Notes
 
@@ -199,4 +200,5 @@ sudo chown -R $USER:$USER public/uploads
 - [Docker Documentation](https://docs.docker.com/)
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Next.js Docker Deployment](https://nextjs.org/docs/deployment#docker-image)
-
+- [PostgreSQL Docker Hub](https://hub.docker.com/_/postgres)
+- [pg_cron Extension](https://github.com/citusdata/pg_cron)
