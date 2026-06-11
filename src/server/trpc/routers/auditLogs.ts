@@ -12,6 +12,8 @@ export const auditLogsRouter = router({
       limit: z.number().int().min(1).max(200).default(50),
       action: z.string().optional(),
       userId: z.number().int().optional(),
+      resourceType: z.string().optional(),
+      username: z.string().optional(),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
     }).optional())
@@ -23,6 +25,8 @@ export const auditLogsRouter = router({
       let where = 'WHERE 1=1'
       if (input?.action) { where += ' AND action = ?'; params.push(input.action) }
       if (input?.userId) { where += ' AND user_id = ?'; params.push(input.userId) }
+      if (input?.resourceType) { where += ' AND resource_type = ?'; params.push(input.resourceType) }
+      if (input?.username) { where += ' AND username LIKE ?'; params.push(`%${input.username}%`) }
       if (input?.startDate) { where += ' AND created_at >= ?'; params.push(input.startDate) }
       if (input?.endDate) { where += ' AND created_at <= ?'; params.push(input.endDate) }
 
@@ -31,7 +35,8 @@ export const auditLogsRouter = router({
         [...params, limit, offset]
       )
       const [countResult]: any = await pool.execute(`SELECT COUNT(*) as total FROM audit_logs ${where}`, params)
-      return { success: true, data: { logs, total: countResult[0].total, page, limit } }
+      const total = countResult[0].total
+      return { success: true, data: { logs, total, page, limit, totalPages: Math.ceil(total / limit) } }
     }),
 
   stats: superAdminProcedure

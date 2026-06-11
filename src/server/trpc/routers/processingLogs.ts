@@ -1,7 +1,9 @@
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { router, superAdminProcedure } from '../init'
 import { pool } from '@/lib/db'
 import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
 import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
 
 export const processingLogsRouter = router({
@@ -42,6 +44,48 @@ export const processingLogsRouter = router({
         `SELECT COUNT(*) as total FROM app_processing_log apl ${where}`, params
       )
       return { success: true, data: { logs, total: countResult[0].total, page, limit } }
+    }),
+
+  /** Latest log per processing date for one catalog job within a month */
+  byMonth: superAdminProcedure
+    .input(z.object({
+      catalogEntryId: z.string().min(1),
+      month: z.number().int().min(1).max(12),
+      year: z.number().int().min(2000).max(2100),
+    }))
+    .query(async ({ input }) => {
+      const entry = getCatalogEntryById(input.catalogEntryId)
+      if (!entry) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: `Unknown catalog_entry_id: ${input.catalogEntryId}` })
+      }
+      const logFilter = catalogEntryToLogFilter(entry)
+
+      const startDate = `${input.year}-${String(input.month).padStart(2, '0')}-01`
+      const lastDay = new Date(input.year, input.month, 0).getDate()
+      const endDate = `${input.year}-${String(input.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+      const [logs]: any = await pool.execute(
+        `SELECT DISTINCT ON (processing_date)
+           id, app_name, catalog_entry_id,
+           TO_CHAR(processing_date, 'YYYY-MM-DD') as processing_date,
+           status, records_processed, records_inserted,
+           start_time, end_time, error_message,
+           COALESCE(recap_kind, 'success_rate_daily') as recap_kind
+         FROM app_processing_log
+         WHERE processing_date >= ?::date
+           AND processing_date <= ?::date
+           AND (
+             catalog_entry_id = ?
+             OR (
+               catalog_entry_id IS NULL
+               AND app_name = ?
+               AND COALESCE(recap_kind, 'success_rate_daily') = ?
+             )
+           )
+         ORDER BY processing_date DESC, created_at DESC`,
+        [startDate, endDate, logFilter.catalogEntryId, logFilter.appName, logFilter.recapKind]
+      )
+      return { success: true, data: logs ?? [] }
     }),
 
   processManual: superAdminProcedure

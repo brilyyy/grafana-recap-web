@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server'
 import { router, superAdminProcedure } from '../init'
 import { buildRecapCatalog, getCatalogEntryById } from '@/domain/recap/catalog'
 import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
+import { logAuditEvent } from '@/lib/audit'
 
 function resolvedSchedule(envVar: string | null): string | null {
   if (!envVar) return null
@@ -37,12 +38,20 @@ export const recapRouter = router({
         date: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const result = await triggerRecap({
           catalogEntryId: input.catalogEntryId,
           date: input.date ?? null,
         })
+        await logAuditEvent(
+          ctx.session.userId,
+          ctx.session.username,
+          `RECAP_MANUAL_${input.catalogEntryId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
+          'app_processing_log',
+          result.logEntry?.id?.toString() || 'unknown',
+          `Manually triggered recap ${input.catalogEntryId}${input.date ? ` for ${input.date}` : ' (H-1)'}. Status: ${result.logEntry?.status || 'unknown'}`,
+        )
         return { success: true as const, data: result }
       } catch (e: unknown) {
         if (e instanceof RecapValidationError) {
