@@ -1,7 +1,6 @@
-'use client'
 
 import { useState } from 'react'
-import { trpc } from '@/lib/trpc'
+import { trpc } from '@/router'
 
 export default function AddAppCard() {
   const [appName, setAppName] = useState('')

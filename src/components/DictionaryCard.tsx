@@ -1,10 +1,9 @@
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import type { DictionaryViewEntry, Application } from '@/types'
 import MultiSelectFilter from './MultiSelectFilter'
 import { useApplications } from '@/hooks/useApplications'
-import { trpc } from '@/lib/trpc'
+import { trpc } from '@/router'
 
 export default function DictionaryCard() {
   const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryViewEntry[]>([])

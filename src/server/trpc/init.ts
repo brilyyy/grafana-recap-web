@@ -1,16 +1,14 @@
 import { initTRPC, TRPCError } from '@trpc/server'
-import { headers } from 'next/headers'
 import { auth } from '@/lib/better-auth'
 import { db } from '@/db'
 import type { SessionPayload } from '@/lib/auth'
 
 /**
  * tRPC context – created per request.
+ * Headers MUST be passed in (no more next/headers auto-read).
  */
-export async function createTRPCContext(opts?: { headers?: Headers }) {
-  const reqHeaders = opts?.headers ?? (await headers())
-
-  const betterSession = await auth.api.getSession({ headers: reqHeaders }).catch(() => null)
+export async function createTRPCContext(opts: { headers: Headers }) {
+  const betterSession = await auth.api.getSession({ headers: opts.headers }).catch(() => null)
 
   const session: SessionPayload | null = betterSession?.user
     ? {
@@ -23,7 +21,7 @@ export async function createTRPCContext(opts?: { headers?: Headers }) {
       }
     : null
 
-  return { session, db, headers: reqHeaders }
+  return { session, db, headers: opts.headers }
 }
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>
@@ -33,9 +31,6 @@ const t = initTRPC.context<Context>().create()
 export const router = t.router
 export const publicProcedure = t.procedure
 
-/**
- * Middleware: requires an authenticated session.
- */
 const enforceAuth = t.middleware(({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' })
@@ -43,9 +38,6 @@ const enforceAuth = t.middleware(({ ctx, next }) => {
   return next({ ctx: { ...ctx, session: ctx.session } })
 })
 
-/**
- * Middleware: requires at least `admin` role.
- */
 const enforceAdmin = t.middleware(({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' })
@@ -57,9 +49,6 @@ const enforceAdmin = t.middleware(({ ctx, next }) => {
   return next({ ctx: { ...ctx, session: ctx.session } })
 })
 
-/**
- * Middleware: requires `superadmin` role.
- */
 const enforceSuperAdmin = t.middleware(({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' })

@@ -1,12 +1,11 @@
-'use client'
-
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate, useRouter } from '@tanstack/react-router'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Loader2, LogOut } from 'lucide-react'
 
 export default function LogoutButton() {
+  const navigate = useNavigate()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -15,12 +14,12 @@ export default function LogoutButton() {
     setLoading(true)
     try {
       await authClient.signOut()
-      router.push('/login')
-      router.refresh()
+      navigate({ to: '/login' })
+      router.invalidate()
     } catch (error) {
       console.error('Logout error:', error)
-      router.push('/login')
-      router.refresh()
+      navigate({ to: '/login' })
+      router.invalidate()
     } finally {
       setLoading(false)
     }

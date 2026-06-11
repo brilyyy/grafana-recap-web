@@ -1,9 +1,8 @@
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import type { UnmappedRC } from '@/types'
 import { useApplications } from '@/hooks/useApplications'
-import { trpc } from '@/lib/trpc'
+import { trpc } from '@/router'
 
 export default function UnmappedRcCard() {
   const [unmappedRcs, setUnmappedRcs] = useState<UnmappedRC[]>([])

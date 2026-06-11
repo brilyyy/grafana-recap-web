@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server'
-
 interface RateLimitStore {
   [key: string]: {
     count: number
@@ -7,10 +5,8 @@ interface RateLimitStore {
   }
 }
 
-// In-memory store (for production, use Redis or similar)
 const rateLimitStore: RateLimitStore = {}
 
-// Cleanup old entries every 5 minutes
 setInterval(() => {
   const now = Date.now()
   for (const key in rateLimitStore) {
@@ -26,22 +22,14 @@ export interface RateLimitConfig {
 }
 
 export const RATE_LIMITS = {
-  // Restart DB: 1 request per hour
   RESTART_DB: { maxRequests: 1, windowMs: 60 * 60 * 1000 },
-  // Upload endpoints: 100 requests per hour
   UPLOAD: { maxRequests: 100, windowMs: 60 * 60 * 1000 },
-  // Read endpoints: 100 requests per minute
   READ: { maxRequests: 100, windowMs: 60 * 1000 },
-  // Write endpoints: 50 requests per minute
   WRITE: { maxRequests: 50, windowMs: 60 * 1000 },
-  // Auth endpoints: 20 requests per minute (increased for auth check which is called frequently)
   AUTH: { maxRequests: 20, windowMs: 60 * 1000 },
 } as const
 
-/**
- * Get rate limit key for a request
- */
-function getRateLimitKey(request: NextRequest, prefix: string): string {
+function getRateLimitKey(request: Request, prefix: string): string {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
              request.headers.get('x-real-ip') ||
              'unknown'
@@ -49,20 +37,15 @@ function getRateLimitKey(request: NextRequest, prefix: string): string {
   return `${prefix}:${ip}:${path}`
 }
 
-/**
- * Check rate limit for a request
- * Returns { allowed: boolean, remaining: number, resetAt: number }
- */
 export function checkRateLimit(
-  request: NextRequest,
+  request: Request,
   config: RateLimitConfig
 ): { allowed: boolean; remaining: number; resetAt: number } {
   const key = getRateLimitKey(request, 'ratelimit')
   const now = Date.now()
-  
+
   let entry = rateLimitStore[key]
 
-  // Initialize or reset if window expired
   if (!entry || entry.resetAt < now) {
     entry = {
       count: 0,
@@ -71,7 +54,6 @@ export function checkRateLimit(
     rateLimitStore[key] = entry
   }
 
-  // Increment count
   entry.count++
 
   const remaining = Math.max(0, config.maxRequests - entry.count)
@@ -84,12 +66,8 @@ export function checkRateLimit(
   }
 }
 
-/**
- * Middleware helper to enforce rate limiting
- * Throws error if rate limit exceeded
- */
 export function enforceRateLimit(
-  request: NextRequest,
+  request: Request,
   config: RateLimitConfig
 ): void {
   const { allowed, remaining, resetAt } = checkRateLimit(request, config)

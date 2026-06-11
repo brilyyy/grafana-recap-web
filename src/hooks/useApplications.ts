@@ -1,6 +1,5 @@
-'use client'
 
-import { trpc } from '@/lib/trpc'
+import { trpc } from '@/router'
 import type { Application } from '@/types'
 
 /**

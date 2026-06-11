@@ -1,9 +1,8 @@
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import type { SuccessRateEntry } from '@/types'
 import { useApplications } from '@/hooks/useApplications'
-import { trpc } from '@/lib/trpc'
+import { trpc } from '@/router'
 
 export default function NoRcTransactionCard() {
   const [transactions, setTransactions] = useState<SuccessRateEntry[]>([])

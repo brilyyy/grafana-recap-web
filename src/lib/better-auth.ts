@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins'
-import { nextCookies } from 'better-auth/next-js'
+import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { db } from '@/db'
 import { env } from '@/env'
 import * as pgSchema from '@/db/schema'
@@ -46,7 +46,7 @@ export const auth = betterAuth({
       defaultRole: 'user',
       adminRole: ['admin', 'superadmin'],
     }),
-    nextCookies(),
+    tanstackStartCookies(), // Must be LAST plugin
   ],
 })
 
