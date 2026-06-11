@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { useNavigate, useRouter } from '@tanstack/react-router'
-import { authClient } from '@/lib/auth-client'
-import { Button } from '@/components/ui/button'
 import { Loader2, LogOut } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { authClient } from '@/lib/auth-client'
 
 export default function LogoutButton() {
   const navigate = useNavigate()
@@ -26,13 +26,7 @@ export default function LogoutButton() {
   }
 
   return (
-    <Button
-      variant="destructive"
-      size="sm"
-      onClick={handleLogout}
-      disabled={loading}
-      title="Logout"
-    >
+    <Button variant="destructive" size="sm" onClick={handleLogout} disabled={loading} title="Logout">
       {loading ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />

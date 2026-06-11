@@ -1,10 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { sql } from 'drizzle-orm'
-import { db } from '@/db'
-import { requireAuth } from '@/lib/auth'
-import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
-import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
+import { RecapValidationError, triggerRecap } from '@/application/recap/trigger-recap'
 import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { getClientIp, getUserAgent, logAuditEvent } from '@/lib/audit'
+import { requireAuth } from '@/lib/auth'
 
 export const Route = createFileRoute('/api/processing/process-manual')({
   server: {
@@ -24,11 +22,16 @@ export const Route = createFileRoute('/api/processing/process-manual')({
           }
 
           const body = await request.json()
-          const { app_name, date, catalogEntryId: bodyCatalogId } = body as { app_name?: string; date?: string; catalogEntryId?: string }
+          const {
+            app_name,
+            date,
+            catalogEntryId: bodyCatalogId,
+          } = body as { app_name?: string; date?: string; catalogEntryId?: string }
 
           let catalogEntryId = bodyCatalogId?.trim() || null
           if (!catalogEntryId) {
-            if (!app_name?.trim()) return Response.json({ success: false, message: 'catalogEntryId or app_name required' }, { status: 400 })
+            if (!app_name?.trim())
+              return Response.json({ success: false, message: 'catalogEntryId or app_name required' }, { status: 400 })
             catalogEntryId = `sr:${normalizeAppNameToKey(app_name)}`
           }
 
@@ -40,12 +43,25 @@ export const Route = createFileRoute('/api/processing/process-manual')({
           const result = await triggerRecap({ catalogEntryId, date: dateParam })
 
           if (session) {
-            await logAuditEvent(session.userId, session.username, `RECAP_MANUAL_${catalogEntryId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`, 'app_processing_log', result.logEntry?.id?.toString() || 'unknown', `Manually triggered ${catalogEntryId}`, getClientIp(request), getUserAgent(request))
+            await logAuditEvent(
+              session.userId,
+              session.username,
+              `RECAP_MANUAL_${catalogEntryId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
+              'app_processing_log',
+              result.logEntry?.id?.toString() || 'unknown',
+              `Manually triggered ${catalogEntryId}`,
+              getClientIp(request),
+              getUserAgent(request),
+            )
           }
 
           return Response.json({ success: true, message: result.message, data: result })
         } catch (error: any) {
-          if (error instanceof RecapValidationError) return Response.json({ success: false, message: error.message }, { status: error.code === 'NOT_FOUND' ? 404 : 400 })
+          if (error instanceof RecapValidationError)
+            return Response.json(
+              { success: false, message: error.message },
+              { status: error.code === 'NOT_FOUND' ? 404 : 400 },
+            )
           console.error('Error:', error)
           return Response.json({ success: false, message: error.message }, { status: 500 })
         }

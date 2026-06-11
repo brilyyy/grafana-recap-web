@@ -1,18 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { CheckCircle, Home, Loader2, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import LogoutButton from '@/components/LogoutButton'
-import { trpc } from '@/router'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Home, CheckCircle, XCircle, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { trpc } from '@/router'
 
 interface PendingUserRequest {
   id: number
@@ -44,10 +38,12 @@ function UserApprovalPage() {
   const isAuthenticated = authCheck?.data?.authenticated ?? null
   const isSuperAdmin = (authCheck?.data as any)?.user?.role === 'superadmin'
 
-  const { data: pendingData, isLoading: loading, error: pendingError, refetch } = trpc.auth.pendingRequests.useQuery(
-    undefined,
-    { enabled: !!isAuthenticated && isSuperAdmin }
-  )
+  const {
+    data: pendingData,
+    isLoading: loading,
+    error: pendingError,
+    refetch,
+  } = trpc.auth.pendingRequests.useQuery(undefined, { enabled: !!isAuthenticated && isSuperAdmin })
   const requests: PendingUserRequest[] = (pendingData?.data?.requests ?? []) as PendingUserRequest[]
   const error = pendingError?.message ?? null
 
@@ -126,9 +122,7 @@ function UserApprovalPage() {
           <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
             User Approval
           </h1>
-          <p className="text-white/70 text-xs md:text-sm">
-            Review and approve user registration requests
-          </p>
+          <p className="text-white/70 text-xs md:text-sm">Review and approve user registration requests</p>
         </div>
         <div className="w-full flex justify-center gap-2">
           <Button
@@ -154,7 +148,9 @@ function UserApprovalPage() {
           ) : error ? (
             <div className="text-center py-12">
               <p className="text-red-300 mb-4">{error}</p>
-              <Button variant="secondary" onClick={() => refetch()}>Retry</Button>
+              <Button variant="secondary" onClick={() => refetch()}>
+                Retry
+              </Button>
             </div>
           ) : requests.length === 0 ? (
             <div className="text-center py-12">
@@ -165,7 +161,10 @@ function UserApprovalPage() {
           ) : (
             <div className="space-y-4">
               {requests.map((request) => (
-                <div key={request.id} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/10 hover:border-white/20 transition-all">
+                <div
+                  key={request.id}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-white/10 hover:border-white/20 transition-all"
+                >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -184,7 +183,13 @@ function UserApprovalPage() {
                           Requested: {request.requested_role}
                         </Badge>
                         <Badge variant="secondary" className="bg-gray-500/20 text-gray-200 border-gray-400/30">
-                          {new Date(request.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(request.created_at).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </Badge>
                         {request.requested_by_username && (
                           <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 border-purple-400/30">
@@ -202,11 +207,7 @@ function UserApprovalPage() {
                         <CheckCircle className="w-4 h-4" />
                         Approve
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => openRejectModal(request)}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => openRejectModal(request)}>
                         <XCircle className="w-4 h-4" />
                         Reject
                       </Button>
@@ -220,7 +221,15 @@ function UserApprovalPage() {
       </div>
 
       {/* Approve Modal */}
-      <Dialog open={showApproveModal} onOpenChange={(open) => { if (!open) { setShowApproveModal(false); setSelectedRequest(null) } }}>
+      <Dialog
+        open={showApproveModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowApproveModal(false)
+            setSelectedRequest(null)
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900/95 border-white/20 text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">Approve User Request</DialogTitle>
@@ -228,9 +237,15 @@ function UserApprovalPage() {
           {selectedRequest && (
             <div className="space-y-4 py-2">
               <div className="space-y-1">
-                <p className="text-white/70 text-sm"><span className="font-semibold text-white">Username:</span> {selectedRequest.username}</p>
-                <p className="text-white/70 text-sm"><span className="font-semibold text-white">Email:</span> {selectedRequest.email}</p>
-                <p className="text-white/70 text-sm"><span className="font-semibold text-white">Requested Role:</span> {selectedRequest.requested_role}</p>
+                <p className="text-white/70 text-sm">
+                  <span className="font-semibold text-white">Username:</span> {selectedRequest.username}
+                </p>
+                <p className="text-white/70 text-sm">
+                  <span className="font-semibold text-white">Email:</span> {selectedRequest.email}
+                </p>
+                <p className="text-white/70 text-sm">
+                  <span className="font-semibold text-white">Requested Role:</span> {selectedRequest.requested_role}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label className="text-white/90 font-semibold">Assign Role:</Label>
@@ -239,9 +254,15 @@ function UserApprovalPage() {
                   onChange={(e) => setApprovedRole(e.target.value)}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="user" className="bg-gray-800">User</option>
-                  <option value="admin" className="bg-gray-800">Admin</option>
-                  <option value="superadmin" className="bg-gray-800">Superadmin</option>
+                  <option value="user" className="bg-gray-800">
+                    User
+                  </option>
+                  <option value="admin" className="bg-gray-800">
+                    Admin
+                  </option>
+                  <option value="superadmin" className="bg-gray-800">
+                    Superadmin
+                  </option>
                 </select>
               </div>
             </div>
@@ -249,7 +270,10 @@ function UserApprovalPage() {
           <DialogFooter className="gap-2">
             <Button
               variant="secondary"
-              onClick={() => { setShowApproveModal(false); setSelectedRequest(null) }}
+              onClick={() => {
+                setShowApproveModal(false)
+                setSelectedRequest(null)
+              }}
               className="flex-1 bg-gray-700 hover:bg-gray-600 text-white border-0"
             >
               Cancel
@@ -260,15 +284,28 @@ function UserApprovalPage() {
               className="flex-1 bg-green-600 hover:bg-green-500 text-white border-0"
             >
               {approvingId === selectedRequest?.id ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />Approving...</>
-              ) : 'Approve'}
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : (
+                'Approve'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Reject Modal */}
-      <Dialog open={showRejectModal} onOpenChange={(open) => { if (!open) { setShowRejectModal(false); setSelectedRequest(null) } }}>
+      <Dialog
+        open={showRejectModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowRejectModal(false)
+            setSelectedRequest(null)
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900/95 border-white/20 text-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">Reject User Request</DialogTitle>
@@ -276,8 +313,12 @@ function UserApprovalPage() {
           {selectedRequest && (
             <div className="space-y-4 py-2">
               <div className="space-y-1">
-                <p className="text-white/70 text-sm"><span className="font-semibold text-white">Username:</span> {selectedRequest.username}</p>
-                <p className="text-white/70 text-sm"><span className="font-semibold text-white">Email:</span> {selectedRequest.email}</p>
+                <p className="text-white/70 text-sm">
+                  <span className="font-semibold text-white">Username:</span> {selectedRequest.username}
+                </p>
+                <p className="text-white/70 text-sm">
+                  <span className="font-semibold text-white">Email:</span> {selectedRequest.email}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label className="text-white/90 font-semibold">Rejection Reason (Optional):</Label>
@@ -293,7 +334,10 @@ function UserApprovalPage() {
           <DialogFooter className="gap-2">
             <Button
               variant="secondary"
-              onClick={() => { setShowRejectModal(false); setSelectedRequest(null) }}
+              onClick={() => {
+                setShowRejectModal(false)
+                setSelectedRequest(null)
+              }}
               className="flex-1 bg-gray-700 hover:bg-gray-600 text-white border-0"
             >
               Cancel
@@ -305,8 +349,13 @@ function UserApprovalPage() {
               className="flex-1"
             >
               {rejectingId === selectedRequest?.id ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />Rejecting...</>
-              ) : 'Reject'}
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Rejecting...
+                </>
+              ) : (
+                'Reject'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

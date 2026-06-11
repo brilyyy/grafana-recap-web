@@ -1,13 +1,12 @@
-
-import { useState, useEffect, useCallback } from 'react'
-import type { DictionaryViewEntry, Application } from '@/types'
-import MultiSelectFilter from './MultiSelectFilter'
+import { useCallback, useEffect, useState } from 'react'
 import { useApplications } from '@/hooks/useApplications'
 import { trpc } from '@/router'
+import type { Application, DictionaryViewEntry } from '@/types'
+import MultiSelectFilter from './MultiSelectFilter'
 
 export default function DictionaryCard() {
   const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryViewEntry[]>([])
-  const [allDictionaryEntries, setAllDictionaryEntries] = useState<DictionaryViewEntry[]>([]) // For export
+  const [_allDictionaryEntries, setAllDictionaryEntries] = useState<DictionaryViewEntry[]>([]) // For export
   const [applications, setApplications] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -43,54 +42,57 @@ export default function DictionaryCard() {
     setApplications(sharedApplications)
   }, [sharedApplications])
 
-  const loadDictionary = useCallback(async (page: number, fetchAll: boolean = false) => {
-    try {
-      setIsLoading(true)
-      setError(null)
+  const loadDictionary = useCallback(
+    async (page: number, fetchAll: boolean = false) => {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-      const result = await utils.dictionary.list.fetch(
-        {
-          ...(searchQuery ? { search: searchQuery } : {}),
-          ...(selectedAppIds.length > 0 ? { app_ids: selectedAppIds.map(Number) } : {}),
-          ...(selectedErrorTypes.length > 0 ? { error_types: selectedErrorTypes as ('S' | 'N' | 'Sukses')[] } : {}),
-          ...(selectedJenisTransaksi.length > 0 ? { jenis_transaksi: selectedJenisTransaksi } : {}),
-          ...(fetchAll ? { fetch_all: true } : { page, limit }),
-        },
-        { staleTime: 0 }
-      )
+        const result = await utils.dictionary.list.fetch(
+          {
+            ...(searchQuery ? { search: searchQuery } : {}),
+            ...(selectedAppIds.length > 0 ? { app_ids: selectedAppIds.map(Number) } : {}),
+            ...(selectedErrorTypes.length > 0 ? { error_types: selectedErrorTypes as ('S' | 'N' | 'Sukses')[] } : {}),
+            ...(selectedJenisTransaksi.length > 0 ? { jenis_transaksi: selectedJenisTransaksi } : {}),
+            ...(fetchAll ? { fetch_all: true } : { page, limit }),
+          },
+          { staleTime: 0 },
+        )
 
-      if (result.success) {
-        const entries = result.data.entries as DictionaryViewEntry[]
-        if (fetchAll) {
-          setAllDictionaryEntries(entries)
+        if (result.success) {
+          const entries = result.data.entries as DictionaryViewEntry[]
+          if (fetchAll) {
+            setAllDictionaryEntries(entries)
+          } else {
+            setDictionaryEntries(entries)
+            setTotalCount(result.data.total || entries.length)
+            setTotalPages(Math.ceil((result.data.total || entries.length) / limit))
+
+            // Reset selections when data changes
+            setSelectedItems(new Set())
+
+            // Extract unique jenis_transaksi values from all data
+            const uniqueJenis = Array.from(
+              new Set(
+                entries
+                  .map((entry: DictionaryViewEntry) => entry.jenis_transaksi)
+                  .filter((jenis: string | null) => jenis !== null && jenis !== ''),
+              ),
+            ).sort() as string[]
+            setUniqueJenisTransaksi(uniqueJenis)
+          }
         } else {
-          setDictionaryEntries(entries)
-          setTotalCount(result.data.total || entries.length)
-          setTotalPages(Math.ceil((result.data.total || entries.length) / limit))
-
-          // Reset selections when data changes
-          setSelectedItems(new Set())
-
-          // Extract unique jenis_transaksi values from all data
-          const uniqueJenis = Array.from(
-            new Set(
-              entries
-                .map((entry: DictionaryViewEntry) => entry.jenis_transaksi)
-                .filter((jenis: string | null) => jenis !== null && jenis !== '')
-            )
-          ).sort() as string[]
-          setUniqueJenisTransaksi(uniqueJenis)
+          throw new Error('Failed to load dictionary')
         }
-      } else {
-        throw new Error('Failed to load dictionary')
+      } catch (err: any) {
+        setError(err.message)
+        console.error('Error loading dictionary:', err)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (err: any) {
-      setError(err.message)
-      console.error('Error loading dictionary:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, limit, utils])
+    },
+    [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, utils],
+  )
 
   // Applications loaded via useApplications hook
 
@@ -115,7 +117,7 @@ export default function DictionaryCard() {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1)
-  }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi])
+  }, [])
 
   useEffect(() => {
     // Debounce search and load data - single source of truth for data fetching
@@ -124,7 +126,7 @@ export default function DictionaryCard() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, currentPage, loadDictionary])
+  }, [currentPage, loadDictionary])
 
   const getErrorTypeColor = (errorType: string) => {
     switch (errorType) {
@@ -141,7 +143,7 @@ export default function DictionaryCard() {
 
   const handleEditErrorType = (entry: DictionaryViewEntry) => {
     setEditingId(entry.id)
-    setEditingErrorType(entry.error_type as 'S' | 'N' | 'Sukses' || '')
+    setEditingErrorType((entry.error_type as 'S' | 'N' | 'Sukses') || '')
   }
 
   const handleCancelEdit = () => {
@@ -166,10 +168,8 @@ export default function DictionaryCard() {
 
       if (result.success) {
         // Update local state
-        setDictionaryEntries(prev =>
-          prev.map(entry =>
-            entry.id === id ? { ...entry, error_type: newErrorType } : entry
-          )
+        setDictionaryEntries((prev) =>
+          prev.map((entry) => (entry.id === id ? { ...entry, error_type: newErrorType } : entry)),
         )
         setEditingId(null)
         setEditingErrorType('')
@@ -225,7 +225,7 @@ export default function DictionaryCard() {
   }
 
   const handleSelectItem = (id: number) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
         newSet.delete(id)
@@ -240,7 +240,7 @@ export default function DictionaryCard() {
     if (selectedItems.size === dictionaryEntries.length) {
       setSelectedItems(new Set())
     } else {
-      setSelectedItems(new Set(dictionaryEntries.map(entry => entry.id)))
+      setSelectedItems(new Set(dictionaryEntries.map((entry) => entry.id)))
     }
   }
 
@@ -260,7 +260,7 @@ export default function DictionaryCard() {
       setMessage(null)
       setError(null)
 
-      const updates = Array.from(selectedItems).map(id => ({
+      const updates = Array.from(selectedItems).map((id) => ({
         id,
         rc_description: bulkDescription.trim(),
       }))
@@ -270,7 +270,7 @@ export default function DictionaryCard() {
       if (result.success) {
         setMessage({
           text: result.message || `Successfully updated ${updates.length} RC description(s)`,
-          type: 'success'
+          type: 'success',
         })
         // Reload data
         loadDictionary(currentPage, false)
@@ -293,7 +293,7 @@ export default function DictionaryCard() {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       // Fetch all data for export with current filters applied
       const result = await utils.dictionary.list.fetch(
         {
@@ -303,7 +303,7 @@ export default function DictionaryCard() {
           ...(selectedJenisTransaksi.length > 0 ? { jenis_transaksi: selectedJenisTransaksi } : {}),
           fetch_all: true,
         },
-        { staleTime: 0 }
+        { staleTime: 0 },
       )
 
       if (!result.success) {
@@ -311,58 +311,58 @@ export default function DictionaryCard() {
       }
 
       const exportData = (result.data.entries || []) as DictionaryViewEntry[]
-      
+
       if (exportData.length === 0) {
         setError('No data to export with current filters')
-      return
-    }
+        return
+      }
 
-    // Prepare CSV headers
-    const headers = ['App Name', 'RC', 'RC Description', 'Error Type', 'Jenis Transaksi']
-    
+      // Prepare CSV headers
+      const headers = ['App Name', 'RC', 'RC Description', 'Error Type', 'Jenis Transaksi']
+
       // Prepare CSV rows from filtered data
       const rows = exportData.map((entry: DictionaryViewEntry) => [
-      entry.app_name || '',
-      entry.rc || '',
-      entry.rc_description || '',
-      entry.error_type || '',
-      entry.jenis_transaksi || '',
-    ])
+        entry.app_name || '',
+        entry.rc || '',
+        entry.rc_description || '',
+        entry.error_type || '',
+        entry.jenis_transaksi || '',
+      ])
 
-    // Convert to CSV format
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row: any) =>
-        row.map((cell: any) => {
-          // Escape commas and quotes, wrap in quotes if needed
-          const cellStr = String(cell).replace(/"/g, '""')
-          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-            return `"${cellStr}"`
-          }
-          return cellStr
-        }).join(',')
-      ),
-    ].join('\n')
+      // Convert to CSV format
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row: any) =>
+          row
+            .map((cell: any) => {
+              // Escape commas and quotes, wrap in quotes if needed
+              const cellStr = String(cell).replace(/"/g, '""')
+              if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                return `"${cellStr}"`
+              }
+              return cellStr
+            })
+            .join(','),
+        ),
+      ].join('\n')
 
-    // Create blob and download
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    
+      // Create blob and download
+      const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+
       // Generate filename with timestamp and filter info
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
-      const filterInfo = selectedAppIds.length > 0 
-        ? `_app-${selectedAppIds.join('-')}` 
-        : ''
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+      const filterInfo = selectedAppIds.length > 0 ? `_app-${selectedAppIds.join('-')}` : ''
       const filename = `dictionary_export${filterInfo}_${timestamp}.csv`
-    
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     } catch (err: any) {
       setError(err.message || 'Failed to export data')
     } finally {
@@ -377,7 +377,12 @@ export default function DictionaryCard() {
         <div className="flex items-center gap-1.5">
           <div className="w-8 h-8 rounded-md bg-linear-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-md shrink-0">
             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
             </svg>
           </div>
           <div className="min-w-0">
@@ -398,7 +403,12 @@ export default function DictionaryCard() {
             title="Export all filtered data to CSV"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
             <span className="hidden sm:inline">Export</span>
           </button>
@@ -411,7 +421,12 @@ export default function DictionaryCard() {
             title="Refresh data"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             <span className="hidden sm:inline">Refresh</span>
           </button>
@@ -424,7 +439,12 @@ export default function DictionaryCard() {
         <div className="relative group">
           <div className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
           <input
@@ -443,7 +463,12 @@ export default function DictionaryCard() {
             label="App"
             icon={
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
             }
             options={applications.map((app) => ({
@@ -461,7 +486,12 @@ export default function DictionaryCard() {
             label="Error Type"
             icon={
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                />
               </svg>
             }
             options={[
@@ -480,7 +510,12 @@ export default function DictionaryCard() {
             label="Jenis Transaksi"
             icon={
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
             }
             options={uniqueJenisTransaksi.map((jenis) => ({
@@ -507,14 +542,24 @@ export default function DictionaryCard() {
           <div className={`flex gap-1.5 ${message.type === 'error' ? 'items-start' : 'items-center'}`}>
             {message.type === 'success' ? (
               <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             ) : (
               <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             )}
-            <span className={`flex-1 ${message.type === 'error' ? 'break-words whitespace-normal' : 'truncate'}`}>{message.text}</span>
+            <span className={`flex-1 ${message.type === 'error' ? 'break-words whitespace-normal' : 'truncate'}`}>
+              {message.text}
+            </span>
             <button
               type="button"
               onClick={() => setMessage(null)}
@@ -532,9 +577,7 @@ export default function DictionaryCard() {
       {selectedItems.size > 0 && (
         <div className="mb-2 p-2 bg-linear-to-r from-blue-50 to-indigo-50 rounded-md border border-blue-200">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-blue-800">
-              {selectedItems.size} item(s) selected
-            </span>
+            <span className="text-xs font-semibold text-blue-800">{selectedItems.size} item(s) selected</span>
             <input
               type="text"
               placeholder="Enter description for selected items..."
@@ -551,7 +594,11 @@ export default function DictionaryCard() {
               {submittingBulkDescription ? (
                 <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
               ) : (
                 <>
@@ -589,8 +636,18 @@ export default function DictionaryCard() {
         ) : error ? (
           <div className="p-2 bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <div className="flex items-start gap-1.5">
-              <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-4 h-4 text-red-500 shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <p className="text-red-600 text-xs font-semibold break-words whitespace-normal flex-1">Error: {error}</p>
             </div>
@@ -598,7 +655,12 @@ export default function DictionaryCard() {
         ) : dictionaryEntries.length === 0 ? (
           <div className="p-2 text-center">
             <svg className="w-5 h-5 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
             <p className="text-gray-500 text-xs">No dictionary entries found</p>
           </div>
@@ -607,7 +669,9 @@ export default function DictionaryCard() {
             {/* Total Count Header - Fixed at top */}
             <div className="bg-linear-to-r from-blue-700 to-blue-900 text-white text-xs font-bold py-1.5 px-2 rounded-t-md backdrop-blur-sm shrink-0">
               <div className="flex items-center justify-between">
-                <span>Showing {dictionaryEntries.length} of {totalCount} entries (Page {currentPage} of {totalPages})</span>
+                <span>
+                  Showing {dictionaryEntries.length} of {totalCount} entries (Page {currentPage} of {totalPages})
+                </span>
                 <label className="flex items-center gap-1 cursor-pointer text-xs font-normal">
                   <input
                     type="checkbox"
@@ -619,7 +683,7 @@ export default function DictionaryCard() {
                 </label>
               </div>
             </div>
-            
+
             {/* Scrollable Table Container */}
             <div className="flex-1 overflow-auto min-h-0">
               <table className="w-full text-xs">
@@ -633,12 +697,22 @@ export default function DictionaryCard() {
                         className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">App</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">
+                      App
+                    </th>
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">RC</th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Description</th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Type</th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Jenis</th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Action</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">
+                      Description
+                    </th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">
+                      Type
+                    </th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">
+                      Jenis
+                    </th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b-2 border-gray-300">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -670,7 +744,6 @@ export default function DictionaryCard() {
                               value={editingDescription}
                               onChange={(e) => setEditingDescription(e.target.value)}
                               className="flex-1 px-2 py-1 text-xs rounded border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   handleUpdateDescription(entry.id, editingDescription)
@@ -688,12 +761,28 @@ export default function DictionaryCard() {
                             >
                               {submittingDescription === entry.id ? (
                                 <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  />
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  />
                                 </svg>
                               ) : (
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
                                 </svg>
                               )}
                             </button>
@@ -705,14 +794,19 @@ export default function DictionaryCard() {
                               title="Cancel"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
                               </svg>
                             </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1 group">
                             <span className="truncate flex-1" title={entry.rc_description || ''}>
-                        {entry.rc_description || '-'}
+                              {entry.rc_description || '-'}
                             </span>
                             <button
                               type="button"
@@ -722,7 +816,12 @@ export default function DictionaryCard() {
                               title="Edit description"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
                               </svg>
                             </button>
                           </div>
@@ -734,27 +833,27 @@ export default function DictionaryCard() {
                             {(['S', 'N', 'Sukses'] as const).map((value) => {
                               const isSelected = editingErrorType === value
                               const colorClasses = {
-                                'S': {
+                                S: {
                                   bg: isSelected ? 'bg-blue-500' : 'bg-blue-50',
                                   text: isSelected ? 'text-white' : 'text-blue-700',
                                   border: isSelected ? 'border-blue-600' : 'border-blue-300',
-                                  hover: 'hover:bg-blue-100 hover:border-blue-400'
+                                  hover: 'hover:bg-blue-100 hover:border-blue-400',
                                 },
-                                'N': {
+                                N: {
                                   bg: isSelected ? 'bg-red-500' : 'bg-red-50',
                                   text: isSelected ? 'text-white' : 'text-red-700',
                                   border: isSelected ? 'border-red-600' : 'border-red-300',
-                                  hover: 'hover:bg-red-100 hover:border-red-400'
+                                  hover: 'hover:bg-red-100 hover:border-red-400',
                                 },
-                                'Sukses': {
+                                Sukses: {
                                   bg: isSelected ? 'bg-green-500' : 'bg-green-50',
                                   text: isSelected ? 'text-white' : 'text-green-700',
                                   border: isSelected ? 'border-green-600' : 'border-green-300',
-                                  hover: 'hover:bg-green-100 hover:border-green-400'
-                                }
+                                  hover: 'hover:bg-green-100 hover:border-green-400',
+                                },
                               }
                               const colors = colorClasses[value]
-                              
+
                               return (
                                 <button
                                   key={value}
@@ -773,7 +872,9 @@ export default function DictionaryCard() {
                             })}
                           </div>
                         ) : (
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold border ${getErrorTypeColor(entry.error_type)}`}>
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold border ${getErrorTypeColor(entry.error_type)}`}
+                          >
                             {entry.error_type}
                           </span>
                         )}
@@ -789,19 +890,39 @@ export default function DictionaryCard() {
                                   handleUpdateErrorType(entry.id, editingErrorType as 'S' | 'N' | 'Sukses')
                                 }
                               }}
-                              disabled={updatingId === entry.id || !editingErrorType || !['S', 'N', 'Sukses'].includes(editingErrorType)}
+                              disabled={
+                                updatingId === entry.id ||
+                                !editingErrorType ||
+                                !['S', 'N', 'Sukses'].includes(editingErrorType)
+                              }
                               className="px-2 py-1 rounded text-xs font-semibold transition-all duration-200 bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                               title="Save"
                             >
                               {updatingId === entry.id ? (
                                 <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  />
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  />
                                 </svg>
                               ) : (
                                 <>
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
                                   </svg>
                                   Save
                                 </>
@@ -815,7 +936,12 @@ export default function DictionaryCard() {
                               title="Cancel"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
                               </svg>
                               Cancel
                             </button>
@@ -829,7 +955,12 @@ export default function DictionaryCard() {
                             title="Edit error type"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
                             </svg>
                             Edit
                           </button>
@@ -865,7 +996,7 @@ export default function DictionaryCard() {
           <div className="flex items-center gap-1">
             {(() => {
               const pages: (number | string)[] = []
-              
+
               if (totalPages <= 7) {
                 // Show all pages if 7 or fewer
                 for (let i = 1; i <= totalPages; i++) {
@@ -874,7 +1005,7 @@ export default function DictionaryCard() {
               } else {
                 // Always show first page
                 pages.push(1)
-                
+
                 if (currentPage <= 4) {
                   // Show: 1, 2, 3, 4, 5, ..., last-2, last-1, last
                   for (let i = 2; i <= 5; i++) {
@@ -956,4 +1087,3 @@ export default function DictionaryCard() {
     </div>
   )
 }
-

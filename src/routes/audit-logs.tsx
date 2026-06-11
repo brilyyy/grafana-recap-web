@@ -1,20 +1,13 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ChevronLeft, ChevronRight, Home, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import LogoutButton from '@/components/LogoutButton'
-import { trpc } from '@/router'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Loader2, Home, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { trpc } from '@/router'
 
 interface AuditLogEntry {
   id: number
@@ -58,10 +51,19 @@ function AuditLogsPage() {
   const userRole = (authCheck?.data as any)?.user?.role ?? null
 
   const { data: logsData, isLoading: loading } = trpc.auditLogs.list.useQuery(
-    { page, limit: 50, action: filters.action || undefined, startDate: filters.start_date || undefined, endDate: filters.end_date || undefined },
-    { enabled: !!isAuthenticated && userRole === 'superadmin' }
+    {
+      page,
+      limit: 50,
+      action: filters.action || undefined,
+      startDate: filters.start_date || undefined,
+      endDate: filters.end_date || undefined,
+    },
+    { enabled: !!isAuthenticated && userRole === 'superadmin' },
   )
-  const { data: statsData } = trpc.auditLogs.stats.useQuery({ days: 30 }, { enabled: !!isAuthenticated && userRole === 'superadmin' })
+  const { data: statsData } = trpc.auditLogs.stats.useQuery(
+    { days: 30 },
+    { enabled: !!isAuthenticated && userRole === 'superadmin' },
+  )
 
   const auditLogs: AuditLogEntry[] = (logsData?.data?.logs ?? []) as AuditLogEntry[]
   const totalPages = Math.ceil(((logsData?.data?.total ?? 0) as number) / 50)
@@ -134,9 +136,21 @@ function AuditLogsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-in fade-in duration-300">
             {[
               { label: 'Total Activities', value: stats.total.toLocaleString(), sub: 'Last 30 days' },
-              { label: 'Top Action', value: stats.actionCounts[0]?.action || 'N/A', sub: `${stats.actionCounts[0]?.count || 0} times` },
-              { label: 'Top Resource', value: stats.resourceTypeCounts[0]?.resource_type || 'N/A', sub: `${stats.resourceTypeCounts[0]?.count || 0} times` },
-              { label: 'Most Active User', value: stats.topUsers[0]?.username || 'N/A', sub: `${stats.topUsers[0]?.count || 0} activities` },
+              {
+                label: 'Top Action',
+                value: stats.actionCounts[0]?.action || 'N/A',
+                sub: `${stats.actionCounts[0]?.count || 0} times`,
+              },
+              {
+                label: 'Top Resource',
+                value: stats.resourceTypeCounts[0]?.resource_type || 'N/A',
+                sub: `${stats.resourceTypeCounts[0]?.count || 0} times`,
+              },
+              {
+                label: 'Most Active User',
+                value: stats.topUsers[0]?.username || 'N/A',
+                sub: `${stats.topUsers[0]?.count || 0} activities`,
+              },
             ].map((stat, idx) => (
               <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                 <p className="text-white/60 text-sm mb-1">{stat.label}</p>
@@ -173,24 +187,27 @@ function AuditLogsPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Daily Activity (Last 7 Days)</h3>
               <div className="flex items-end justify-between h-48 gap-2">
-                {stats.dailyActivity.slice(0, 7).reverse().map((item, idx) => {
-                  const maxCount = Math.max(...stats.dailyActivity.map((d) => d.count), 1)
-                  const height = (item.count / maxCount) * 100
-                  return (
-                    <div key={idx} className="flex-1 flex flex-col items-center">
-                      <div className="w-full flex flex-col items-center justify-end h-full">
-                        <div
-                          className="w-full bg-linear-to-t from-blue-600 to-blue-400 rounded-t"
-                          style={{ height: `${height}%`, minHeight: '4px' }}
-                        />
+                {stats.dailyActivity
+                  .slice(0, 7)
+                  .reverse()
+                  .map((item, idx) => {
+                    const maxCount = Math.max(...stats.dailyActivity.map((d) => d.count), 1)
+                    const height = (item.count / maxCount) * 100
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center">
+                        <div className="w-full flex flex-col items-center justify-end h-full">
+                          <div
+                            className="w-full bg-linear-to-t from-blue-600 to-blue-400 rounded-t"
+                            style={{ height: `${height}%`, minHeight: '4px' }}
+                          />
+                        </div>
+                        <p className="text-xs text-white/60 mt-2 text-center">
+                          {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </p>
+                        <p className="text-xs text-white/40">{item.count}</p>
                       </div>
-                      <p className="text-xs text-white/60 mt-2 text-center">
-                        {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                      </p>
-                      <p className="text-xs text-white/40">{item.count}</p>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
               </div>
             </div>
           </div>
@@ -252,14 +269,13 @@ function AuditLogsPage() {
                   <TableBody>
                     {auditLogs.map((log) => (
                       <TableRow key={log.id} className="border-white/10 hover:bg-white/5">
-                        <TableCell className="text-white/80 text-sm">
-                          {formatDate(log.created_at)}
-                        </TableCell>
-                        <TableCell className="text-white/80 text-sm">
-                          {log.username || 'System'}
-                        </TableCell>
+                        <TableCell className="text-white/80 text-sm">{formatDate(log.created_at)}</TableCell>
+                        <TableCell className="text-white/80 text-sm">{log.username || 'System'}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-400/20 text-xs">
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-500/20 text-blue-300 border-blue-400/20 text-xs"
+                          >
                             {log.action}
                           </Badge>
                         </TableCell>
@@ -267,12 +283,8 @@ function AuditLogsPage() {
                           {log.resource_type}
                           {log.resource_id && ` #${log.resource_id}`}
                         </TableCell>
-                        <TableCell className="text-white/60 text-sm max-w-xs truncate">
-                          {log.details || '-'}
-                        </TableCell>
-                        <TableCell className="text-white/60 text-sm">
-                          {log.ip_address || '-'}
-                        </TableCell>
+                        <TableCell className="text-white/60 text-sm max-w-xs truncate">{log.details || '-'}</TableCell>
+                        <TableCell className="text-white/60 text-sm">{log.ip_address || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -291,7 +303,9 @@ function AuditLogsPage() {
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                   </Button>
-                  <span className="text-white/60 text-sm">Page {page} of {totalPages}</span>
+                  <span className="text-white/60 text-sm">
+                    Page {page} of {totalPages}
+                  </span>
                   <Button
                     variant="secondary"
                     size="sm"

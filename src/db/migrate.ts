@@ -21,13 +21,14 @@
  */
 
 import * as dotenv from 'dotenv'
+
 dotenv.config()
 
-import bcrypt from 'bcryptjs'
-import { randomUUID, randomBytes, scrypt, createHash } from 'crypto'
-import { runStoredProcedures as runProcedures } from '../../scripts/success_rate/runProcedures'
-import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
+import { createHash, randomBytes, randomUUID, scrypt } from 'node:crypto'
 import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
+import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
+import bcrypt from 'bcryptjs'
+import { runStoredProcedures as runProcedures } from '../../scripts/success_rate/runProcedures'
 
 /**
  * Hash a password in BetterAuth's own format: `<hexSalt>:<hexKey>`
@@ -37,10 +38,16 @@ import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
 function hashForBetterAuth(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const salt = randomBytes(16).toString('hex')
-    scrypt(password.normalize('NFKC'), salt, 64, { N: 16384, r: 16, p: 1, maxmem: 128 * 16384 * 16 * 2 }, (err, key) => {
-      if (err) reject(err)
-      else resolve(`${salt}:${key.toString('hex')}`)
-    })
+    scrypt(
+      password.normalize('NFKC'),
+      salt,
+      64,
+      { N: 16384, r: 16, p: 1, maxmem: 128 * 16384 * 16 * 2 },
+      (err, key) => {
+        if (err) reject(err)
+        else resolve(`${salt}:${key.toString('hex')}`)
+      },
+    )
   })
 }
 
@@ -68,14 +75,17 @@ const DB_USER_TARGET = process.env.DB_USER_TARGET?.trim() || null
 // ─── Cron / scheduling ──────────────────────────────────────────────────────
 
 const CRON_SCHEDULE = process.env.BALE_PROCESSING_SCHEDULE ?? '1 0 * * *'
-const CRON_SCHEDULE_BALE_BISNIS = process.env.BALE_BISNIS_PROCESSING_SCHEDULE ?? '1 0 * * *'
-const CRON_SCHEDULE_OLOB = process.env.OLOB_PROCESSING_SCHEDULE ?? '1 0 * * *'
+const _CRON_SCHEDULE_BALE_BISNIS = process.env.BALE_BISNIS_PROCESSING_SCHEDULE ?? '1 0 * * *'
+const _CRON_SCHEDULE_OLOB = process.env.OLOB_PROCESSING_SCHEDULE ?? '1 0 * * *'
 const USE_APP_SCHEDULER = process.env.USE_APP_LEVEL_SCHEDULER === 'true'
 
 function getTargetDatabases(): string[] {
   const raw = process.env.TARGET_DATABASES?.trim()
   if (!raw) return ['platform_db', 'platform_db_dev']
-  return raw.split(',').map((d) => d.trim()).filter(Boolean)
+  return raw
+    .split(',')
+    .map((d) => d.trim())
+    .filter(Boolean)
 }
 
 /**
@@ -113,7 +123,9 @@ async function isDefaultCronDb(): Promise<boolean> {
     const rows = await exec(`SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') AS exists`)
     const row = rows[0] as Record<string, unknown>
     return row?.exists === true || row?.exists === 't' || row?.exists === 1
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 async function tableExists(table: string): Promise<boolean> {
@@ -123,7 +135,9 @@ async function tableExists(table: string): Promise<boolean> {
       [table],
     )
     return rows.length > 0
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 async function columnExists(table: string, column: string): Promise<boolean> {
@@ -133,7 +147,9 @@ async function columnExists(table: string, column: string): Promise<boolean> {
       [table, column],
     )
     return rows.length > 0
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 async function indexExists(table: string, idx: string): Promise<boolean> {
@@ -143,12 +159,12 @@ async function indexExists(table: string, idx: string): Promise<boolean> {
       [table, idx],
     )
     return rows.length > 0
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
-async function createIndexSafely(
-  idxName: string, table: string, columns: string[], unique = false,
-): Promise<void> {
+async function createIndexSafely(idxName: string, table: string, columns: string[], unique = false): Promise<void> {
   if (await indexExists(table, idxName)) return
   const u = unique ? 'UNIQUE' : ''
   await exec(`CREATE ${u} INDEX IF NOT EXISTS "${idxName}" ON "${table}" (${columns.map((c) => `"${c}"`).join(', ')})`)
@@ -158,7 +174,9 @@ async function pgEnumExists(name: string): Promise<boolean> {
   try {
     const rows = await exec(`SELECT 1 FROM pg_type WHERE typname=$1 AND typtype='e' LIMIT 1`, [name])
     return rows.length > 0
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 // ─── Phase 1: Core schema ────────────────────────────────────────────────────
@@ -175,12 +193,12 @@ async function runCoreSchema() {
     `)
 
   for (const [typName, vals] of [
-      ['user_role',        "'superadmin','admin','user'"],
-      ['requested_role',   "'admin','user'"],
-      ['request_status',   "'pending','approved','rejected'"],
-      ['error_type_enum',  "'S','N','Sukses'"],
-      ['proc_status_enum', "'running','success','failed'"],
-    ] as [string, string][]) {
+    ['user_role', "'superadmin','admin','user'"],
+    ['requested_role', "'admin','user'"],
+    ['request_status', "'pending','approved','rejected'"],
+    ['error_type_enum', "'S','N','Sukses'"],
+    ['proc_status_enum', "'running','success','failed'"],
+  ] as [string, string][]) {
     if (!(await pgEnumExists(typName))) {
       await exec(`CREATE TYPE "${typName}" AS ENUM (${vals})`)
     }
@@ -316,7 +334,12 @@ async function runCoreSchema() {
           CONSTRAINT "unique_dictionary_entry" UNIQUE ("id_app_identifier","jenis_transaksi","rc")
         )
       `)
-    await createIndexSafely('unique_dictionary_entry', 'response_code_dictionary', ['id_app_identifier', 'jenis_transaksi', 'rc'], true)
+    await createIndexSafely(
+      'unique_dictionary_entry',
+      'response_code_dictionary',
+      ['id_app_identifier', 'jenis_transaksi', 'rc'],
+      true,
+    )
     console.log('  ✅ response_code_dictionary created')
   } else {
     console.log('  ⏭  response_code_dictionary exists')
@@ -462,9 +485,9 @@ async function runBetterAuthSchema() {
 
   // ALTER users – add BetterAuth columns if missing
   for (const [col, def] of [
-    ['name',           'VARCHAR(255)'],
+    ['name', 'VARCHAR(255)'],
     ['email_verified', 'INTEGER DEFAULT 0'],
-    ['image',          'VARCHAR(500)'],
+    ['image', 'VARCHAR(500)'],
   ] as [string, string][]) {
     if (!(await columnExists('users', col))) {
       await exec(`ALTER TABLE "users" ADD COLUMN "${col}" ${def}`)
@@ -679,10 +702,7 @@ async function runRecapModelTables() {
       console.log('  ✅ recap_cms_corp_daily upgraded to CORP × jenis × RC × status grain')
     }
   }
-  if (
-    (await tableExists('recap_cms_corp_daily')) &&
-    !(await columnExists('recap_cms_corp_daily', 'error_type'))
-  ) {
+  if ((await tableExists('recap_cms_corp_daily')) && !(await columnExists('recap_cms_corp_daily', 'error_type'))) {
     await exec(`
       ALTER TABLE "recap_cms_corp_daily"
       ADD COLUMN "error_type" "error_type_enum"
@@ -761,13 +781,13 @@ async function runPerformanceIndexes() {
 
   const idxDefs: [string, string, string[]][] = [
     ['idx_app_success_rate_id_app_jenis_transaksi', 'app_success_rate', ['id_app_identifier', 'jenis_transaksi']],
-    ['idx_app_success_rate_id_app_rc',              'app_success_rate', ['id_app_identifier', 'rc']],
-    ['idx_app_success_rate_id_app_error_type',      'app_success_rate', ['id_app_identifier', 'error_type']],
-    ['idx_app_success_rate_id_app_bulan_tahun',     'app_success_rate', ['id_app_identifier', 'bulan', 'tahun']],
-    ['idx_app_success_rate_rc',                     'app_success_rate', ['rc']],
-    ['idx_rcd_id_app_error_type',                   'response_code_dictionary', ['id_app_identifier', 'error_type']],
-    ['idx_rcd_jenis_transaksi',                     'response_code_dictionary', ['jenis_transaksi']],
-    ['idx_unmapped_rc_id_app_identifier',           'unmapped_rc', ['id_app_identifier']],
+    ['idx_app_success_rate_id_app_rc', 'app_success_rate', ['id_app_identifier', 'rc']],
+    ['idx_app_success_rate_id_app_error_type', 'app_success_rate', ['id_app_identifier', 'error_type']],
+    ['idx_app_success_rate_id_app_bulan_tahun', 'app_success_rate', ['id_app_identifier', 'bulan', 'tahun']],
+    ['idx_app_success_rate_rc', 'app_success_rate', ['rc']],
+    ['idx_rcd_id_app_error_type', 'response_code_dictionary', ['id_app_identifier', 'error_type']],
+    ['idx_rcd_jenis_transaksi', 'response_code_dictionary', ['jenis_transaksi']],
+    ['idx_unmapped_rc_id_app_identifier', 'unmapped_rc', ['id_app_identifier']],
   ]
 
   for (const [name, table, cols] of idxDefs) {
@@ -796,9 +816,9 @@ async function runFdwSetup() {
   const pairs = new Map<string, Set<string>>()
 
   if (await tableExists('fdw_source_table')) {
-    const fdwRows = await exec(
+    const fdwRows = (await exec(
       `SELECT source_db_name, table_name FROM "fdw_source_table" ORDER BY source_db_name, table_name`,
-    ) as { source_db_name: string; table_name: string }[]
+    )) as { source_db_name: string; table_name: string }[]
     for (const r of fdwRows) {
       if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
       pairs.get(r.source_db_name)!.add(r.table_name)
@@ -877,7 +897,9 @@ async function runFdwSetup() {
           // Only the first source_db to register a given table_name gets the short view.
           // Consumers of subsequent sources must query the prefixed FT directly.
           if (claimedViewNames.has(tableName)) {
-            console.warn(`  ⚠️  FDW view "${tableName}" already claimed by another source; ${dbName} consumers must use "${localFtName}" directly.`)
+            console.warn(
+              `  ⚠️  FDW view "${tableName}" already claimed by another source; ${dbName} consumers must use "${localFtName}" directly.`,
+            )
           } else {
             claimedViewNames.add(tableName)
             await exec(`CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${localFtName}"`)
@@ -887,12 +909,19 @@ async function runFdwSetup() {
                 await exec(`GRANT SELECT ON "${tableName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
                 console.log(`  ✅ FDW grant SELECT (view): ${tableName} -> ${DB_USER_TARGET}`)
               } catch (e: unknown) {
-                console.warn(`  ⚠️  GRANT SELECT on view ${tableName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
+                console.warn(
+                  `  ⚠️  GRANT SELECT on view ${tableName} to ${DB_USER_TARGET} failed:`,
+                  (e as Error).message,
+                )
               }
             }
           }
         } catch (e: unknown) {
-          try { await exec(`DROP SCHEMA IF EXISTS _fdw_import_tmp CASCADE`) } catch { /* ignore */ }
+          try {
+            await exec(`DROP SCHEMA IF EXISTS _fdw_import_tmp CASCADE`)
+          } catch {
+            /* ignore */
+          }
           console.warn(`  ⚠️  FDW for ${dbName}.${tableName} failed:`, (e as Error).message)
         }
       }
@@ -1051,15 +1080,16 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
       const r = await exec(`SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='pg_cron') AS exists`)
       const row = r[0] as Record<string, unknown>
       return row?.exists === true || row?.exists === 't'
-    } catch { return false }
+    } catch {
+      return false
+    }
   })()
 
   if (hasPgCron) {
     console.log('  pg_cron detected – creating jobs…')
     const esc = (s: string) => s.replace(/'/g, "''")
     const { PROCEDURE_APPS } = await import('../../scripts/success_rate/registry')
-    const getSchedule = (appKey: string) =>
-      process.env[`${appKey.toUpperCase()}_PROCESSING_SCHEDULE`] ?? '1 0 * * *'
+    const getSchedule = (appKey: string) => process.env[`${appKey.toUpperCase()}_PROCESSING_SCHEDULE`] ?? '1 0 * * *'
     const cronJobs: { jobName: string; schedule: string; sql: string }[] = PROCEDURE_APPS.map(
       ({ appKey, procedureName }) => ({
         jobName: `process-${appKey.replace(/_/g, '-')}-daily`,
@@ -1067,19 +1097,21 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
         sql: `SELECT public.${procedureName}(NULL)`,
       }),
     )
-    const recapCronJobs: { jobName: string; schedule: string; sql: string }[] = RECAP_MODEL_REGISTRY.map(
-      (r) => ({
-        jobName: `recap-${r.modelKey.replace(/_/g, '-')}`,
-        schedule: process.env[r.scheduleEnvVar] ?? '1 0 * * *',
-        sql: `SELECT public.${r.functionName}(NULL)`,
-      }),
-    )
+    const recapCronJobs: { jobName: string; schedule: string; sql: string }[] = RECAP_MODEL_REGISTRY.map((r) => ({
+      jobName: `recap-${r.modelKey.replace(/_/g, '-')}`,
+      schedule: process.env[r.scheduleEnvVar] ?? '1 0 * * *',
+      sql: `SELECT public.${r.functionName}(NULL)`,
+    }))
     const allCronJobs = [...cronJobs, ...recapCronJobs]
     for (const dbName of targetDbs) {
       for (const { jobName: base, schedule, sql } of allCronJobs) {
         const jobName = `${base}-${dbName}`
         try {
-          try { await exec(`SELECT cron.unschedule('${esc(jobName)}')`) } catch { /* ok */ }
+          try {
+            await exec(`SELECT cron.unschedule('${esc(jobName)}')`)
+          } catch {
+            /* ok */
+          }
           await exec(`
             SELECT cron.schedule_in_database(
               '${esc(jobName)}',
@@ -1107,14 +1139,16 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
     console.log(`  Registering housekeeping pg_cron job (schedule: ${housekeepingSchedule})…`)
     if (await tableExists('raw_table_housekeeping')) {
       try {
-        const legacyJobs = await exec(
-          `SELECT jobname FROM cron.job WHERE jobname ~ '^housekeeping-[0-9]+-'`,
-        ) as { jobname: string }[]
+        const legacyJobs = (await exec(`SELECT jobname FROM cron.job WHERE jobname ~ '^housekeeping-[0-9]+-'`)) as {
+          jobname: string
+        }[]
         for (const { jobname } of legacyJobs) {
           try {
             await exec(`SELECT cron.unschedule('${esc(jobname)}')`)
             console.log(`  ⏭  unscheduled legacy housekeeping job '${jobname}'`)
-          } catch { /* ok */ }
+          } catch {
+            /* ok */
+          }
         }
       } catch {
         /* cron.job may be unavailable */
@@ -1123,7 +1157,11 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
       const jobName = 'housekeeping-all'
       const hkSql = 'SELECT public.sp_run_all_raw_housekeeping()'
       try {
-        try { await exec(`SELECT cron.unschedule('${esc(jobName)}')`) } catch { /* ok */ }
+        try {
+          await exec(`SELECT cron.unschedule('${esc(jobName)}')`)
+        } catch {
+          /* ok */
+        }
         await exec(`
           SELECT cron.schedule_in_database(
             '${esc(jobName)}',
@@ -1149,7 +1187,9 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
   }
 
   console.warn('  ⚠️  pg_cron not found.')
-  console.warn(`     To run manually: SELECT public.sp_process_bale_daily(NULL); SELECT public.sp_process_bale_bisnis_daily(NULL); SELECT public.sp_process_olob_daily(NULL); in each target DB`)
+  console.warn(
+    `     To run manually: SELECT public.sp_process_bale_daily(NULL); SELECT public.sp_process_bale_bisnis_daily(NULL); SELECT public.sp_process_olob_daily(NULL); in each target DB`,
+  )
   console.warn('     Or set USE_APP_LEVEL_SCHEDULER=true to use node-cron instead.')
   console.log('  ✅ Phase 6 done (no scheduler configured)')
 }
@@ -1158,12 +1198,23 @@ async function runCronSetup(isDefaultCronDatabase: boolean) {
 
 async function runSeeds() {
   console.log('\n🌱 Phase 7: Seeds')
-  console.log('  ℹ️  Skipping app_identifier, fdw_source_table, and raw_table_housekeeping seeds (use existing DB data / Superadmin UI).')
+  console.log(
+    '  ℹ️  Skipping app_identifier, fdw_source_table, and raw_table_housekeeping seeds (use existing DB data / Superadmin UI).',
+  )
 
   // Superadmin users
-  const usernames = (process.env.DEFAULT_SU_USERNAME ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  const passwords = (process.env.DEFAULT_SU_PASSWORD ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  const emails    = (process.env.DEFAULT_SU_EMAIL    ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  const usernames = (process.env.DEFAULT_SU_USERNAME ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const passwords = (process.env.DEFAULT_SU_PASSWORD ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const emails = (process.env.DEFAULT_SU_EMAIL ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 
   if (usernames.length === 0 || passwords.length === 0) {
     console.log('  ⏭  No DEFAULT_SU_USERNAME/PASSWORD set – skipping superadmin seed')
@@ -1177,7 +1228,7 @@ async function runSeeds() {
     const username = usernames[i]
     const password = passwords[i]
     // BetterAuth normalises emails to lowercase before querying – always store lowercase
-    const email    = (emails[i] ?? `${username}@superadmin.local`).toLowerCase()
+    const email = (emails[i] ?? `${username}@superadmin.local`).toLowerCase()
 
     if (password.length < 8) {
       console.warn(`  ⚠️  Password for ${username} is too short – skipping`)
@@ -1216,7 +1267,7 @@ async function runSeeds() {
           [username, email, bcryptHash],
         )
       }
-      userId = rows[0] ? (rows[0] as Record<string, unknown>).id as number : null
+      userId = rows[0] ? ((rows[0] as Record<string, unknown>).id as number) : null
 
       console.log(`  ✅ Superadmin seeded: ${username} (id=${userId})`)
 
@@ -1228,13 +1279,10 @@ async function runSeeds() {
           `SELECT "id" FROM "account" WHERE "provider_id"='credential' AND "user_id"=$1 LIMIT 1`,
           [userId],
         )
-        const existingAccountId = acct[0] ? (acct[0] as Record<string, unknown>).id as string : null
+        const existingAccountId = acct[0] ? ((acct[0] as Record<string, unknown>).id as string) : null
 
         if (existingAccountId) {
-          await exec(
-            `UPDATE "account" SET "password"=$1,"updated_at"=NOW() WHERE "id"=$2`,
-            [baHash, existingAccountId],
-          )
+          await exec(`UPDATE "account" SET "password"=$1,"updated_at"=NOW() WHERE "id"=$2`, [baHash, existingAccountId])
           console.log(`  ✅ BetterAuth credential updated for: ${username}`)
         } else {
           const accountId = randomUUID()

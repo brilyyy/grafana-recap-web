@@ -1,14 +1,6 @@
-import {
-  pgTable,
-  varchar,
-  integer,
-  text,
-  timestamp,
-  index,
-  serial,
-} from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { userRoleEnum, requestedRoleEnum, requestStatusEnum } from './enums'
+import { index, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { requestedRoleEnum, requestStatusEnum, userRoleEnum } from './enums'
 import { auditLogs } from './logging'
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
@@ -31,7 +23,7 @@ export const users = pgTable(
   (t) => ({
     usernameIdx: index('idx_username').on(t.username),
     emailIdx: index('idx_email').on(t.email),
-  })
+  }),
 )
 
 export const sessions = pgTable('session', {
@@ -94,7 +86,7 @@ export const pendingUserRequests = pgTable(
   (t) => ({
     statusIdx: index('idx_pur_status').on(t.status),
     requestedByIdx: index('idx_pur_requested_by').on(t.requestedById),
-  })
+  }),
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

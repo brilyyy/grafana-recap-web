@@ -21,14 +21,15 @@
  */
 
 import * as dotenv from 'dotenv'
+
 dotenv.config()
 
-import bcrypt from 'bcryptjs'
-import { randomUUID, randomBytes, scrypt, createHash } from 'crypto'
-import { runStoredProcedures as runProcedures } from '@scripts/success_rate/runProcedures'
+import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
 import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
 import { PROCEDURE_APPS } from '@scripts/success_rate/registry'
-import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
+import { runStoredProcedures as runProcedures } from '@scripts/success_rate/runProcedures'
+import bcrypt from 'bcryptjs'
+import { createHash, randomBytes, randomUUID, scrypt } from 'crypto'
 
 /**
  * Hash a password in BetterAuth's own format: `<hexSalt>:<hexKey>`

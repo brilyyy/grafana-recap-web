@@ -1,9 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { db } from '@/db'
-import { env } from '@/env'
+import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
 import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
 import type { TriggerRecapParams, TriggerRecapResult } from '@/domain/recap/types'
-import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
 
 export class RecapValidationError extends Error {
   constructor(
@@ -39,20 +38,14 @@ async function validatePastDate(dateStr: string): Promise<void> {
 async function resolveAppForEntry(
   entry: NonNullable<ReturnType<typeof getCatalogEntryById>>,
 ): Promise<{ id: number; app_name: string }> {
-  const appKey =
-    entry.scope.type === 'per_app' || entry.scope.type === 'fixed_app'
-      ? entry.scope.appKey
-      : null
+  const appKey = entry.scope.type === 'per_app' || entry.scope.type === 'fixed_app' ? entry.scope.appKey : null
   if (!appKey) throw new RecapValidationError('Invalid catalog entry scope', 'NOT_FOUND')
 
   const result = await db.execute(sql`SELECT id, app_name FROM app_identifier`)
   const list = result.rows as { id: number; app_name: string }[]
   const row = list.find((r) => normalizeAppNameToKey(r.app_name) === appKey)
   if (!row) {
-    throw new RecapValidationError(
-      `Application for key "${appKey}" not found in app_identifier`,
-      'NOT_FOUND',
-    )
+    throw new RecapValidationError(`Application for key "${appKey}" not found in app_identifier`, 'NOT_FOUND')
   }
   return row
 }

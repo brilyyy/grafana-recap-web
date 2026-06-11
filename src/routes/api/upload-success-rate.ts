@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { sql } from 'drizzle-orm'
-import { db } from '@/db'
-import { requireAuth } from '@/lib/auth'
-import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
-import type { ApiResponse, SuccessRateEntry } from '@/types'
 import * as XLSX from 'xlsx'
+import { db } from '@/db'
+import { getClientIp, getUserAgent, logAuditEvent } from '@/lib/audit'
+import { requireAuth } from '@/lib/auth'
+import type { ApiResponse, SuccessRateEntry } from '@/types'
 
 function parseCSV(text: string): string[][] {
   const lines: string[] = []
@@ -43,7 +43,7 @@ function parseCSV(text: string): string[][] {
     lines.push(currentLine)
   }
 
-  return lines.map(line => {
+  return lines.map((line) => {
     const fields: string[] = []
     let currentField = ''
     let inFieldQuotes = false
@@ -96,11 +96,14 @@ export const Route = createFileRoute('/api/upload-success-rate')({
             return Response.json({ success: false, message: 'No file uploaded' } as ApiResponse, { status: 400 })
           }
 
-          if (!selectedApplicationId || isNaN(parseInt(selectedApplicationId))) {
-            return Response.json({ success: false, message: 'Valid application selection is required' } as ApiResponse, { status: 400 })
+          if (!selectedApplicationId || Number.isNaN(parseInt(selectedApplicationId, 10))) {
+            return Response.json(
+              { success: false, message: 'Valid application selection is required' } as ApiResponse,
+              { status: 400 },
+            )
           }
 
-          const applicationId = parseInt(selectedApplicationId)
+          const applicationId = parseInt(selectedApplicationId, 10)
           const isCSV = file.name.toLowerCase().endsWith('.csv')
           let headers: string[] = []
           let successRateData: SuccessRateEntry[] = []
@@ -114,12 +117,18 @@ export const Route = createFileRoute('/api/upload-success-rate')({
               return Response.json({ success: false, message: 'CSV file is empty' } as ApiResponse, { status: 400 })
             }
 
-            headers = rows[0].map(h => h.trim())
+            headers = rows[0].map((h) => h.trim())
 
-            if (headers.length < requiredColumns.length || headers.length > requiredColumns.length + optionalColumns.length) {
+            if (
+              headers.length < requiredColumns.length ||
+              headers.length > requiredColumns.length + optionalColumns.length
+            ) {
               return Response.json(
-                { success: false, message: `Invalid column count. Expected ${requiredColumns.length}-${requiredColumns.length + optionalColumns.length} columns, got ${headers.length}` } as ApiResponse,
-                { status: 400 }
+                {
+                  success: false,
+                  message: `Invalid column count. Expected ${requiredColumns.length}-${requiredColumns.length + optionalColumns.length} columns, got ${headers.length}`,
+                } as ApiResponse,
+                { status: 400 },
               )
             }
 
@@ -128,12 +137,20 @@ export const Route = createFileRoute('/api/upload-success-rate')({
             const missingColumns = normalizedRequired.filter((required) => !normalizedHeaders.includes(required))
 
             if (missingColumns.length > 0) {
-              return Response.json({ success: false, message: `Missing required columns: ${missingColumns.join(', ')}` } as ApiResponse, { status: 400 })
+              return Response.json(
+                { success: false, message: `Missing required columns: ${missingColumns.join(', ')}` } as ApiResponse,
+                { status: 400 },
+              )
             }
 
             const columnIndices: Record<string, number> = {}
-            requiredColumns.forEach((colName) => { columnIndices[colName] = normalizedHeaders.indexOf(colName.toLowerCase()) })
-            optionalColumns.forEach((colName) => { const idx = normalizedHeaders.indexOf(colName.toLowerCase()); if (idx >= 0) columnIndices[colName] = idx })
+            requiredColumns.forEach((colName) => {
+              columnIndices[colName] = normalizedHeaders.indexOf(colName.toLowerCase())
+            })
+            optionalColumns.forEach((colName) => {
+              const idx = normalizedHeaders.indexOf(colName.toLowerCase())
+              if (idx >= 0) columnIndices[colName] = idx
+            })
 
             for (let rowNum = 1; rowNum < rows.length; rowNum++) {
               const row = rows[rowNum]
@@ -145,10 +162,16 @@ export const Route = createFileRoute('/api/upload-success-rate')({
               }
 
               const rowData: Record<string, string> = {}
-              requiredColumns.forEach((colName) => { rowData[colName] = (row[columnIndices[colName]] || '').trim() })
-              optionalColumns.forEach((colName) => { if (columnIndices[colName] !== undefined) rowData[colName] = (row[columnIndices[colName]] || '').trim() })
+              requiredColumns.forEach((colName) => {
+                rowData[colName] = (row[columnIndices[colName]] || '').trim()
+              })
+              optionalColumns.forEach((colName) => {
+                if (columnIndices[colName] !== undefined) rowData[colName] = (row[columnIndices[colName]] || '').trim()
+              })
 
-              const hasData = ['Tanggal Transaksi', 'Jenis Transaksi'].some((col) => rowData[col] && rowData[col] !== '')
+              const hasData = ['Tanggal Transaksi', 'Jenis Transaksi'].some(
+                (col) => rowData[col] && rowData[col] !== '',
+              )
               if (!hasData) continue
 
               let tanggalTransaksi: string | null = null
@@ -159,26 +182,34 @@ export const Route = createFileRoute('/api/upload-success-rate')({
               if (dateStr) {
                 const parts = dateStr.split('/')
                 if (parts.length === 3) {
-                  const day = parseInt(parts[0]), month = parseInt(parts[1]), year = parseInt(parts[2])
-                  if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                  const day = parseInt(parts[0], 10),
+                    month = parseInt(parts[1], 10),
+                    year = parseInt(parts[2], 10)
+                  if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
                     tanggalTransaksi = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                    bulan = String(month); tahun = year
+                    bulan = String(month)
+                    tahun = year
                   }
                 }
                 if (!tanggalTransaksi) {
                   const isoParts = dateStr.split('-')
                   if (isoParts.length === 3) {
-                    const year = parseInt(isoParts[0]), month = parseInt(isoParts[1]), day = parseInt(isoParts[2])
-                    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                      tanggalTransaksi = dateStr; bulan = String(month); tahun = year
+                    const year = parseInt(isoParts[0], 10),
+                      month = parseInt(isoParts[1], 10),
+                      day = parseInt(isoParts[2], 10)
+                    if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+                      tanggalTransaksi = dateStr
+                      bulan = String(month)
+                      tahun = year
                     }
                   }
                 }
                 if (!tanggalTransaksi) {
                   const dateValue = new Date(dateStr)
-                  if (!isNaN(dateValue.getTime())) {
+                  if (!Number.isNaN(dateValue.getTime())) {
                     tanggalTransaksi = `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`
-                    bulan = String(dateValue.getMonth() + 1); tahun = dateValue.getFullYear()
+                    bulan = String(dateValue.getMonth() + 1)
+                    tahun = dateValue.getFullYear()
                   }
                 }
               }
@@ -188,25 +219,31 @@ export const Route = createFileRoute('/api/upload-success-rate')({
                 continue
               }
 
-              let jenisTransaksi = rowData['Jenis Transaksi']?.trim() || null
+              const jenisTransaksi = rowData['Jenis Transaksi']?.trim() || null
               if (!jenisTransaksi || jenisTransaksi === '') {
                 skippedRows.push({ rowNumber: actualRowNumber, reason: 'Jenis Transaksi required' })
                 continue
               }
 
-              let rc = rowData['RC']?.trim() || null
+              let rc = rowData.RC?.trim() || null
               if (rc === '') rc = null
-              let rcDescription = rowData['RC Description']?.trim() || null
+              const rcDescription = rowData['RC Description']?.trim() || null
               const rawStatus = rowData['Status Transaksi']?.trim() || null
-              let statusTransaksi: string | null = rawStatus && rawStatus !== '' ? rawStatus : null
+              const statusTransaksi: string | null = rawStatus && rawStatus !== '' ? rawStatus : null
 
               const rcValue = rc?.trim() || ''
               const isRcEmpty = !rcValue || rcValue === '' || rcValue === '-'
               if (isRcEmpty) {
                 const normDesc = rcDescription?.toLowerCase()?.trim() || ''
                 const normStatus = statusTransaksi?.toLowerCase()?.trim() || ''
-                if (normDesc === 'sukses' || normDesc === 'success' || normDesc === 'berhasil' ||
-                    normStatus === 'sukses' || normStatus === 'success' || normStatus === 'berhasil') {
+                if (
+                  normDesc === 'sukses' ||
+                  normDesc === 'success' ||
+                  normDesc === 'berhasil' ||
+                  normStatus === 'sukses' ||
+                  normStatus === 'success' ||
+                  normStatus === 'berhasil'
+                ) {
                   rc = '00'
                 }
               }
@@ -216,8 +253,9 @@ export const Route = createFileRoute('/api/upload-success-rate')({
                 bulan: bulan!,
                 tahun: tahun!,
                 jenis_transaksi: jenisTransaksi!,
-                rc, rc_description: rcDescription,
-                total_transaksi: rowData['total transaksi'] ? parseInt(rowData['total transaksi']) : null,
+                rc,
+                rc_description: rcDescription,
+                total_transaksi: rowData['total transaksi'] ? parseInt(rowData['total transaksi'], 10) : null,
                 total_nominal: rowData['Total Nominal'] ? parseFloat(rowData['Total Nominal']) : null,
                 total_biaya_admin: rowData['Total Biaya Admin'] ? parseFloat(rowData['Total Biaya Admin']) : null,
                 status_transaksi: statusTransaksi,
@@ -231,7 +269,9 @@ export const Route = createFileRoute('/api/upload-success-rate')({
             const workbook = XLSX.read(buffer, { type: 'buffer' })
 
             if (workbook.SheetNames.length === 0) {
-              return Response.json({ success: false, message: 'Excel file contains no worksheets' } as ApiResponse, { status: 400 })
+              return Response.json({ success: false, message: 'Excel file contains no worksheets' } as ApiResponse, {
+                status: 400,
+              })
             }
 
             const worksheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -240,13 +280,19 @@ export const Route = createFileRoute('/api/upload-success-rate')({
 
             for (let col = range.s.c; col <= range.e.c; col++) {
               const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: col })]
-              if (cell && cell.v) headers.push(String(cell.v).trim())
+              if (cell?.v) headers.push(String(cell.v).trim())
             }
 
-            if (headers.length < requiredColumns.length || headers.length > requiredColumns.length + optionalColumns.length) {
+            if (
+              headers.length < requiredColumns.length ||
+              headers.length > requiredColumns.length + optionalColumns.length
+            ) {
               return Response.json(
-                { success: false, message: `Invalid column count. Expected ${requiredColumns.length}-${requiredColumns.length + optionalColumns.length} columns, got ${headers.length}` } as ApiResponse,
-                { status: 400 }
+                {
+                  success: false,
+                  message: `Invalid column count. Expected ${requiredColumns.length}-${requiredColumns.length + optionalColumns.length} columns, got ${headers.length}`,
+                } as ApiResponse,
+                { status: 400 },
               )
             }
 
@@ -255,12 +301,20 @@ export const Route = createFileRoute('/api/upload-success-rate')({
             const missingColumns = normalizedRequired.filter((required) => !normalizedHeaders.includes(required))
 
             if (missingColumns.length > 0) {
-              return Response.json({ success: false, message: `Missing required columns: ${missingColumns.join(', ')}` } as ApiResponse, { status: 400 })
+              return Response.json(
+                { success: false, message: `Missing required columns: ${missingColumns.join(', ')}` } as ApiResponse,
+                { status: 400 },
+              )
             }
 
             const columnIndices: Record<string, number> = {}
-            requiredColumns.forEach((colName) => { columnIndices[colName] = normalizedHeaders.indexOf(colName.toLowerCase()) })
-            optionalColumns.forEach((colName) => { const idx = normalizedHeaders.indexOf(colName.toLowerCase()); if (idx >= 0) columnIndices[colName] = idx })
+            requiredColumns.forEach((colName) => {
+              columnIndices[colName] = normalizedHeaders.indexOf(colName.toLowerCase())
+            })
+            optionalColumns.forEach((colName) => {
+              const idx = normalizedHeaders.indexOf(colName.toLowerCase())
+              if (idx >= 0) columnIndices[colName] = idx
+            })
 
             successRateData = []
             let consecutiveEmptyRows = 0
@@ -280,7 +334,9 @@ export const Route = createFileRoute('/api/upload-success-rate')({
                 }
               })
 
-              const hasData = ['Tanggal Transaksi', 'Jenis Transaksi'].some((col) => rowData[col] && rowData[col] !== '')
+              const hasData = ['Tanggal Transaksi', 'Jenis Transaksi'].some(
+                (col) => rowData[col] && rowData[col] !== '',
+              )
               if (!hasData) {
                 consecutiveEmptyRows++
                 if (consecutiveEmptyRows >= 10) break
@@ -304,22 +360,27 @@ export const Route = createFileRoute('/api/upload-success-rate')({
                   const dateStr = String(rawCell.v).trim()
                   const parts = dateStr.split('/')
                   if (parts.length === 3) {
-                    const d = parseInt(parts[0]), m = parseInt(parts[1]), y = parseInt(parts[2])
-                    if (!isNaN(d) && !isNaN(m) && !isNaN(y)) dateValue = new Date(y, m - 1, d)
+                    const d = parseInt(parts[0], 10),
+                      m = parseInt(parts[1], 10),
+                      y = parseInt(parts[2], 10)
+                    if (!Number.isNaN(d) && !Number.isNaN(m) && !Number.isNaN(y)) dateValue = new Date(y, m - 1, d)
                   }
-                  if (!dateValue || isNaN(dateValue.getTime())) {
+                  if (!dateValue || Number.isNaN(dateValue.getTime())) {
                     const isoParts = dateStr.split('-')
                     if (isoParts.length === 3) {
-                      const y = parseInt(isoParts[0]), m = parseInt(isoParts[1]), d = parseInt(isoParts[2])
-                      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) dateValue = new Date(y, m - 1, d)
+                      const y = parseInt(isoParts[0], 10),
+                        m = parseInt(isoParts[1], 10),
+                        d = parseInt(isoParts[2], 10)
+                      if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) dateValue = new Date(y, m - 1, d)
                     }
                   }
-                  if (!dateValue || isNaN(dateValue.getTime())) dateValue = new Date(rawCell.v)
+                  if (!dateValue || Number.isNaN(dateValue.getTime())) dateValue = new Date(rawCell.v)
                 }
 
-                if (dateValue && !isNaN(dateValue.getTime())) {
+                if (dateValue && !Number.isNaN(dateValue.getTime())) {
                   tanggalTransaksi = `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`
-                  bulan = String(dateValue.getMonth() + 1); tahun = dateValue.getFullYear()
+                  bulan = String(dateValue.getMonth() + 1)
+                  tahun = dateValue.getFullYear()
                 } else {
                   skippedRows.push({ rowNumber: actualRowNumber, reason: `Invalid date: "${rawCell.v || '(empty)'}"` })
                   continue
@@ -334,25 +395,31 @@ export const Route = createFileRoute('/api/upload-success-rate')({
                 continue
               }
 
-              let jenisTransaksi = rowData['Jenis Transaksi']?.trim() || null
+              const jenisTransaksi = rowData['Jenis Transaksi']?.trim() || null
               if (!jenisTransaksi || jenisTransaksi === '') {
                 skippedRows.push({ rowNumber: actualRowNumber, reason: 'Jenis Transaksi required' })
                 continue
               }
 
-              let rc = rowData['RC']?.trim() || null
+              let rc = rowData.RC?.trim() || null
               if (rc === '') rc = null
-              let rcDescription = rowData['RC Description']?.trim() || null
+              const rcDescription = rowData['RC Description']?.trim() || null
               const rawStatus = rowData['Status Transaksi']?.trim() || null
-              let statusTransaksi: string | null = rawStatus && rawStatus !== '' ? rawStatus : null
+              const statusTransaksi: string | null = rawStatus && rawStatus !== '' ? rawStatus : null
 
               const rcValue = rc?.trim() || ''
               const isRcEmpty = !rcValue || rcValue === '' || rcValue === '-'
               if (isRcEmpty) {
                 const normDesc = rcDescription?.toLowerCase()?.trim() || ''
                 const normStatus = statusTransaksi?.toLowerCase()?.trim() || ''
-                if (normDesc === 'sukses' || normDesc === 'success' || normDesc === 'berhasil' ||
-                    normStatus === 'sukses' || normStatus === 'success' || normStatus === 'berhasil') {
+                if (
+                  normDesc === 'sukses' ||
+                  normDesc === 'success' ||
+                  normDesc === 'berhasil' ||
+                  normStatus === 'sukses' ||
+                  normStatus === 'success' ||
+                  normStatus === 'berhasil'
+                ) {
                   rc = '00'
                 }
               }
@@ -362,8 +429,9 @@ export const Route = createFileRoute('/api/upload-success-rate')({
                 bulan: bulan!,
                 tahun: tahun!,
                 jenis_transaksi: jenisTransaksi!,
-                rc, rc_description: rcDescription,
-                total_transaksi: rowData['total transaksi'] ? parseInt(rowData['total transaksi']) : null,
+                rc,
+                rc_description: rcDescription,
+                total_transaksi: rowData['total transaksi'] ? parseInt(rowData['total transaksi'], 10) : null,
                 total_nominal: rowData['Total Nominal'] ? parseFloat(rowData['Total Nominal']) : null,
                 total_biaya_admin: rowData['Total Biaya Admin'] ? parseFloat(rowData['Total Biaya Admin']) : null,
                 status_transaksi: statusTransaksi,
@@ -375,18 +443,27 @@ export const Route = createFileRoute('/api/upload-success-rate')({
 
           if (skippedRows.length > 0) {
             return Response.json(
-              { success: false, message: `Upload failed: ${skippedRows.length} row(s) have errors`, data: { skippedRows, totalSkipped: skippedRows.length, totalProcessed: successRateData.length } } as ApiResponse,
-              { status: 400 }
+              {
+                success: false,
+                message: `Upload failed: ${skippedRows.length} row(s) have errors`,
+                data: { skippedRows, totalSkipped: skippedRows.length, totalProcessed: successRateData.length },
+              } as ApiResponse,
+              { status: 400 },
             )
           }
 
           if (successRateData.length === 0) {
-            return Response.json({ success: false, message: 'No valid success rate data found in the file' } as ApiResponse, { status: 400 })
+            return Response.json(
+              { success: false, message: 'No valid success rate data found in the file' } as ApiResponse,
+              { status: 400 },
+            )
           }
 
           const appResult = await db.execute(sql`SELECT app_name FROM app_identifier WHERE id = ${applicationId}`)
           if (appResult.rows.length === 0) {
-            return Response.json({ success: false, message: 'Selected application does not exist' } as ApiResponse, { status: 400 })
+            return Response.json({ success: false, message: 'Selected application does not exist' } as ApiResponse, {
+              status: 400,
+            })
           }
           const applicationName = (appResult.rows[0] as any).app_name
 
@@ -417,9 +494,16 @@ export const Route = createFileRoute('/api/upload-success-rate')({
               } else {
                 const normDesc = entry.rc_description?.toLowerCase()?.trim() || ''
                 const normStatus = entry.status_transaksi?.toLowerCase()?.trim() || ''
-                if (normDesc === 'sukses' || normDesc === 'success' || normDesc === 'berhasil' ||
-                    normStatus === 'sukses' || normStatus === 'success' || normStatus === 'berhasil') {
-                  entry.rc = '00'; entry.error_type = 'Sukses'
+                if (
+                  normDesc === 'sukses' ||
+                  normDesc === 'success' ||
+                  normDesc === 'berhasil' ||
+                  normStatus === 'sukses' ||
+                  normStatus === 'success' ||
+                  normStatus === 'berhasil'
+                ) {
+                  entry.rc = '00'
+                  entry.error_type = 'Sukses'
                 } else {
                   entry.error_type = null
                 }
@@ -449,7 +533,7 @@ export const Route = createFileRoute('/api/upload-success-rate')({
             applicationId.toString(),
             `Uploaded success rate for application: ${applicationName}. ${successRateData.length} entries processed.`,
             getClientIp(request),
-            getUserAgent(request)
+            getUserAgent(request),
           )
 
           return Response.json({
@@ -464,8 +548,8 @@ export const Route = createFileRoute('/api/upload-success-rate')({
 
           console.error('Error uploading success rate:', error)
           return Response.json(
-            { success: false, message: 'Error processing success rate file: ' + error.message } as ApiResponse,
-            { status: 500 }
+            { success: false, message: `Error processing success rate file: ${error.message}` } as ApiResponse,
+            { status: 500 },
           )
         }
       },

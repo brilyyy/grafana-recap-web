@@ -1,14 +1,7 @@
-import {
-  pgTable,
-  varchar,
-  integer,
-  timestamp,
-  unique,
-  serial,
-} from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { errorTypeEnum } from './enums'
+import { integer, pgTable, serial, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
 import { appIdentifier } from './applications'
+import { errorTypeEnum } from './enums'
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
@@ -26,7 +19,7 @@ export const responseCodeDictionary = pgTable(
   },
   (t) => ({
     uniqueEntry: unique('unique_dictionary_entry').on(t.idAppIdentifier, t.jenisTransaksi, t.rc),
-  })
+  }),
 )
 
 export const unmappedRc = pgTable(
@@ -45,7 +38,7 @@ export const unmappedRc = pgTable(
   },
   (t) => ({
     uniqueEntry: unique('unique_unmapped_rc_entry').on(t.idAppIdentifier, t.jenisTransaksi, t.rc),
-  })
+  }),
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

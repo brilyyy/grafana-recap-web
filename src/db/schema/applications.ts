@@ -1,16 +1,7 @@
-import {
-  pgTable,
-  varchar,
-  integer,
-  timestamp,
-  date,
-  decimal,
-  index,
-  serial,
-} from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { errorTypeEnum } from './enums'
+import { date, decimal, index, integer, pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { responseCodeDictionary, unmappedRc } from './dictionary'
+import { errorTypeEnum } from './enums'
 import { appProcessingLog } from './logging'
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
@@ -48,7 +39,7 @@ export const appSuccessRate = pgTable(
   (t) => ({
     tanggalIdx: index('idx_tanggal_transaksi').on(t.tanggalTransaksi),
     appIdIdx: index('idx_id_app_identifier').on(t.idAppIdentifier),
-  })
+  }),
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

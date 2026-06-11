@@ -1,6 +1,6 @@
-import type { RecapCatalogEntry } from './types'
-import { PROCEDURE_APPS } from '@scripts/success_rate/registry'
 import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
+import { PROCEDURE_APPS } from '@scripts/success_rate/registry'
+import type { RecapCatalogEntry } from './types'
 
 const DISPLAY_APP: Record<string, string> = {
   bale: 'Bale',
@@ -27,19 +27,15 @@ const SCHEDULE_ENV: Record<string, string> = {
 }
 
 const BRIEF_SUCCESS_RATE: Record<string, string> = {
-  bale:
-    'FROM raw_bale: aggregate by day, jenis, RC, status; map dictionary error_type; INSERT app_success_rate.',
-  bale_bisnis:
-    'FROM raw_bale_bisnis: matrix-style aggregate; INSERT app_success_rate (see raw.postgres.sql).',
+  bale: 'FROM raw_bale: aggregate by day, jenis, RC, status; map dictionary error_type; INSERT app_success_rate.',
+  bale_bisnis: 'FROM raw_bale_bisnis: matrix-style aggregate; INSERT app_success_rate (see raw.postgres.sql).',
   olob: 'FROM raw_olob: aggregate by day, jenis, RC; INSERT app_success_rate.',
   edc_agen: 'FROM ZTRANS0P (ITM/FDW): aggregate by TRXMDT / service; INSERT app_success_rate.',
   edc_merchant: 'FROM ZTRANS0P (ITM/FDW): aggregate; INSERT app_success_rate.',
   edc_merchant_ancol: 'FROM ZTRANS0P (ITM/FDW): aggregate; INSERT app_success_rate.',
-  cms:
-    'FROM cms_db_GCM_AGCM_LOG_ACTV: GROUP BY day, service, ERR_MAP, IS_ERR; INSERT app_success_rate.',
+  cms: 'FROM cms_db_GCM_AGCM_LOG_ACTV: GROUP BY day, service, ERR_MAP, IS_ERR; INSERT app_success_rate.',
   bale_korpora: 'FROM raw_bale_korpora: aggregate; INSERT app_success_rate.',
-  debit_online:
-    'FROM ASID160448_ZTRANS0P + ZRSPCD0P (FDW): TRTRTY=21, TRPCCD=59; INSERT app_success_rate.',
+  debit_online: 'FROM ASID160448_ZTRANS0P + ZRSPCD0P (FDW): TRTRTY=21, TRPCCD=59; INSERT app_success_rate.',
 }
 
 function successRateEntries(): RecapCatalogEntry[] {

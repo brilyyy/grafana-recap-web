@@ -131,7 +131,7 @@ async function setupProcessingSchedulers(): Promise<void> {
           console.error('❌ Scheduled BALE processing failed:', error.message)
         }
       },
-      { scheduled: true, timezone }
+      { scheduled: true, timezone },
     )
     console.log(`✅ BALE processing scheduler configured: Schedule '${baleSchedule}' (timezone: ${timezone})`)
   }
@@ -151,7 +151,7 @@ async function setupProcessingSchedulers(): Promise<void> {
           console.error('❌ Scheduled Bale Bisnis processing failed:', error.message)
         }
       },
-      { scheduled: true, timezone }
+      { scheduled: true, timezone },
     )
     console.log(`✅ Bale Bisnis processing scheduler configured: Schedule '${bisnisSchedule}' (timezone: ${timezone})`)
   }
@@ -171,7 +171,7 @@ async function setupProcessingSchedulers(): Promise<void> {
           console.error('❌ Scheduled OLOB processing failed:', error.message)
         }
       },
-      { scheduled: true, timezone }
+      { scheduled: true, timezone },
     )
     console.log(`✅ OLOB processing scheduler configured: Schedule '${olobSchedule}' (timezone: ${timezone})`)
   }
@@ -191,7 +191,7 @@ async function setupProcessingSchedulers(): Promise<void> {
           console.error('❌ Scheduled CMS processing failed:', error.message)
         }
       },
-      { scheduled: true, timezone }
+      { scheduled: true, timezone },
     )
     console.log(`✅ CMS processing scheduler configured: Schedule '${cmsSchedule}' (timezone: ${timezone})`)
   }
@@ -251,9 +251,11 @@ async function setupProcessingSchedulers(): Promise<void> {
           console.error('❌ Scheduled Bale Korpora processing failed:', error.message)
         }
       },
-      { scheduled: true, timezone }
+      { scheduled: true, timezone },
     )
-    console.log(`✅ Bale Korpora processing scheduler configured: Schedule '${baleKorporaSchedule}' (timezone: ${timezone})`)
+    console.log(
+      `✅ Bale Korpora processing scheduler configured: Schedule '${baleKorporaSchedule}' (timezone: ${timezone})`,
+    )
   }
 }
 

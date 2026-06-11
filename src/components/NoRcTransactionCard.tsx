@@ -1,8 +1,7 @@
-
-import { useState, useEffect, useCallback } from 'react'
-import type { SuccessRateEntry } from '@/types'
+import { useCallback, useEffect, useState } from 'react'
 import { useApplications } from '@/hooks/useApplications'
 import { trpc } from '@/router'
+import type { SuccessRateEntry } from '@/types'
 
 export default function NoRcTransactionCard() {
   const [transactions, setTransactions] = useState<SuccessRateEntry[]>([])
@@ -28,38 +27,41 @@ export default function NoRcTransactionCard() {
   const submitMutation = trpc.noRcTransaction.submit.useMutation()
   const submitBatchMutation = trpc.noRcTransaction.submitBatch.useMutation()
 
-  const loadTransactions = useCallback(async (page: number) => {
-    try {
-      setIsLoading(true)
-      setError(null)
+  const loadTransactions = useCallback(
+    async (page: number) => {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-      const result = await utils.noRcTransaction.list.fetch(
-        {
-          page,
-          limit,
-          ...(selectedAppId ? { app_id: parseInt(selectedAppId) } : {}),
-        },
-        { staleTime: 0 }
-      )
+        const result = await utils.noRcTransaction.list.fetch(
+          {
+            page,
+            limit,
+            ...(selectedAppId ? { app_id: parseInt(selectedAppId, 10) } : {}),
+          },
+          { staleTime: 0 },
+        )
 
-      if (result.success) {
-        setTransactions(result.data.entries as SuccessRateEntry[])
-        setTotalPages(Math.ceil((result.data.total || 0) / limit) || 1)
-        setTotalCount(result.data.total || 0)
-        // Reset selections when data reloads
-        setSelectedItems(new Set())
-        setEditingRc({})
-        setEditingRcDescription({})
-      } else {
-        throw new Error('Failed to load no RC transactions')
+        if (result.success) {
+          setTransactions(result.data.entries as SuccessRateEntry[])
+          setTotalPages(Math.ceil((result.data.total || 0) / limit) || 1)
+          setTotalCount(result.data.total || 0)
+          // Reset selections when data reloads
+          setSelectedItems(new Set())
+          setEditingRc({})
+          setEditingRcDescription({})
+        } else {
+          throw new Error('Failed to load no RC transactions')
+        }
+      } catch (err: any) {
+        setError(err.message)
+        console.error('Error loading no RC transactions:', err)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (err: any) {
-      setError(err.message)
-      console.error('Error loading no RC transactions:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [selectedAppId, limit, utils])
+    },
+    [selectedAppId, limit, utils],
+  )
 
   // Applications loaded via useApplications hook
 
@@ -70,12 +72,12 @@ export default function NoRcTransactionCard() {
   useEffect(() => {
     // Reset to page 1 when filter changes
     setCurrentPage(1)
-  }, [selectedAppId])
+  }, [])
 
   useEffect(() => {
     // Reset to page 1 when row count changes
     setCurrentPage(1)
-  }, [limit])
+  }, [])
 
   useEffect(() => {
     // Listen for data changes
@@ -105,7 +107,7 @@ export default function NoRcTransactionCard() {
   }, [message])
 
   const handleSelectItem = (id: number) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
         newSet.delete(id)
@@ -120,21 +122,21 @@ export default function NoRcTransactionCard() {
     if (selectedItems.size === transactions.length) {
       setSelectedItems(new Set())
     } else {
-      setSelectedItems(new Set(transactions.map(t => t.id!)))
+      setSelectedItems(new Set(transactions.map((t) => t.id!)))
     }
   }
 
   const handleRcChange = (id: number, value: string) => {
-    setEditingRc(prev => ({
+    setEditingRc((prev) => ({
       ...prev,
-      [id]: value
+      [id]: value,
     }))
   }
 
   const handleRcDescriptionChange = (id: number, value: string) => {
-    setEditingRcDescription(prev => ({
+    setEditingRcDescription((prev) => ({
       ...prev,
-      [id]: value
+      [id]: value,
     }))
   }
 
@@ -161,14 +163,14 @@ export default function NoRcTransactionCard() {
       if (result.success) {
         setMessage({ text: result.message || 'RC assigned successfully', type: 'success' })
         // Remove from local state (will be filtered out on next load)
-        setTransactions(prev => prev.filter(t => t.id !== id))
+        setTransactions((prev) => prev.filter((t) => t.id !== id))
         // Clear editing state
-        setEditingRc(prev => {
+        setEditingRc((prev) => {
           const newState = { ...prev }
           delete newState[id]
           return newState
         })
-        setEditingRcDescription(prev => {
+        setEditingRcDescription((prev) => {
           const newState = { ...prev }
           delete newState[id]
           return newState
@@ -186,9 +188,7 @@ export default function NoRcTransactionCard() {
   }
 
   const handleSubmitAll = async () => {
-    const itemsToSubmit = transactions.filter(t => 
-      selectedItems.has(t.id!) && bulkRc.trim() !== ''
-    )
+    const itemsToSubmit = transactions.filter((t) => selectedItems.has(t.id!) && bulkRc.trim() !== '')
 
     if (itemsToSubmit.length === 0) {
       setMessage({ text: 'Please select at least one transaction and provide RC', type: 'error' })
@@ -199,7 +199,7 @@ export default function NoRcTransactionCard() {
       setSubmittingAll(true)
       setMessage(null)
 
-      const mappings = itemsToSubmit.map(t => ({
+      const mappings = itemsToSubmit.map((t) => ({
         id: t.id!,
         rc: bulkRc.trim(),
         rc_description: bulkRcDescription.trim() || null,
@@ -208,13 +208,13 @@ export default function NoRcTransactionCard() {
       const result = await submitBatchMutation.mutateAsync({ items: mappings })
 
       if (result.success) {
-        setMessage({ 
-          text: result.message || `Successfully assigned RC to ${itemsToSubmit.length} transaction(s)`, 
-          type: 'success' 
+        setMessage({
+          text: result.message || `Successfully assigned RC to ${itemsToSubmit.length} transaction(s)`,
+          type: 'success',
         })
         // Remove submitted items from local state
-        const submittedIds = new Set(itemsToSubmit.map(t => t.id!))
-        setTransactions(prev => prev.filter(item => !submittedIds.has(item.id!)))
+        const submittedIds = new Set(itemsToSubmit.map((t) => t.id!))
+        setTransactions((prev) => prev.filter((item) => !submittedIds.has(item.id!)))
         // Clear selections and bulk inputs
         setSelectedItems(new Set())
         setBulkRc('')
@@ -237,7 +237,12 @@ export default function NoRcTransactionCard() {
       <div className="flex items-center gap-1.5 mb-2">
         <div className="w-8 h-8 rounded-md bg-linear-to-br from-orange-600 to-orange-800 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         </div>
         <div className="min-w-0">
@@ -266,7 +271,9 @@ export default function NoRcTransactionCard() {
               ))}
             </select>
           </div>
-          <div className={`flex flex-col sm:flex-row gap-2 sm:items-end transition-opacity ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+          <div
+            className={`flex flex-col sm:flex-row gap-2 sm:items-end transition-opacity ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
+          >
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-0.5">Rows per page</label>
               <select
@@ -285,7 +292,7 @@ export default function NoRcTransactionCard() {
             <div className="flex items-end gap-1.5">
               <div className="flex items-center rounded-lg border border-gray-200 bg-white overflow-hidden">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1 || isLoading}
                   className="p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   aria-label="Previous page"
@@ -302,7 +309,7 @@ export default function NoRcTransactionCard() {
                     value={currentPage}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10)
-                      if (!isNaN(val) && val >= 1) {
+                      if (!Number.isNaN(val) && val >= 1) {
                         setCurrentPage(Math.min(val, totalPages || 1))
                       }
                     }}
@@ -312,7 +319,7 @@ export default function NoRcTransactionCard() {
                   <span className="text-gray-400 text-xs">/ {totalPages}</span>
                 </div>
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages || totalPages === 0 || isLoading}
                   className="p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   aria-label="Next page"
@@ -322,9 +329,7 @@ export default function NoRcTransactionCard() {
                   </svg>
                 </button>
               </div>
-              <span className="text-xs text-gray-500 self-center hidden sm:inline">
-                {totalCount} total
-              </span>
+              <span className="text-xs text-gray-500 self-center hidden sm:inline">{totalCount} total</span>
             </div>
           </div>
         </div>
@@ -342,11 +347,19 @@ export default function NoRcTransactionCard() {
           <div className="flex gap-1.5 items-center">
             {message.type === 'success' ? (
               <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             ) : (
               <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             )}
             <span className="flex-1 truncate">{message.text}</span>
@@ -364,9 +377,7 @@ export default function NoRcTransactionCard() {
               onChange={handleSelectAll}
               className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
             />
-            <span className="text-xs font-semibold text-orange-800">
-              {selectedItems.size} selected - Bulk Update
-            </span>
+            <span className="text-xs font-semibold text-orange-800">{selectedItems.size} selected - Bulk Update</span>
           </div>
           <div className="space-y-1.5">
             <input
@@ -404,14 +415,24 @@ export default function NoRcTransactionCard() {
         ) : error ? (
           <div className="p-2 text-center bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <svg className="w-4 h-4 text-red-500 mx-auto mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-red-600 text-xs font-semibold">Error: {error}</p>
           </div>
         ) : transactions.length === 0 ? (
           <div className="p-3 text-center">
             <svg className="w-6 h-6 text-green-500 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-gray-500 text-xs">No transactions without RC found</p>
           </div>
@@ -424,69 +445,69 @@ export default function NoRcTransactionCard() {
             </div>
             <div className="space-y-1 p-1">
               {transactions.map((transaction) => {
-              const id = transaction.id!
-              const isSelected = selectedItems.has(id)
-              const rcValue = editingRc[id] ?? ''
-              const rcDescValue = editingRcDescription[id] ?? ''
+                const id = transaction.id!
+                const isSelected = selectedItems.has(id)
+                const rcValue = editingRc[id] ?? ''
+                const rcDescValue = editingRcDescription[id] ?? ''
 
-              return (
-                <div
-                  key={id}
-                  className="p-2 bg-white/50 rounded border border-gray-200 hover:border-orange-300 transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleSelectItem(id)}
-                      className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                    />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        <div>
-                          <span className="font-semibold text-gray-700">Date:</span>{' '}
-                          <span className="text-gray-600">{transaction.tanggal_transaksi}</span>
+                return (
+                  <div
+                    key={id}
+                    className="p-2 bg-white/50 rounded border border-gray-200 hover:border-orange-300 transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleSelectItem(id)}
+                        className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <div>
+                            <span className="font-semibold text-gray-700">Date:</span>{' '}
+                            <span className="text-gray-600">{transaction.tanggal_transaksi}</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-700">Type:</span>{' '}
+                            <span className="text-gray-600">{transaction.jenis_transaksi}</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-700">Status:</span>{' '}
+                            <span className="text-gray-600">{transaction.status_transaksi || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-700">Total:</span>{' '}
+                            <span className="text-gray-600">{transaction.total_transaksi || 0}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-semibold text-gray-700">Type:</span>{' '}
-                          <span className="text-gray-600">{transaction.jenis_transaksi}</span>
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            placeholder="RC (required)"
+                            value={rcValue}
+                            onChange={(e) => handleRcChange(id, e.target.value)}
+                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-hidden focus:border-orange-500"
+                          />
+                          <input
+                            type="text"
+                            placeholder="RC Description (optional)"
+                            value={rcDescValue}
+                            onChange={(e) => handleRcDescriptionChange(id, e.target.value)}
+                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-hidden focus:border-orange-500"
+                          />
+                          <button
+                            onClick={() => handleSubmit(transaction)}
+                            disabled={submitting === id || rcValue.trim() === ''}
+                            className="w-full px-2 py-1 text-xs font-semibold bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {submitting === id ? 'Updating...' : 'Update RC'}
+                          </button>
                         </div>
-                        <div>
-                          <span className="font-semibold text-gray-700">Status:</span>{' '}
-                          <span className="text-gray-600">{transaction.status_transaksi || 'N/A'}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-gray-700">Total:</span>{' '}
-                          <span className="text-gray-600">{transaction.total_transaksi || 0}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <input
-                          type="text"
-                          placeholder="RC (required)"
-                          value={rcValue}
-                          onChange={(e) => handleRcChange(id, e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-hidden focus:border-orange-500"
-                        />
-                        <input
-                          type="text"
-                          placeholder="RC Description (optional)"
-                          value={rcDescValue}
-                          onChange={(e) => handleRcDescriptionChange(id, e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-hidden focus:border-orange-500"
-                        />
-                        <button
-                          onClick={() => handleSubmit(transaction)}
-                          disabled={submitting === id || rcValue.trim() === ''}
-                          className="w-full px-2 py-1 text-xs font-semibold bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {submitting === id ? 'Updating...' : 'Update RC'}
-                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
+                )
               })}
             </div>
           </>
@@ -500,12 +521,15 @@ export default function NoRcTransactionCard() {
         className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
         </svg>
         Refresh
       </button>
-
     </div>
   )
 }
-

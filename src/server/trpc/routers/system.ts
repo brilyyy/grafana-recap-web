@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
-import { router, superAdminProcedure, publicProcedure } from '../init'
 import { db } from '@/db'
+import { publicProcedure, router, superAdminProcedure } from '../init'
 
 export const systemRouter = router({
   dbStatus: publicProcedure.query(async () => {

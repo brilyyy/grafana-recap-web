@@ -2,8 +2,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { users } from '@/db/schema'
+import { getClientIp, getUserAgent, logAuditEvent } from '@/lib/audit'
 import { auth } from '@/lib/better-auth'
-import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import { enforceRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
 
 export const Route = createFileRoute('/api/auth/login')({
@@ -17,10 +17,7 @@ export const Route = createFileRoute('/api/auth/login')({
           const { username, password } = body
 
           if (!username || !password) {
-            return Response.json(
-              { success: false, message: 'Username and password are required' },
-              { status: 400 }
-            )
+            return Response.json({ success: false, message: 'Username and password are required' }, { status: 400 })
           }
 
           const result = await db
@@ -29,11 +26,17 @@ export const Route = createFileRoute('/api/auth/login')({
             .where(eq(users.username, username))
 
           if (result.length === 0) {
-            await logAuditEvent(null, username, 'LOGIN_FAILED', 'auth', null, 'Invalid username', getClientIp(request), getUserAgent(request))
-            return Response.json(
-              { success: false, message: 'Invalid username or password' },
-              { status: 401 }
+            await logAuditEvent(
+              null,
+              username,
+              'LOGIN_FAILED',
+              'auth',
+              null,
+              'Invalid username',
+              getClientIp(request),
+              getUserAgent(request),
             )
+            return Response.json({ success: false, message: 'Invalid username or password' }, { status: 401 })
           }
 
           const user = result[0]
@@ -44,14 +47,29 @@ export const Route = createFileRoute('/api/auth/login')({
               headers: request.headers,
             })
           } catch {
-            await logAuditEvent(user.id, username, 'LOGIN_FAILED', 'auth', null, 'Invalid password', getClientIp(request), getUserAgent(request))
-            return Response.json(
-              { success: false, message: 'Invalid username or password' },
-              { status: 401 }
+            await logAuditEvent(
+              user.id,
+              username,
+              'LOGIN_FAILED',
+              'auth',
+              null,
+              'Invalid password',
+              getClientIp(request),
+              getUserAgent(request),
             )
+            return Response.json({ success: false, message: 'Invalid username or password' }, { status: 401 })
           }
 
-          await logAuditEvent(user.id, username, 'LOGIN_SUCCESS', 'auth', null, `Role: ${user.role}`, getClientIp(request), getUserAgent(request))
+          await logAuditEvent(
+            user.id,
+            username,
+            'LOGIN_SUCCESS',
+            'auth',
+            null,
+            `Role: ${user.role}`,
+            getClientIp(request),
+            getUserAgent(request),
+          )
 
           return Response.json({
             success: true,

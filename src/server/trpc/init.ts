@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server'
-import { auth } from '@/lib/better-auth'
 import { db } from '@/db'
 import type { SessionPayload } from '@/lib/auth'
+import { auth } from '@/lib/better-auth'
 
 /**
  * tRPC context – created per request.
@@ -13,10 +13,7 @@ export async function createTRPCContext(opts: { headers: Headers }) {
   const session: SessionPayload | null = betterSession?.user
     ? {
         userId: Number(betterSession.user.id),
-        username:
-          (betterSession.user as any).username ??
-          betterSession.user.name ??
-          betterSession.user.email,
+        username: (betterSession.user as any).username ?? betterSession.user.name ?? betterSession.user.email,
         role: ((betterSession.user as any).role ?? 'user') as SessionPayload['role'],
       }
     : null

@@ -1,10 +1,10 @@
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { eq, and, or, isNull, sql, asc, count } from 'drizzle-orm'
-import { router, protectedProcedure } from '../init'
+import { and, count, eq, isNull, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '@/db'
-import { appSuccessRate, appIdentifier, unmappedRc, responseCodeDictionary } from '@/db/schema'
+import { appIdentifier, appSuccessRate, responseCodeDictionary, unmappedRc } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
+import { protectedProcedure, router } from '../init'
 
 /**
  * Assign an RC to an app_success_rate row that has none.
@@ -16,10 +16,7 @@ async function assignRc(tx: any, id: number, rcRaw: string, rcDescriptionRaw?: s
   const rcDescription = rcDescriptionRaw?.trim() || null
 
   // 1. Update app_success_rate.rc and rc_description
-  await tx
-    .update(appSuccessRate)
-    .set({ rc, rcDescription, updatedAt: sql`NOW()` })
-    .where(eq(appSuccessRate.id, id))
+  await tx.update(appSuccessRate).set({ rc, rcDescription, updatedAt: sql`NOW()` }).where(eq(appSuccessRate.id, id))
 
   // 2. Get id_app_identifier, jenis_transaksi and status_transaksi from the record
   const [record] = await tx
@@ -38,11 +35,13 @@ async function assignRc(tx: any, id: number, rcRaw: string, rcDescriptionRaw?: s
   const [dictEntry] = await tx
     .select({ errorType: responseCodeDictionary.errorType })
     .from(responseCodeDictionary)
-    .where(and(
-      eq(responseCodeDictionary.idAppIdentifier, record.idAppIdentifier),
-      eq(responseCodeDictionary.jenisTransaksi, record.jenisTransaksi || ''),
-      eq(responseCodeDictionary.rc, rc),
-    ))
+    .where(
+      and(
+        eq(responseCodeDictionary.idAppIdentifier, record.idAppIdentifier),
+        eq(responseCodeDictionary.jenisTransaksi, record.jenisTransaksi || ''),
+        eq(responseCodeDictionary.rc, rc),
+      ),
+    )
 
   if (dictEntry) {
     // RC in dictionary -> auto-assign error_type
@@ -71,7 +70,15 @@ async function assignRc(tx: any, id: number, rcRaw: string, rcDescriptionRaw?: s
 
 export const noRcTransactionRouter = router({
   list: protectedProcedure
-    .input(z.object({ page: z.number().int().min(1).default(1), limit: z.number().int().min(1).max(500).default(50), app_id: z.number().int().optional() }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().int().min(1).default(1),
+          limit: z.number().int().min(1).max(500).default(50),
+          app_id: z.number().int().optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
@@ -109,10 +116,7 @@ export const noRcTransactionRouter = router({
 
       const entries = await baseQuery.limit(limit).offset(offset)
 
-      const countResult = await db
-        .select({ total: count() })
-        .from(appSuccessRate)
-        .where(where)
+      const countResult = await db.select({ total: count() }).from(appSuccessRate).where(where)
 
       return { success: true, data: { entries, total: countResult[0].total, page, limit } }
     }),
@@ -123,19 +127,41 @@ export const noRcTransactionRouter = router({
       await db.transaction(async (tx) => {
         await assignRc(tx, input.id, input.rc, input.rc_description)
       })
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'NO_RC_TRANSACTION_SUBMITTED', 'app_success_rate', input.id.toString(), `Submitted RC ${input.rc.trim()} for no RC transaction`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'NO_RC_TRANSACTION_SUBMITTED',
+        'app_success_rate',
+        input.id.toString(),
+        `Submitted RC ${input.rc.trim()} for no RC transaction`,
+      )
       return { success: true, message: `RC ${input.rc.trim()} has been assigned successfully` }
     }),
 
   submitBatch: protectedProcedure
-    .input(z.object({ items: z.array(z.object({ id: z.number().int(), rc: z.string().min(1), rc_description: z.string().nullable().optional() })).min(1) }))
+    .input(
+      z.object({
+        items: z
+          .array(
+            z.object({ id: z.number().int(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }),
+          )
+          .min(1),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.transaction(async (tx) => {
         for (const item of input.items) {
           await assignRc(tx, item.id, item.rc, item.rc_description)
         }
       })
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'NO_RC_BATCH_SUBMITTED', 'app_success_rate', null, `Assigned RC to ${input.items.length} transactions`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'NO_RC_BATCH_SUBMITTED',
+        'app_success_rate',
+        null,
+        `Assigned RC to ${input.items.length} transactions`,
+      )
       return { success: true, message: `${input.items.length} RC(s) have been assigned successfully` }
     }),
 })

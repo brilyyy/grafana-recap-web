@@ -1,21 +1,25 @@
+import { and, count, desc, eq, gte, ilike, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
-import { eq, and, gte, lte, ilike, sql, count, desc } from 'drizzle-orm'
-import { router, superAdminProcedure } from '../init'
 import { db } from '@/db'
 import { auditLogs } from '@/db/schema'
+import { router, superAdminProcedure } from '../init'
 
 export const auditLogsRouter = router({
   list: superAdminProcedure
-    .input(z.object({
-      page: z.number().int().min(1).default(1),
-      limit: z.number().int().min(1).max(200).default(50),
-      action: z.string().optional(),
-      userId: z.number().int().optional(),
-      resourceType: z.string().optional(),
-      username: z.string().optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().int().min(1).default(1),
+          limit: z.number().int().min(1).max(200).default(50),
+          action: z.string().optional(),
+          userId: z.number().int().optional(),
+          resourceType: z.string().optional(),
+          username: z.string().optional(),
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50

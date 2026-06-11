@@ -1,9 +1,9 @@
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { router, superAdminProcedure } from '../init'
+import { z } from 'zod'
+import { RecapValidationError, triggerRecap } from '@/application/recap/trigger-recap'
 import { buildRecapCatalog, getCatalogEntryById } from '@/domain/recap/catalog'
-import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
 import { logAuditEvent } from '@/lib/audit'
+import { router, superAdminProcedure } from '../init'
 
 function resolvedSchedule(envVar: string | null): string | null {
   if (!envVar) return null
@@ -20,16 +20,14 @@ export const recapRouter = router({
     return { success: true as const, data: entries }
   }),
 
-  getCatalogEntry: superAdminProcedure
-    .input(z.object({ id: z.string() }))
-    .query(({ input }) => {
-      const e = getCatalogEntryById(input.id)
-      if (!e) throw new TRPCError({ code: 'NOT_FOUND', message: 'Catalog entry not found' })
-      return {
-        success: true as const,
-        data: { ...e, scheduleCronResolved: resolvedSchedule(e.scheduleEnvVar) },
-      }
-    }),
+  getCatalogEntry: superAdminProcedure.input(z.object({ id: z.string() })).query(({ input }) => {
+    const e = getCatalogEntryById(input.id)
+    if (!e) throw new TRPCError({ code: 'NOT_FOUND', message: 'Catalog entry not found' })
+    return {
+      success: true as const,
+      data: { ...e, scheduleCronResolved: resolvedSchedule(e.scheduleEnvVar) },
+    }
+  }),
 
   triggerManual: superAdminProcedure
     .input(

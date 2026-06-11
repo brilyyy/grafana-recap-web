@@ -1,8 +1,7 @@
-
-import { useState, useEffect, useCallback } from 'react'
-import type { UnmappedRC } from '@/types'
+import { useCallback, useEffect, useState } from 'react'
 import { useApplications } from '@/hooks/useApplications'
 import { trpc } from '@/router'
+import type { UnmappedRC } from '@/types'
 
 export default function UnmappedRcCard() {
   const [unmappedRcs, setUnmappedRcs] = useState<UnmappedRC[]>([])
@@ -28,9 +27,9 @@ export default function UnmappedRcCard() {
       const result = await utils.unmappedRc.list.fetch(
         {
           fetch_all: true,
-          ...(selectedAppId ? { app_id: parseInt(selectedAppId) } : {}),
+          ...(selectedAppId ? { app_id: parseInt(selectedAppId, 10) } : {}),
         },
-        { staleTime: 0 }
+        { staleTime: 0 },
       )
 
       if (result.success) {
@@ -81,16 +80,16 @@ export default function UnmappedRcCard() {
   }, [message])
 
   const handleErrorTypeChange = (id: number, value: 'S' | 'N' | 'Sukses') => {
-    setSelectedErrorTypes(prev => ({
+    setSelectedErrorTypes((prev) => ({
       ...prev,
-      [id]: value
+      [id]: value,
     }))
     // Auto-select item when error type is chosen
-    setSelectedItems(prev => new Set(prev).add(id))
+    setSelectedItems((prev) => new Set(prev).add(id))
   }
 
   const handleSelectItem = (id: number) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
         newSet.delete(id)
@@ -107,14 +106,12 @@ export default function UnmappedRcCard() {
       setSelectedItems(new Set())
     } else {
       // Select all
-      setSelectedItems(new Set(unmappedRcs.map(rc => rc.id)))
+      setSelectedItems(new Set(unmappedRcs.map((rc) => rc.id)))
     }
   }
 
   const handleSubmitAll = async () => {
-    const itemsToSubmit = unmappedRcs.filter(rc => 
-      selectedItems.has(rc.id) && selectedErrorTypes[rc.id]
-    )
+    const itemsToSubmit = unmappedRcs.filter((rc) => selectedItems.has(rc.id) && selectedErrorTypes[rc.id])
 
     if (itemsToSubmit.length === 0) {
       setMessage({ text: 'Please select at least one RC with an error type', type: 'error' })
@@ -125,7 +122,7 @@ export default function UnmappedRcCard() {
       setSubmittingAll(true)
       setMessage(null)
 
-      const mappings = itemsToSubmit.map(rc => ({
+      const mappings = itemsToSubmit.map((rc) => ({
         id: rc.id,
         id_app_identifier: rc.id_app_identifier,
         jenis_transaksi: rc.jenis_transaksi,
@@ -138,16 +135,16 @@ export default function UnmappedRcCard() {
       if (result.success) {
         setMessage({
           text: result.message || `Successfully mapped ${itemsToSubmit.length} RC(s)`,
-          type: 'success'
+          type: 'success',
         })
         // Remove submitted items from local state
-        const submittedIds = new Set(itemsToSubmit.map(rc => rc.id))
-        setUnmappedRcs(prev => prev.filter(item => !submittedIds.has(item.id)))
+        const submittedIds = new Set(itemsToSubmit.map((rc) => rc.id))
+        setUnmappedRcs((prev) => prev.filter((item) => !submittedIds.has(item.id)))
         // Clear selections
         setSelectedItems(new Set())
-        setSelectedErrorTypes(prev => {
+        setSelectedErrorTypes((prev) => {
           const newState = { ...prev }
-          itemsToSubmit.forEach(rc => {
+          itemsToSubmit.forEach((rc) => {
             delete newState[rc.id]
           })
           return newState
@@ -166,7 +163,7 @@ export default function UnmappedRcCard() {
 
   const handleSubmit = async (rc: UnmappedRC) => {
     const errorType = selectedErrorTypes[rc.id]
-    
+
     if (!errorType) {
       setMessage({ text: 'Please select an error type (S/N/Sukses)', type: 'error' })
       return
@@ -187,14 +184,14 @@ export default function UnmappedRcCard() {
       if (result.success) {
         setMessage({ text: result.message, type: 'success' })
         // Remove from local state
-        setUnmappedRcs(prev => prev.filter(item => item.id !== rc.id))
+        setUnmappedRcs((prev) => prev.filter((item) => item.id !== rc.id))
         // Remove from selected error types and selected items
-        setSelectedErrorTypes(prev => {
+        setSelectedErrorTypes((prev) => {
           const newState = { ...prev }
           delete newState[rc.id]
           return newState
         })
-        setSelectedItems(prev => {
+        setSelectedItems((prev) => {
           const newSet = new Set(prev)
           newSet.delete(rc.id)
           return newSet
@@ -217,7 +214,12 @@ export default function UnmappedRcCard() {
       <div className="flex items-center gap-1.5 mb-1.5">
         <div className="w-8 h-8 rounded-md bg-linear-to-br from-orange-600 to-orange-800 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
           </svg>
         </div>
         <div className="min-w-0">
@@ -255,14 +257,24 @@ export default function UnmappedRcCard() {
           <div className={`flex gap-1.5 ${message.type === 'error' ? 'items-start' : 'items-center'}`}>
             {message.type === 'success' ? (
               <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             ) : (
               <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             )}
-            <span className={`flex-1 ${message.type === 'error' ? 'break-words whitespace-normal' : 'truncate'}`}>{message.text}</span>
+            <span className={`flex-1 ${message.type === 'error' ? 'break-words whitespace-normal' : 'truncate'}`}>
+              {message.text}
+            </span>
           </div>
         </div>
       )}
@@ -276,14 +288,24 @@ export default function UnmappedRcCard() {
         ) : error ? (
           <div className="p-2 text-center bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <svg className="w-4 h-4 text-red-500 mx-auto mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-red-600 text-xs font-semibold">Error: {error}</p>
           </div>
         ) : unmappedRcs.length === 0 ? (
           <div className="p-3 text-center">
             <svg className="w-6 h-6 text-green-500 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-gray-500 text-xs">Semua RC sudah dimapping</p>
           </div>
@@ -306,20 +328,28 @@ export default function UnmappedRcCard() {
                     <button
                       type="button"
                       onClick={handleSubmitAll}
-                      disabled={submittingAll || unmappedRcs.filter(rc => selectedItems.has(rc.id) && selectedErrorTypes[rc.id]).length === 0}
+                      disabled={
+                        submittingAll ||
+                        unmappedRcs.filter((rc) => selectedItems.has(rc.id) && selectedErrorTypes[rc.id]).length === 0
+                      }
                       className="px-2 py-0.5 rounded text-xs font-semibold transition-all duration-300 bg-white text-orange-700 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       {submittingAll ? (
                         <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
                         </svg>
                       ) : (
                         <>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Submit All ({unmappedRcs.filter(rc => selectedItems.has(rc.id) && selectedErrorTypes[rc.id]).length})
+                          Submit All (
+                          {unmappedRcs.filter((rc) => selectedItems.has(rc.id) && selectedErrorTypes[rc.id]).length})
                         </>
                       )}
                     </button>
@@ -332,8 +362,8 @@ export default function UnmappedRcCard() {
                 <li
                   key={rc.id}
                   className={`py-2 px-2 border-b border-gray-200/50 last:border-b-0 transition-all duration-200 ${
-                    selectedItems.has(rc.id) 
-                      ? 'bg-linear-to-r from-orange-100 to-orange-50' 
+                    selectedItems.has(rc.id)
+                      ? 'bg-linear-to-r from-orange-100 to-orange-50'
                       : 'hover:bg-linear-to-r hover:from-orange-50 hover:to-orange-100'
                   }`}
                 >
@@ -352,9 +382,7 @@ export default function UnmappedRcCard() {
                             <span className="text-xs font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded">
                               {rc.app_name}
                             </span>
-                            <span className="text-xs font-mono font-bold text-gray-800">
-                              RC: {rc.rc}
-                            </span>
+                            <span className="text-xs font-mono font-bold text-gray-800">RC: {rc.rc}</span>
                           </div>
                           <p className="text-xs text-gray-600 truncate mt-0.5">
                             {rc.jenis_transaksi || 'N/A'} • {rc.rc_description || 'No description'}
@@ -369,27 +397,27 @@ export default function UnmappedRcCard() {
                         {(['S', 'N', 'Sukses'] as const).map((value) => {
                           const isSelected = selectedErrorTypes[rc.id] === value
                           const colorClasses = {
-                            'S': {
+                            S: {
                               bg: isSelected ? 'bg-blue-500' : 'bg-blue-50',
                               text: isSelected ? 'text-white' : 'text-blue-700',
                               border: isSelected ? 'border-blue-600' : 'border-blue-300',
-                              hover: 'hover:bg-blue-100 hover:border-blue-400'
+                              hover: 'hover:bg-blue-100 hover:border-blue-400',
                             },
-                            'N': {
+                            N: {
                               bg: isSelected ? 'bg-red-500' : 'bg-red-50',
                               text: isSelected ? 'text-white' : 'text-red-700',
                               border: isSelected ? 'border-red-600' : 'border-red-300',
-                              hover: 'hover:bg-red-100 hover:border-red-400'
+                              hover: 'hover:bg-red-100 hover:border-red-400',
                             },
-                            'Sukses': {
+                            Sukses: {
                               bg: isSelected ? 'bg-green-500' : 'bg-green-50',
                               text: isSelected ? 'text-white' : 'text-green-700',
                               border: isSelected ? 'border-green-600' : 'border-green-300',
-                              hover: 'hover:bg-green-100 hover:border-green-400'
-                            }
+                              hover: 'hover:bg-green-100 hover:border-green-400',
+                            },
                           }
                           const colors = colorClasses[value]
-                          
+
                           return (
                             <label
                               key={value}
@@ -410,14 +438,18 @@ export default function UnmappedRcCard() {
                               <span className="font-bold">{value}</span>
                               {isSelected && (
                                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
                                 </svg>
                               )}
                             </label>
                           )
                         })}
                       </div>
-                      
+
                       <button
                         type="button"
                         onClick={() => handleSubmit(rc)}
@@ -425,12 +457,21 @@ export default function UnmappedRcCard() {
                         className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 bg-linear-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-xs hover:shadow-md"
                       >
                         {submitting === rc.id ? (
-                          <>
-                            <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                          </>
+                          <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
                         ) : (
                           <>
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -455,11 +496,15 @@ export default function UnmappedRcCard() {
         className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
         </svg>
         Refresh
       </button>
     </div>
   )
 }
-

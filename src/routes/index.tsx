@@ -1,16 +1,16 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Settings } from 'lucide-react'
 import { useEffect } from 'react'
 import AddAppCard from '@/components/AddAppCard'
-import AppListCard from '@/components/AppListCard'
-import DictionaryUploadCard from '@/components/DictionaryUploadCard'
 import AddSuccessRateCard from '@/components/AddSuccessRateCard'
-import UnmappedRcCard from '@/components/UnmappedRcCard'
-import NoRcTransactionCard from '@/components/NoRcTransactionCard'
+import AppListCard from '@/components/AppListCard'
 import DictionaryCard from '@/components/DictionaryCard'
+import DictionaryUploadCard from '@/components/DictionaryUploadCard'
 import LogoutButton from '@/components/LogoutButton'
-import { trpc } from '@/router'
+import NoRcTransactionCard from '@/components/NoRcTransactionCard'
+import UnmappedRcCard from '@/components/UnmappedRcCard'
 import { Button } from '@/components/ui/button'
-import { Settings } from 'lucide-react'
+import { trpc } from '@/router'
 
 export const Route = createFileRoute('/')({
   ssr: false,
@@ -51,12 +51,10 @@ function Home() {
       {/* Header with gradient text and logout button */}
       <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-3 md:gap-4 animate-in fade-in duration-300">
         <div className="flex-1 text-center">
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
-          Setup Data Grafana
-        </h1>
-        <p className="text-white/90 text-xs md:text-sm font-medium">
-          Manage your application data with ease
-        </p>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
+            Setup Data Grafana
+          </h1>
+          <p className="text-white/90 text-xs md:text-sm font-medium">Manage your application data with ease</p>
         </div>
         <div className="w-full flex justify-center gap-2">
           {userRole === 'superadmin' && (
@@ -76,74 +74,122 @@ function Home() {
 
       {/* Bento Box Grid Layout */}
       <div className="max-w-7xl mx-auto">
-        <div className="hidden lg:grid lg:grid-cols-12 gap-2 lg:gap-3" style={{ gridTemplateRows: 'repeat(6, minmax(140px, auto))' }}>
-          <div className="lg:col-span-2 lg:row-span-2 lg:row-start-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.1s' }}>
+        <div
+          className="hidden lg:grid lg:grid-cols-12 gap-2 lg:gap-3"
+          style={{ gridTemplateRows: 'repeat(6, minmax(140px, auto))' }}
+        >
+          <div
+            className="lg:col-span-2 lg:row-span-2 lg:row-start-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.1s' }}
+          >
             <AppListCard />
           </div>
 
-          <div className="lg:col-span-2 lg:row-span-2 lg:row-start-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.2s' }}>
+          <div
+            className="lg:col-span-2 lg:row-span-2 lg:row-start-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.2s' }}
+          >
             <AddAppCard />
           </div>
 
-          <div className="lg:col-span-8 lg:row-span-2 lg:row-start-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.15s' }}>
+          <div
+            className="lg:col-span-8 lg:row-span-2 lg:row-start-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.15s' }}
+          >
             <UnmappedRcCard />
           </div>
 
           {/* Row 3, 4, 5: 3 card vertikal di kiri, No RC Transaction di kanan */}
           {/* Dictionary Upload Card - Top left (Row 3, cols 1-4) */}
-          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-3 lg:row-span-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.3s' }}>
+          <div
+            className="lg:col-span-4 lg:col-start-1 lg:row-start-3 lg:row-span-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.3s' }}
+          >
             <DictionaryUploadCard />
           </div>
 
           {/* Add Success Rate Card - Middle left (Row 4, cols 1-4) */}
-          <div className="lg:col-span-4 lg:col-start-1 lg:row-start-4 lg:row-span-1 animate-in fade-in duration-300 h-full flex flex-col flex items-start w-full min-w-0" style={{ animationDelay: '0.4s' }}>
+          <div
+            className="lg:col-span-4 lg:col-start-1 lg:row-start-4 lg:row-span-1 animate-in fade-in duration-300 h-full flex flex-col flex items-start w-full min-w-0"
+            style={{ animationDelay: '0.4s' }}
+          >
             <AddSuccessRateCard />
           </div>
 
           {/* No RC Transaction Card - Wide rectangle di kanan (spans rows 3-5, cols 5-12) */}
-          <div className="lg:col-span-8 lg:col-start-5 lg:row-span-2 lg:row-start-3 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.2s' }}>
+          <div
+            className="lg:col-span-8 lg:col-start-5 lg:row-span-2 lg:row-start-3 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.2s' }}
+          >
             <NoRcTransactionCard />
           </div>
 
-          <div className="lg:col-span-12 lg:row-start-5 lg:row-span-2 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.7s' }}>
+          <div
+            className="lg:col-span-12 lg:row-start-5 lg:row-span-2 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.7s' }}
+          >
             <DictionaryCard />
           </div>
         </div>
 
         {/* Tablet Layout - 4 rows */}
-        <div className="hidden md:grid lg:hidden md:grid-cols-6 gap-2 md:gap-3" style={{ gridTemplateRows: 'repeat(4, minmax(140px, auto))' }}>
+        <div
+          className="hidden md:grid lg:hidden md:grid-cols-6 gap-2 md:gap-3"
+          style={{ gridTemplateRows: 'repeat(4, minmax(140px, auto))' }}
+        >
           {/* App List Card - Left side (spans 3 rows) */}
-          <div className="md:col-span-2 md:row-span-3 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.1s' }}>
+          <div
+            className="md:col-span-2 md:row-span-3 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.1s' }}
+          >
             <AppListCard />
           </div>
 
           {/* Add App Card - Compact */}
-          <div className="md:col-span-1 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.2s' }}>
+          <div
+            className="md:col-span-1 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.2s' }}
+          >
             <AddAppCard />
           </div>
 
           {/* Dictionary Upload Card */}
-          <div className="md:col-span-3 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.3s' }}>
+          <div
+            className="md:col-span-3 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.3s' }}
+          >
             <DictionaryUploadCard />
           </div>
 
           {/* Add Success Rate Card */}
-          <div className="md:col-span-2 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.4s' }}>
+          <div
+            className="md:col-span-2 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.4s' }}
+          >
             <AddSuccessRateCard />
           </div>
 
           {/* Unmapped RC Card - Wide rectangle */}
-          <div className="md:col-span-4 md:row-span-2 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.5s' }}>
+          <div
+            className="md:col-span-4 md:row-span-2 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.5s' }}
+          >
             <UnmappedRcCard />
           </div>
 
           {/* No RC Transaction Card - Wide rectangle */}
-          <div className="md:col-span-4 md:row-span-2 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.7s' }}>
+          <div
+            className="md:col-span-4 md:row-span-2 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.7s' }}
+          >
             <NoRcTransactionCard />
           </div>
 
           {/* Dictionary Card - Full width at bottom */}
-          <div className="md:col-span-6 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col" style={{ animationDelay: '0.8s' }}>
+          <div
+            className="md:col-span-6 md:row-span-1 animate-in fade-in duration-300 h-full flex flex-col"
+            style={{ animationDelay: '0.8s' }}
+          >
             <DictionaryCard />
           </div>
         </div>

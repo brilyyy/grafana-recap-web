@@ -1,11 +1,11 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
-import { trpc } from '@/router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { AlertCircle, CheckCircle, Info, Loader2, Lock, Mail, User, UserPlus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, UserPlus, Info } from 'lucide-react'
+import { trpc } from '@/router'
 
 export const Route = createFileRoute('/register')({
   ssr: false,
@@ -56,7 +56,9 @@ function RegisterPage() {
 
       if (data.success) {
         if (data.data && (data.data as any).status === 'pending') {
-          setSuccess('Registration request submitted successfully! Please wait for superadmin approval before you can login.')
+          setSuccess(
+            'Registration request submitted successfully! Please wait for superadmin approval before you can login.',
+          )
         } else {
           setSuccess('Admin user created successfully! Redirecting to login...')
           setTimeout(() => navigate({ to: '/login' }), 2000)
@@ -88,8 +90,14 @@ function RegisterPage() {
       {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '1s' }}
+        />
+        <div
+          className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '2s' }}
+        />
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-in fade-in duration-300">
@@ -120,7 +128,9 @@ function RegisterPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-white/90 font-semibold">Username</Label>
+              <Label htmlFor="username" className="text-white/90 font-semibold">
+                Username
+              </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
                 <Input
@@ -137,7 +147,9 @@ function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/90 font-semibold">Email</Label>
+              <Label htmlFor="email" className="text-white/90 font-semibold">
+                Email
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
                 <Input
@@ -154,7 +166,9 @@ function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white/90 font-semibold">Password</Label>
+              <Label htmlFor="password" className="text-white/90 font-semibold">
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
                 <Input
@@ -171,7 +185,9 @@ function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-white/90 font-semibold">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-white/90 font-semibold">
+                Confirm Password
+              </Label>
               <div className="relative">
                 <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
                 <Input
@@ -188,7 +204,10 @@ function RegisterPage() {
             </div>
 
             {error && (
-              <Alert variant="destructive" className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300">
+              <Alert
+                variant="destructive"
+                className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300"
+              >
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -211,17 +230,17 @@ function RegisterPage() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                   {adminExists ? 'Submitting request...' : 'Creating account...'}
                 </>
+              ) : adminExists ? (
+                'Submit Admin Request'
               ) : (
-                adminExists ? 'Submit Admin Request' : 'Create Admin Account'
+                'Create Admin Account'
               )}
             </Button>
           </form>
 
           {/* Footer */}
           <div className="pt-4 border-t border-white/10">
-            <p className="text-center text-white/50 text-xs mb-3">
-              Already have an account?
-            </p>
+            <p className="text-center text-white/50 text-xs mb-3">Already have an account?</p>
             <Link
               to="/login"
               className="block w-full text-center text-white/70 hover:text-white font-medium py-2 rounded-xl hover:bg-white/10 transition-all"

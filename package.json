@@ -8,6 +8,9 @@
     "build": "vite build",
     "start": "node .output/server/index.mjs",
     "type-check": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "drizzle:postgres:generate": "cross-env DB_TYPE=postgresql drizzle-kit generate",
     "drizzle:postgres:migrate": "cross-env DB_TYPE=postgresql drizzle-kit migrate",
     "drizzle:postgres:push": "cross-env DB_TYPE=postgresql drizzle-kit push",
@@ -60,6 +63,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.17.10",
     "@types/node-cron": "^3.0.11",

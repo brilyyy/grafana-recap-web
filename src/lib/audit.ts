@@ -22,7 +22,7 @@ export async function logAuditEvent(
   resourceId: string | null = null,
   details: string | null = null,
   ipAddress: string | null = null,
-  userAgent: string | null = null
+  userAgent: string | null = null,
 ): Promise<void> {
   try {
     await db.insert(auditLogs).values({

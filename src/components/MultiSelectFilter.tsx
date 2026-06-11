@@ -1,5 +1,4 @@
-
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface MultiSelectFilterProps {
   label: string
@@ -25,9 +24,7 @@ export default function MultiSelectFilter({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Filter options based on search
-  const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(searchQuery.toLowerCase()))
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -58,9 +55,7 @@ export default function MultiSelectFilter({
   }
 
   const getSelectedLabels = () => {
-    return selectedValues
-      .map((val) => options.find((opt) => opt.value === val)?.label)
-      .filter(Boolean) as string[]
+    return selectedValues.map((val) => options.find((opt) => opt.value === val)?.label).filter(Boolean) as string[]
   }
 
   const selectedLabels = getSelectedLabels()
@@ -71,16 +66,12 @@ export default function MultiSelectFilter({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full pl-7 pr-8 py-2 text-xs rounded-lg border-2 transition-all shadow-xs hover:border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-          isOpen
-            ? 'border-blue-500 bg-white'
-            : 'border-gray-200 bg-white/95 backdrop-blur-sm'
+          isOpen ? 'border-blue-500 bg-white' : 'border-gray-200 bg-white/95 backdrop-blur-sm'
         }`}
       >
         <div className="flex items-center gap-2 min-h-[20px]">
           {/* Icon */}
-          <div className="absolute left-2 text-gray-400 pointer-events-none">
-            {icon}
-          </div>
+          <div className="absolute left-2 text-gray-400 pointer-events-none">{icon}</div>
 
           {/* Selected values or placeholder */}
           <div className="flex-1 flex items-center gap-1 flex-wrap">
@@ -137,7 +128,12 @@ export default function MultiSelectFilter({
             <div className="relative">
               <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
               </div>
               <input
@@ -147,7 +143,6 @@ export default function MultiSelectFilter({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 className="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                autoFocus
               />
             </div>
           </div>
@@ -174,7 +169,11 @@ export default function MultiSelectFilter({
                       <span className="text-xs text-gray-700 flex-1">{option.label}</span>
                       {isSelected && (
                         <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       )}
                     </label>
@@ -198,9 +197,7 @@ export default function MultiSelectFilter({
                 }}
                 className="flex-1 px-2 py-1 text-[10px] font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors"
               >
-                {filteredOptions.every((opt) => selectedValues.includes(opt.value))
-                  ? 'Deselect All'
-                  : 'Select All'}
+                {filteredOptions.every((opt) => selectedValues.includes(opt.value)) ? 'Deselect All' : 'Select All'}
               </button>
               <button
                 type="button"
@@ -219,4 +216,3 @@ export default function MultiSelectFilter({
     </div>
   )
 }
-

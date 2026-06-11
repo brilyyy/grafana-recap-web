@@ -1,32 +1,36 @@
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { eq, and, or, ilike, sql, inArray, asc, count } from 'drizzle-orm'
-import { router, publicProcedure, protectedProcedure } from '../init'
+import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '@/db'
-import { responseCodeDictionary, appIdentifier, appSuccessRate } from '@/db/schema'
+import { appIdentifier, appSuccessRate, responseCodeDictionary } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
+import { protectedProcedure, publicProcedure, router } from '../init'
 
 const errorTypeEnum = z.enum(['S', 'N', 'Sukses'])
 
 export const dictionaryRouter = router({
   list: publicProcedure
-    .input(z.object({
-      page: z.number().int().min(1).default(1),
-      limit: z.number().int().min(1).max(500).default(50),
-      search: z.string().optional(),
-      app_id: z.number().int().optional(),
-      app_ids: z.array(z.number().int()).optional(),
-      error_types: z.array(errorTypeEnum).optional(),
-      jenis_transaksi: z.array(z.string()).optional(),
-      fetch_all: z.boolean().default(false),
-    }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().int().min(1).default(1),
+          limit: z.number().int().min(1).max(500).default(50),
+          search: z.string().optional(),
+          app_id: z.number().int().optional(),
+          app_ids: z.array(z.number().int()).optional(),
+          error_types: z.array(errorTypeEnum).optional(),
+          jenis_transaksi: z.array(z.string()).optional(),
+          fetch_all: z.boolean().default(false),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
       const offset = (page - 1) * limit
       const fetchAll = input?.fetch_all ?? false
 
-      const appIds = input?.app_ids?.length ? input.app_ids : (input?.app_id ? [input.app_id] : [])
+      const appIds = input?.app_ids?.length ? input.app_ids : input?.app_id ? [input.app_id] : []
 
       const conditions = []
       if (appIds.length > 0) {
@@ -46,7 +50,7 @@ export const dictionaryRouter = router({
             ilike(responseCodeDictionary.jenisTransaksi, s),
             ilike(responseCodeDictionary.rcDescription, s),
             ilike(appIdentifier.appName, s),
-          )
+          ),
         )
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined
@@ -81,7 +85,11 @@ export const dictionaryRouter = router({
     .input(z.object({ id: z.number().int(), error_type: errorTypeEnum }))
     .mutation(async ({ input, ctx }) => {
       const [existing] = await db
-        .select({ idAppIdentifier: responseCodeDictionary.idAppIdentifier, jenisTransaksi: responseCodeDictionary.jenisTransaksi, rc: responseCodeDictionary.rc })
+        .select({
+          idAppIdentifier: responseCodeDictionary.idAppIdentifier,
+          jenisTransaksi: responseCodeDictionary.jenisTransaksi,
+          rc: responseCodeDictionary.rc,
+        })
         .from(responseCodeDictionary)
         .where(eq(responseCodeDictionary.id, input.id))
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Entry not found' })
@@ -96,11 +104,13 @@ export const dictionaryRouter = router({
         await db
           .update(appSuccessRate)
           .set({ errorType: input.error_type })
-          .where(and(
-            eq(appSuccessRate.idAppIdentifier, existing.idAppIdentifier),
-            eq(appSuccessRate.jenisTransaksi, existing.jenisTransaksi!),
-            eq(appSuccessRate.rc, existing.rc!),
-          ))
+          .where(
+            and(
+              eq(appSuccessRate.idAppIdentifier, existing.idAppIdentifier),
+              eq(appSuccessRate.jenisTransaksi, existing.jenisTransaksi!),
+              eq(appSuccessRate.rc, existing.rc!),
+            ),
+          )
       } else {
         await db.execute(sql`
           UPDATE app_success_rate SET error_type = ${input.error_type}
@@ -110,7 +120,14 @@ export const dictionaryRouter = router({
         `)
       }
 
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'DICTIONARY_UPDATED', 'response_code_dictionary', input.id.toString(), `Updated error_type to ${input.error_type}`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'DICTIONARY_UPDATED',
+        'response_code_dictionary',
+        input.id.toString(),
+        `Updated error_type to ${input.error_type}`,
+      )
       return { success: true, message: 'Entry updated' }
     }),
 
@@ -128,7 +145,13 @@ export const dictionaryRouter = router({
         .set({ rcDescription: input.rc_description })
         .where(eq(responseCodeDictionary.id, input.id))
 
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'DICTIONARY_DESCRIPTION_UPDATED', 'response_code_dictionary', input.id.toString())
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'DICTIONARY_DESCRIPTION_UPDATED',
+        'response_code_dictionary',
+        input.id.toString(),
+      )
       return { success: true, message: 'Description updated' }
     }),
 
@@ -143,7 +166,14 @@ export const dictionaryRouter = router({
             .where(eq(responseCodeDictionary.id, id))
         }
       })
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'DICTIONARY_BATCH_DESCRIPTION_UPDATED', 'response_code_dictionary', null, `Updated ${input.updates.length} entries`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'DICTIONARY_BATCH_DESCRIPTION_UPDATED',
+        'response_code_dictionary',
+        null,
+        `Updated ${input.updates.length} entries`,
+      )
       return { success: true, message: `${input.updates.length} descriptions updated` }
     }),
 })

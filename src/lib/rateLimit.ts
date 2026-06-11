@@ -7,14 +7,17 @@ interface RateLimitStore {
 
 const rateLimitStore: RateLimitStore = {}
 
-setInterval(() => {
-  const now = Date.now()
-  for (const key in rateLimitStore) {
-    if (rateLimitStore[key].resetAt < now) {
-      delete rateLimitStore[key]
+setInterval(
+  () => {
+    const now = Date.now()
+    for (const key in rateLimitStore) {
+      if (rateLimitStore[key].resetAt < now) {
+        delete rateLimitStore[key]
+      }
     }
-  }
-}, 5 * 60 * 1000)
+  },
+  5 * 60 * 1000,
+)
 
 export interface RateLimitConfig {
   maxRequests: number
@@ -30,16 +33,15 @@ export const RATE_LIMITS = {
 } as const
 
 function getRateLimitKey(request: Request, prefix: string): string {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-             request.headers.get('x-real-ip') ||
-             'unknown'
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
   const path = new URL(request.url).pathname
   return `${prefix}:${ip}:${path}`
 }
 
 export function checkRateLimit(
   request: Request,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): { allowed: boolean; remaining: number; resetAt: number } {
   const key = getRateLimitKey(request, 'ratelimit')
   const now = Date.now()
@@ -66,10 +68,7 @@ export function checkRateLimit(
   }
 }
 
-export function enforceRateLimit(
-  request: Request,
-  config: RateLimitConfig
-): void {
+export function enforceRateLimit(request: Request, config: RateLimitConfig): void {
   const { allowed, remaining, resetAt } = checkRateLimit(request, config)
 
   if (!allowed) {

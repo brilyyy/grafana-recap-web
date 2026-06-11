@@ -2,9 +2,7 @@
  * Recap domain — daily jobs (H-1 or explicit backfill date) via PostgreSQL functions.
  */
 
-export type RecapScope =
-  | { type: 'per_app'; appKey: string }
-  | { type: 'fixed_app'; appKey: string }
+export type RecapScope = { type: 'per_app'; appKey: string } | { type: 'fixed_app'; appKey: string }
 
 export type RecapCatalogEntry = {
   id: string

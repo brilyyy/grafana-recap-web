@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { sql } from 'drizzle-orm'
 import { db } from '@/db'
+import { getClientIp, getUserAgent, logAuditEvent } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
-import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 
 export const Route = createFileRoute('/api/bale/process-manual')({
   server: {
@@ -28,18 +28,40 @@ export const Route = createFileRoute('/api/bale/process-manual')({
           const dateParamForDB = processingDate ? processingDate.toISOString().split('T')[0] : null
           await db.execute(sql`SELECT public.sp_process_bale_daily(${dateParamForDB}::date)`)
 
-          const logResult = await db.execute(sql`SELECT * FROM app_processing_log WHERE app_name = 'Bale' ORDER BY created_at DESC LIMIT 1`)
+          const logResult = await db.execute(
+            sql`SELECT * FROM app_processing_log WHERE app_name = 'Bale' ORDER BY created_at DESC LIMIT 1`,
+          )
           const logEntry = logResult.rows[0] as any
 
-          await logAuditEvent(session.userId, session.username, 'BALE_PROCESSING_MANUAL_TRIGGER', 'app_processing_log', logEntry?.id?.toString() || 'unknown', `Manually triggered BALE processing${processingDate ? ` for ${dateParam}` : ' (H-1)'}`, getClientIp(request), getUserAgent(request))
+          await logAuditEvent(
+            session.userId,
+            session.username,
+            'BALE_PROCESSING_MANUAL_TRIGGER',
+            'app_processing_log',
+            logEntry?.id?.toString() || 'unknown',
+            `Manually triggered BALE processing${processingDate ? ` for ${dateParam}` : ' (H-1)'}`,
+            getClientIp(request),
+            getUserAgent(request),
+          )
 
           return Response.json({
             success: true,
             message: `BALE processing triggered${processingDate ? ` for ${dateParam}` : ' (H-1)'}`,
-            data: { processingDate: processingDate ? dateParam : 'H-1', logEntry: logEntry ? { id: logEntry.id, status: logEntry.status, recordsProcessed: logEntry.records_processed, recordsInserted: logEntry.records_inserted } : null },
+            data: {
+              processingDate: processingDate ? dateParam : 'H-1',
+              logEntry: logEntry
+                ? {
+                    id: logEntry.id,
+                    status: logEntry.status,
+                    recordsProcessed: logEntry.records_processed,
+                    recordsInserted: logEntry.records_inserted,
+                  }
+                : null,
+            },
           })
         } catch (error: any) {
-          if (error.message?.includes('Unauthorized')) return Response.json({ success: false, message: error.message }, { status: 403 })
+          if (error.message?.includes('Unauthorized'))
+            return Response.json({ success: false, message: error.message }, { status: 403 })
           console.error('Error:', error)
           return Response.json({ success: false, message: error.message }, { status: 500 })
         }

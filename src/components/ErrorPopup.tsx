@@ -1,14 +1,7 @@
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { AlertCircle, X } from 'lucide-react'
 
 interface SkippedRow {
   rowNumber: number
@@ -23,13 +16,7 @@ interface ErrorPopupProps {
   totalProcessed: number
 }
 
-export default function ErrorPopup({
-  isOpen,
-  onClose,
-  skippedRows,
-  totalSkipped,
-  totalProcessed,
-}: ErrorPopupProps) {
+export default function ErrorPopup({ isOpen, onClose, skippedRows, totalSkipped, totalProcessed }: ErrorPopupProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl bg-card border-border">
@@ -65,17 +52,11 @@ export default function ErrorPopup({
                 >
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
-                      <span className="text-xs font-bold text-destructive">
-                        {row.rowNumber}
-                      </span>
+                      <span className="text-xs font-bold text-destructive">{row.rowNumber}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground mb-1">
-                        Row {row.rowNumber}
-                      </p>
-                      <p className="text-sm text-muted-foreground break-words">
-                        {row.reason}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground mb-1">Row {row.rowNumber}</p>
+                      <p className="text-sm text-muted-foreground break-words">{row.reason}</p>
                     </div>
                   </div>
                 </div>

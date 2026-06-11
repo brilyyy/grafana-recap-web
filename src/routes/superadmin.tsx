@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState, Fragment } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import LogoutButton from '@/components/LogoutButton'
-import { trpc } from '@/router'
 import { Button } from '@/components/ui/button'
+import { trpc } from '@/router'
 
 interface User {
   id: number
@@ -93,19 +93,21 @@ function SuperadminPage() {
   })
 
   // Application Data Processing State
-  const [processingLogs, setProcessingLogs] = useState<Array<{
-    id: number
-    app_name: string
-    processing_date: string
-    status: 'running' | 'success' | 'failed'
-    records_processed: number
-    records_inserted: number
-    start_time: string
-    end_time: string | null
-    error_message: string | null
-    recap_kind: string
-    catalog_entry_id: string | null
-  }>>([])
+  const [processingLogs, setProcessingLogs] = useState<
+    Array<{
+      id: number
+      app_name: string
+      processing_date: string
+      status: 'running' | 'success' | 'failed'
+      records_processed: number
+      records_inserted: number
+      start_time: string
+      end_time: string | null
+      error_message: string | null
+      recap_kind: string
+      catalog_entry_id: string | null
+    }>
+  >([])
   const [processingLogsLoading, setProcessingLogsLoading] = useState(false)
   const [processingFilters, setProcessingFilters] = useState({
     catalog_entry_id: '',
@@ -133,32 +135,64 @@ function SuperadminPage() {
     notes: '',
   })
   const [housekeepingRunning, setHousekeepingRunning] = useState<{ [id: number]: boolean }>({})
-  const [housekeepingMessages, setHousekeepingMessages] = useState<{ [id: number]: { type: 'success' | 'error'; text: string } }>({})
+  const [housekeepingMessages, setHousekeepingMessages] = useState<{
+    [id: number]: { type: 'success' | 'error'; text: string }
+  }>({})
 
   const utils = trpc.useUtils()
   const approveRequestMutation = trpc.auth.approveRequest.useMutation()
   const rejectRequestMutation = trpc.auth.rejectRequest.useMutation()
   const updateUserMutation = trpc.users.update.useMutation()
   const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
-  const { data: fdwData, refetch: refetchFdw } = trpc.fdw.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
-  const fdwAddMutation = trpc.fdw.add.useMutation({ onSuccess: () => { refetchFdw(); setNewFdwForm({ source_db_name: '', table_name: '', schema_name: 'public' }) } })
+  const { data: fdwData, refetch: refetchFdw } = trpc.fdw.list.useQuery(undefined, {
+    enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config'),
+  })
+  const fdwAddMutation = trpc.fdw.add.useMutation({
+    onSuccess: () => {
+      refetchFdw()
+      setNewFdwForm({ source_db_name: '', table_name: '', schema_name: 'public' })
+    },
+  })
   const fdwRemoveMutation = trpc.fdw.remove.useMutation({ onSuccess: () => refetchFdw() })
   const [newFdwForm, setNewFdwForm] = useState({ source_db_name: '', table_name: '', schema_name: 'public' })
-  const { data: housekeepingData, refetch: refetchHousekeeping, isLoading: housekeepingLoading } = trpc.housekeeping.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
-  const { data: housekeepingScheduleData } = trpc.housekeeping.getSchedule.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping') })
+  const {
+    data: housekeepingData,
+    refetch: refetchHousekeeping,
+    isLoading: housekeepingLoading,
+  } = trpc.housekeeping.list.useQuery(undefined, {
+    enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping'),
+  })
+  const { data: housekeepingScheduleData } = trpc.housekeeping.getSchedule.useQuery(undefined, {
+    enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'housekeeping'),
+  })
   const updateConfigMutation = trpc.housekeeping.updateConfig.useMutation({ onSuccess: () => refetchHousekeeping() })
-  const upsertHousekeepingMutation = trpc.housekeeping.upsertRow.useMutation({ onSuccess: () => { refetchHousekeeping(); setNewHkForm({ db_name: '', table_name: '', date_column: '', date_column_type: 'timestamp', retention_days: '', notes: '' }) } })
+  const upsertHousekeepingMutation = trpc.housekeeping.upsertRow.useMutation({
+    onSuccess: () => {
+      refetchHousekeeping()
+      setNewHkForm({
+        db_name: '',
+        table_name: '',
+        date_column: '',
+        date_column_type: 'timestamp',
+        retention_days: '',
+        notes: '',
+      })
+    },
+  })
   const deleteHousekeepingMutation = trpc.housekeeping.deleteRow.useMutation({ onSuccess: () => refetchHousekeeping() })
   const runHousekeepingMutation = trpc.housekeeping.run.useMutation()
 
-  const { data: recapCatalogData, isLoading: recapCatalogLoading, refetch: refetchRecapCatalog } =
-    trpc.recap.listCatalog.useQuery(undefined, {
-      enabled: !!(
-        isAuthenticated &&
-        userRole === 'superadmin' &&
-        (activeTab === 'job-list' || activeTab === 'app-processing')
-      ),
-    })
+  const {
+    data: recapCatalogData,
+    isLoading: recapCatalogLoading,
+    refetch: refetchRecapCatalog,
+  } = trpc.recap.listCatalog.useQuery(undefined, {
+    enabled: !!(
+      isAuthenticated &&
+      userRole === 'superadmin' &&
+      (activeTab === 'job-list' || activeTab === 'app-processing')
+    ),
+  })
   const recapTriggerMutation = trpc.recap.triggerManual.useMutation({
     onSuccess: () => refetchRecapCatalog(),
   })
@@ -178,48 +212,6 @@ function SuperadminPage() {
     }
   }, [authCheck, authLoading, navigate])
 
-
-  useEffect(() => {
-    if (isAuthenticated && userRole === 'superadmin') {
-      if (activeTab === 'users') {
-        fetchUsers()
-        fetchPendingRequests()
-      } else if (activeTab === 'audit-logs') {
-        fetchAuditLogs()
-        fetchStats()
-      }
-    }
-  }, [isAuthenticated, userRole, activeTab, usersPage, usersFilters, auditPage, auditFilters])
-
-  useEffect(() => {
-    if (activeTab !== 'app-processing') return
-    const entries = recapCatalogData?.data ?? []
-    if (!entries.length) {
-      setProcessingLogs([])
-      return
-    }
-
-    if (
-      !processingFilters.catalog_entry_id ||
-      !entries.some((entry) => entry.id === processingFilters.catalog_entry_id)
-    ) {
-      setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: entries[0].id }))
-      return
-    }
-
-    if (processingFilters.month && processingFilters.year) {
-      fetchProcessingLogs()
-    }
-  }, [activeTab, recapCatalogData, processingFilters.catalog_entry_id, processingFilters.month, processingFilters.year])
-
-  useEffect(() => {
-    if (activeTab !== 'app-processing') return
-    if (!processingFilters.catalog_entry_id) {
-      setProcessingLogs([])
-    }
-  }, [activeTab, processingFilters.catalog_entry_id])
-
-  // User Management Functions
   const fetchUsers = async () => {
     try {
       setUsersLoading(true)
@@ -251,6 +243,110 @@ function SuperadminPage() {
     }
   }
 
+  const fetchAuditLogs = async () => {
+    try {
+      setAuditLoading(true)
+      const res = await utils.auditLogs.list.fetch({
+        page: auditPage,
+        limit: 50,
+        action: auditFilters.action || undefined,
+        resourceType: auditFilters.resource_type || undefined,
+        username: auditFilters.username || undefined,
+        startDate: auditFilters.start_date || undefined,
+        endDate: auditFilters.end_date || undefined,
+      })
+      if (res.success) {
+        setAuditLogs(res.data.logs)
+        setAuditTotalPages(res.data.totalPages)
+      }
+    } catch (error) {
+      console.error('Error fetching audit logs:', error)
+    } finally {
+      setAuditLoading(false)
+    }
+  }
+
+  const fetchStats = async () => {
+    try {
+      const res = await utils.auditLogs.stats.fetch({ days: 30 })
+      if (res.success) {
+        setStats(res.data as AuditStats)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }
+
+  const fetchProcessingLogs = async () => {
+    if (!processingFilters.catalog_entry_id || !processingFilters.month || !processingFilters.year) {
+      return
+    }
+
+    try {
+      setProcessingLogsLoading(true)
+      const res = await utils.processingLogs.byMonth.fetch({
+        catalogEntryId: processingFilters.catalog_entry_id,
+        month: processingFilters.month,
+        year: processingFilters.year,
+      })
+      setProcessingLogs(res.data || [])
+    } catch (error: any) {
+      console.error('Error fetching processing logs:', error)
+      alert(error?.message || 'Error fetching processing logs')
+      setProcessingLogs([])
+    } finally {
+      setProcessingLogsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isAuthenticated && userRole === 'superadmin') {
+      if (activeTab === 'users') {
+        fetchUsers()
+        fetchPendingRequests()
+      } else if (activeTab === 'audit-logs') {
+        fetchAuditLogs()
+        fetchStats()
+      }
+    }
+  }, [isAuthenticated, userRole, activeTab, fetchUsers, fetchPendingRequests, fetchStats, fetchAuditLogs])
+
+  useEffect(() => {
+    if (activeTab !== 'app-processing') return
+    const entries = recapCatalogData?.data ?? []
+    if (!entries.length) {
+      setProcessingLogs([])
+      return
+    }
+
+    if (
+      !processingFilters.catalog_entry_id ||
+      !entries.some((entry) => entry.id === processingFilters.catalog_entry_id)
+    ) {
+      setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: entries[0].id }))
+      return
+    }
+
+    if (processingFilters.month && processingFilters.year) {
+      fetchProcessingLogs()
+    }
+  }, [
+    activeTab,
+    recapCatalogData,
+    processingFilters.catalog_entry_id,
+    processingFilters.month,
+    processingFilters.year,
+    fetchProcessingLogs,
+  ])
+
+  useEffect(() => {
+    if (activeTab !== 'app-processing') return
+    if (!processingFilters.catalog_entry_id) {
+      setProcessingLogs([])
+    }
+  }, [activeTab, processingFilters.catalog_entry_id])
+
+  // User Management Functions
   const handleApprove = async () => {
     if (!selectedRequest) return
 
@@ -315,41 +411,6 @@ function SuperadminPage() {
     }
   }
 
-  // Audit Logs Functions
-  const fetchAuditLogs = async () => {
-    try {
-      setAuditLoading(true)
-      const res = await utils.auditLogs.list.fetch({
-        page: auditPage,
-        limit: 50,
-        action: auditFilters.action || undefined,
-        resourceType: auditFilters.resource_type || undefined,
-        username: auditFilters.username || undefined,
-        startDate: auditFilters.start_date || undefined,
-        endDate: auditFilters.end_date || undefined,
-      })
-      if (res.success) {
-        setAuditLogs(res.data.logs)
-        setAuditTotalPages(res.data.totalPages)
-      }
-    } catch (error) {
-      console.error('Error fetching audit logs:', error)
-    } finally {
-      setAuditLoading(false)
-    }
-  }
-
-  const fetchStats = async () => {
-    try {
-      const res = await utils.auditLogs.stats.fetch({ days: 30 })
-      if (res.success) {
-        setStats(res.data as AuditStats)
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error)
-    }
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('id-ID', {
       year: 'numeric',
@@ -360,30 +421,7 @@ function SuperadminPage() {
     })
   }
 
-  // Application Data Processing Functions
-  const fetchProcessingLogs = async () => {
-    if (!processingFilters.catalog_entry_id || !processingFilters.month || !processingFilters.year) {
-      return
-    }
-
-    try {
-      setProcessingLogsLoading(true)
-      const res = await utils.processingLogs.byMonth.fetch({
-        catalogEntryId: processingFilters.catalog_entry_id,
-        month: processingFilters.month,
-        year: processingFilters.year,
-      })
-      setProcessingLogs(res.data || [])
-    } catch (error: any) {
-      console.error('Error fetching processing logs:', error)
-      alert(error?.message || 'Error fetching processing logs')
-      setProcessingLogs([])
-    } finally {
-      setProcessingLogsLoading(false)
-    }
-  }
-
-  const formatProcessingDate = (dateString: string) => {
+  const _formatProcessingDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'short',
@@ -391,7 +429,7 @@ function SuperadminPage() {
     })
   }
 
-  const formatProcessingTime = (dateString: string) => {
+  const _formatProcessingTime = (dateString: string) => {
     return new Date(dateString).toLocaleString('id-ID', {
       year: 'numeric',
       month: 'short',
@@ -410,7 +448,7 @@ function SuperadminPage() {
     // Validate date: cannot process future dates or current date
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const processingDate = new Date(date + 'T00:00:00')
+    const processingDate = new Date(`${date}T00:00:00`)
     processingDate.setHours(0, 0, 0, 0)
 
     if (processingDate >= today) {
@@ -436,24 +474,25 @@ function SuperadminPage() {
       }))
       const logEntry = res.data?.logEntry
       if (logEntry) {
-        const statusMsg = logEntry.status === 'success'
-          ? `Successfully processed ${logEntry.recordsProcessed || 0} records (${logEntry.recordsInserted || 0} inserted)`
-          : logEntry.status === 'failed'
-          ? `Processing failed: ${logEntry.errorMessage || 'Unknown error'}`
-          : 'Processing is running...'
+        const statusMsg =
+          logEntry.status === 'success'
+            ? `Successfully processed ${logEntry.recordsProcessed || 0} records (${logEntry.recordsInserted || 0} inserted)`
+            : logEntry.status === 'failed'
+              ? `Processing failed: ${logEntry.errorMessage || 'Unknown error'}`
+              : 'Processing is running...'
         alert(`Processing triggered for ${date}.\n${statusMsg}`)
       } else {
         alert(`Processing triggered successfully for ${date}`)
       }
       // Small delay so the stored procedure finishes writing before refresh
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 500))
       await fetchProcessingLogs()
     } catch (error: any) {
       setProcessingStates((prev) => ({
         ...prev,
         [date]: { loading: false, error: error?.message || 'Error triggering processing' },
       }))
-      alert('Error triggering processing: ' + (error?.message ?? String(error)))
+      alert(`Error triggering processing: ${error?.message ?? String(error)}`)
     }
   }
 
@@ -469,10 +508,13 @@ function SuperadminPage() {
   }
 
   // Create a map of logs by date for easy lookup
-  const logsByDate = processingLogs.reduce((acc, log) => {
-    acc[log.processing_date] = log
-    return acc
-  }, {} as Record<string, typeof processingLogs[0]>)
+  const logsByDate = processingLogs.reduce(
+    (acc, log) => {
+      acc[log.processing_date] = log
+      return acc
+    },
+    {} as Record<string, (typeof processingLogs)[0]>,
+  )
   const processingCatalogEntries = recapCatalogData?.data ?? []
   const processingJobSearchTerm = processingJobSearch.trim().toLowerCase()
   const filteredProcessingCatalogEntries = processingCatalogEntries.filter((entry) => {
@@ -531,9 +573,7 @@ function SuperadminPage() {
           <button
             onClick={() => setActiveTab('users')}
             className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'users'
-                ? 'text-white border-b-2 border-blue-400'
-                : 'text-white/70 hover:text-white'
+              activeTab === 'users' ? 'text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white'
             }`}
           >
             User Management
@@ -541,9 +581,7 @@ function SuperadminPage() {
           <button
             onClick={() => setActiveTab('audit-logs')}
             className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'audit-logs'
-                ? 'text-white border-b-2 border-blue-400'
-                : 'text-white/70 hover:text-white'
+              activeTab === 'audit-logs' ? 'text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white'
             }`}
           >
             Audit Logs
@@ -561,9 +599,7 @@ function SuperadminPage() {
           <button
             onClick={() => setActiveTab('job-list')}
             className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'job-list'
-                ? 'text-white border-b-2 border-blue-400'
-                : 'text-white/70 hover:text-white'
+              activeTab === 'job-list' ? 'text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white'
             }`}
           >
             Job List
@@ -571,9 +607,7 @@ function SuperadminPage() {
           <button
             onClick={() => setActiveTab('app-config')}
             className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'app-config'
-                ? 'text-white border-b-2 border-blue-400'
-                : 'text-white/70 hover:text-white'
+              activeTab === 'app-config' ? 'text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white'
             }`}
           >
             FDW Configuration
@@ -581,9 +615,7 @@ function SuperadminPage() {
           <button
             onClick={() => setActiveTab('housekeeping')}
             className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'housekeeping'
-                ? 'text-white border-b-2 border-blue-400'
-                : 'text-white/70 hover:text-white'
+              activeTab === 'housekeeping' ? 'text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white'
             }`}
           >
             Housekeeping
@@ -597,9 +629,7 @@ function SuperadminPage() {
             {pendingRequests.length > 0 && (
               <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden">
                 <div className="p-4 border-b border-white/20">
-                  <h3 className="text-lg font-semibold text-white">
-                    Pending User Requests ({pendingRequests.length})
-                  </h3>
+                  <h3 className="text-lg font-semibold text-white">Pending User Requests ({pendingRequests.length})</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -607,8 +637,12 @@ function SuperadminPage() {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Username</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Email</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Requested Role</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Requested By</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                          Requested Role
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                          Requested By
+                        </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Date</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
                       </tr>
@@ -623,12 +657,8 @@ function SuperadminPage() {
                               {request.requested_role}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-white/70">
-                            {request.requested_by_username || 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-white/70">
-                            {formatDate(request.created_at)}
-                          </td>
+                          <td className="px-4 py-3 text-sm text-white/70">{request.requested_by_username || 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm text-white/70">{formatDate(request.created_at)}</td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <button
@@ -706,7 +736,9 @@ function SuperadminPage() {
                     <table className="w-full">
                       <thead className="bg-white/5">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Username</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                            Username
+                          </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Email</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Role</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Created</th>
@@ -724,16 +756,14 @@ function SuperadminPage() {
                                   user.role === 'superadmin'
                                     ? 'bg-red-500/20 text-red-300'
                                     : user.role === 'admin'
-                                    ? 'bg-blue-500/20 text-blue-300'
-                                    : 'bg-gray-500/20 text-gray-300'
+                                      ? 'bg-blue-500/20 text-blue-300'
+                                      : 'bg-gray-500/20 text-gray-300'
                                 }`}
                               >
                                 {user.role}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-sm text-white/70">
-                              {formatDate(user.created_at)}
-                            </td>
+                            <td className="px-4 py-3 text-sm text-white/70">{formatDate(user.created_at)}</td>
                             <td className="px-4 py-3 text-sm">
                               <button
                                 onClick={() => {
@@ -794,27 +824,19 @@ function SuperadminPage() {
                   <p className="text-xl font-bold text-white break-words overflow-hidden">
                     {stats.actionCounts[0]?.action || 'N/A'}
                   </p>
-                  <p className="text-xs text-white/50 mt-1">
-                    {stats.actionCounts[0]?.count || 0} times
-                  </p>
+                  <p className="text-xs text-white/50 mt-1">{stats.actionCounts[0]?.count || 0} times</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <p className="text-white/70 text-sm mb-1">Top Resource</p>
                   <p className="text-xl font-bold text-white break-words overflow-hidden">
                     {stats.resourceTypeCounts[0]?.resource_type || 'N/A'}
                   </p>
-                  <p className="text-xs text-white/50 mt-1">
-                    {stats.resourceTypeCounts[0]?.count || 0} times
-                  </p>
+                  <p className="text-xs text-white/50 mt-1">{stats.resourceTypeCounts[0]?.count || 0} times</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <p className="text-white/70 text-sm mb-1">Most Active User</p>
-                  <p className="text-xl font-bold text-white">
-                    {stats.topUsers[0]?.username || 'N/A'}
-                  </p>
-                  <p className="text-xs text-white/50 mt-1">
-                    {stats.topUsers[0]?.count || 0} activities
-                  </p>
+                  <p className="text-xl font-bold text-white">{stats.topUsers[0]?.username || 'N/A'}</p>
+                  <p className="text-xs text-white/50 mt-1">{stats.topUsers[0]?.count || 0} activities</p>
                 </div>
               </div>
             )}
@@ -828,7 +850,9 @@ function SuperadminPage() {
                     {stats.actionCounts.slice(0, 5).map((item, idx) => (
                       <div key={idx}>
                         <div className="flex justify-between text-sm mb-1 gap-2">
-                          <span className="text-white/90 break-words overflow-hidden flex-1 min-w-0">{item.action}</span>
+                          <span className="text-white/90 break-words overflow-hidden flex-1 min-w-0">
+                            {item.action}
+                          </span>
                           <span className="text-white/70 shrink-0">{item.count}</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
@@ -847,27 +871,30 @@ function SuperadminPage() {
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
                   <h3 className="text-lg font-semibold text-white mb-4">Daily Activity (Last 7 Days)</h3>
                   <div className="flex items-end justify-between h-48 gap-2">
-                    {stats.dailyActivity.slice(0, 7).reverse().map((item, idx) => {
-                      const maxCount = Math.max(...stats.dailyActivity.map((d) => d.count), 1)
-                      const height = (item.count / maxCount) * 100
-                      return (
-                        <div key={idx} className="flex-1 flex flex-col items-center">
-                          <div className="w-full flex flex-col items-center justify-end h-full">
-                            <div
-                              className="w-full bg-linear-to-t from-blue-600 to-blue-400 rounded-t"
-                              style={{ height: `${height}%`, minHeight: '4px' }}
-                            ></div>
+                    {stats.dailyActivity
+                      .slice(0, 7)
+                      .reverse()
+                      .map((item, idx) => {
+                        const maxCount = Math.max(...stats.dailyActivity.map((d) => d.count), 1)
+                        const height = (item.count / maxCount) * 100
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center">
+                            <div className="w-full flex flex-col items-center justify-end h-full">
+                              <div
+                                className="w-full bg-linear-to-t from-blue-600 to-blue-400 rounded-t"
+                                style={{ height: `${height}%`, minHeight: '4px' }}
+                              ></div>
+                            </div>
+                            <p className="text-xs text-white/70 mt-2 text-center">
+                              {new Date(item.date).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                              })}
+                            </p>
+                            <p className="text-xs text-white/50">{item.count}</p>
                           </div>
-                          <p className="text-xs text-white/70 mt-2 text-center">
-                            {new Date(item.date).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                            })}
-                          </p>
-                          <p className="text-xs text-white/50">{item.count}</p>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
                   </div>
                 </div>
               </div>
@@ -966,20 +993,20 @@ function SuperadminPage() {
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Date</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">User</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Action</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Resource</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                            Resource
+                          </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Details</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">IP Address</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                            IP Address
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/10">
                         {auditLogs.map((log) => (
                           <tr key={log.id} className="hover:bg-white/5">
-                            <td className="px-4 py-3 text-sm text-white/90">
-                              {formatDate(log.created_at)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-white/90">
-                              {log.username || 'System'}
-                            </td>
+                            <td className="px-4 py-3 text-sm text-white/90">{formatDate(log.created_at)}</td>
+                            <td className="px-4 py-3 text-sm text-white/90">{log.username || 'System'}</td>
                             <td className="px-4 py-3 text-sm">
                               <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">
                                 {log.action}
@@ -989,12 +1016,8 @@ function SuperadminPage() {
                               {log.resource_type}
                               {log.resource_id && ` #${log.resource_id}`}
                             </td>
-                            <td className="px-4 py-3 text-sm text-white/70 max-w-md truncate">
-                              {log.details || '-'}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-white/70">
-                              {log.ip_address || '-'}
-                            </td>
+                            <td className="px-4 py-3 text-sm text-white/70 max-w-md truncate">{log.details || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-white/70">{log.ip_address || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1032,9 +1055,7 @@ function SuperadminPage() {
           <div className="space-y-6">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-4">Application Data Processing</h3>
-              <p className="text-white/70 text-sm mb-4">
-                View processing logs by selecting a job, month, and year.
-              </p>
+              <p className="text-white/70 text-sm mb-4">View processing logs by selecting a job, month, and year.</p>
             </div>
 
             {/* Filters */}
@@ -1046,23 +1067,47 @@ function SuperadminPage() {
                   <select
                     value={processingFilters.month}
                     onChange={(e) => {
-                      setProcessingFilters((prev) => ({ ...prev, month: parseInt(e.target.value) }))
+                      setProcessingFilters((prev) => ({ ...prev, month: parseInt(e.target.value, 10) }))
                     }}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     style={{ colorScheme: 'dark' }}
                   >
-                    <option value="1" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>January</option>
-                    <option value="2" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>February</option>
-                    <option value="3" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>March</option>
-                    <option value="4" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>April</option>
-                    <option value="5" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>May</option>
-                    <option value="6" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>June</option>
-                    <option value="7" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>July</option>
-                    <option value="8" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>August</option>
-                    <option value="9" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>September</option>
-                    <option value="10" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>October</option>
-                    <option value="11" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>November</option>
-                    <option value="12" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>December</option>
+                    <option value="1" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      January
+                    </option>
+                    <option value="2" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      February
+                    </option>
+                    <option value="3" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      March
+                    </option>
+                    <option value="4" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      April
+                    </option>
+                    <option value="5" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      May
+                    </option>
+                    <option value="6" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      June
+                    </option>
+                    <option value="7" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      July
+                    </option>
+                    <option value="8" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      August
+                    </option>
+                    <option value="9" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      September
+                    </option>
+                    <option value="10" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      October
+                    </option>
+                    <option value="11" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      November
+                    </option>
+                    <option value="12" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
+                      December
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -1070,7 +1115,7 @@ function SuperadminPage() {
                   <select
                     value={processingFilters.year}
                     onChange={(e) => {
-                      setProcessingFilters((prev) => ({ ...prev, year: parseInt(e.target.value) }))
+                      setProcessingFilters((prev) => ({ ...prev, year: parseInt(e.target.value, 10) }))
                     }}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     style={{ colorScheme: 'dark' }}
@@ -1078,11 +1123,7 @@ function SuperadminPage() {
                     {Array.from({ length: 10 }, (_, i) => {
                       const year = new Date().getFullYear() - i
                       return (
-                        <option 
-                          key={year} 
-                          value={year} 
-                          style={{ backgroundColor: '#1f2937', color: '#ffffff' }}
-                        >
+                        <option key={year} value={year} style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
                           {year}
                         </option>
                       )
@@ -1162,76 +1203,129 @@ function SuperadminPage() {
                         ))}
                       </div>
                     ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                      {(() => {
-                        const stats = {
-                          total: allDates.length,
-                          success: allDates.filter(d => logsByDate[d]?.status === 'success').length,
-                          failed: allDates.filter(d => logsByDate[d]?.status === 'failed').length,
-                          processing: allDates.filter(d => logsByDate[d]?.status === 'running').length,
-                          notProcessed: allDates.filter(d => !logsByDate[d]).length,
-                        }
-                        return (
-                          <>
-                      <div className="bg-linear-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-xs font-medium text-green-300">Success</span>
-                        </div>
-                        <p className="text-xl font-bold text-white">{stats.success}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {(() => {
+                          const stats = {
+                            total: allDates.length,
+                            success: allDates.filter((d) => logsByDate[d]?.status === 'success').length,
+                            failed: allDates.filter((d) => logsByDate[d]?.status === 'failed').length,
+                            processing: allDates.filter((d) => logsByDate[d]?.status === 'running').length,
+                            notProcessed: allDates.filter((d) => !logsByDate[d]).length,
+                          }
+                          return (
+                            <>
+                              <div className="bg-linear-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg
+                                    className="w-4 h-4 text-green-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  <span className="text-xs font-medium text-green-300">Success</span>
+                                </div>
+                                <p className="text-xl font-bold text-white">{stats.success}</p>
+                              </div>
+                              <div className="bg-linear-to-br from-red-500/20 to-red-600/10 backdrop-blur-sm rounded-lg p-3 border border-red-500/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg
+                                    className="w-4 h-4 text-red-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  <span className="text-xs font-medium text-red-300">Failed</span>
+                                </div>
+                                <p className="text-xl font-bold text-white">{stats.failed}</p>
+                              </div>
+                              <div className="bg-linear-to-br from-yellow-500/20 to-yellow-600/10 backdrop-blur-sm rounded-lg p-3 border border-yellow-500/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg
+                                    className="w-4 h-4 text-yellow-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  <span className="text-xs font-medium text-yellow-300">Processing</span>
+                                </div>
+                                <p className="text-xl font-bold text-white">{stats.processing}</p>
+                              </div>
+                              <div className="bg-linear-to-br from-gray-500/20 to-gray-600/10 backdrop-blur-sm rounded-lg p-3 border border-gray-500/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg
+                                    className="w-4 h-4 text-gray-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                                    />
+                                  </svg>
+                                  <span className="text-xs font-medium text-gray-300">Not Processed</span>
+                                </div>
+                                <p className="text-xl font-bold text-white">{stats.notProcessed}</p>
+                              </div>
+                              <div className="bg-linear-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <svg
+                                    className="w-4 h-4 text-blue-300"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                    />
+                                  </svg>
+                                  <span className="text-xs font-medium text-blue-300">Total</span>
+                                </div>
+                                <p className="text-xl font-bold text-white">{stats.total}</p>
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
-                      <div className="bg-linear-to-br from-red-500/20 to-red-600/10 backdrop-blur-sm rounded-lg p-3 border border-red-500/30">
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg className="w-4 h-4 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-xs font-medium text-red-300">Failed</span>
-                        </div>
-                        <p className="text-xl font-bold text-white">{stats.failed}</p>
-                      </div>
-                      <div className="bg-linear-to-br from-yellow-500/20 to-yellow-600/10 backdrop-blur-sm rounded-lg p-3 border border-yellow-500/30">
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg className="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-xs font-medium text-yellow-300">Processing</span>
-                        </div>
-                        <p className="text-xl font-bold text-white">{stats.processing}</p>
-                      </div>
-                      <div className="bg-linear-to-br from-gray-500/20 to-gray-600/10 backdrop-blur-sm rounded-lg p-3 border border-gray-500/30">
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                          <span className="text-xs font-medium text-gray-300">Not Processed</span>
-                        </div>
-                        <p className="text-xl font-bold text-white">{stats.notProcessed}</p>
-                      </div>
-                      <div className="bg-linear-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                        <div className="flex items-center gap-2 mb-1">
-                          <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                          <span className="text-xs font-medium text-blue-300">Total</span>
-                        </div>
-                        <p className="text-xl font-bold text-white">{stats.total}</p>
-                      </div>
-                          </>
-                        )
-                      })()}
-                    </div>
                     )}
 
                     {/* Calendar Grid */}
                     <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                       <div className="mb-3 flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-white">
-                          {new Date(processingFilters.year, processingFilters.month - 1, 1).toLocaleDateString('id-ID', { 
-                            month: 'long', 
-                            year: 'numeric' 
-                          })}
+                          {new Date(processingFilters.year, processingFilters.month - 1, 1).toLocaleDateString(
+                            'id-ID',
+                            {
+                              month: 'long',
+                              year: 'numeric',
+                            },
+                          )}
                         </h3>
                         <div className="flex items-center gap-2 text-xs text-white/70">
                           <div className="flex items-center gap-1">
@@ -1256,265 +1350,332 @@ function SuperadminPage() {
                         ))}
                       </div>
                       <div className="grid grid-cols-7 gap-2">
-                        {processingLogsLoading ? (
-                          (() => {
-                            const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
-                            const emptyDays = Array(firstDay).fill(null)
-                            return [...emptyDays, ...allDates].map((dateStr, idx) => {
-                              if (!dateStr) {
-                                return <div key={`empty-${idx}`} className="aspect-square" />
-                              }
-                              return (
-                                <div
-                                  key={dateStr}
-                                  className="aspect-square bg-white/10 rounded-lg animate-pulse"
-                                />
-                              )
-                            })
-                          })()
-                        ) : (() => {
-                          const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
-                          const emptyDays = Array(firstDay).fill(null)
-                          return [...emptyDays, ...allDates].map((dateStr, idx) => {
-                            if (!dateStr) {
-                              return <div key={`empty-${idx}`} className="aspect-square"></div>
-                            }
+                        {processingLogsLoading
+                          ? (() => {
+                              const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
+                              const emptyDays = Array(firstDay).fill(null)
+                              return [...emptyDays, ...allDates].map((dateStr, idx) => {
+                                if (!dateStr) {
+                                  return <div key={`empty-${idx}`} className="aspect-square" />
+                                }
+                                return (
+                                  <div key={dateStr} className="aspect-square bg-white/10 rounded-lg animate-pulse" />
+                                )
+                              })
+                            })()
+                          : (() => {
+                              const firstDay = new Date(processingFilters.year, processingFilters.month - 1, 1).getDay()
+                              const emptyDays = Array(firstDay).fill(null)
+                              return [...emptyDays, ...allDates].map((dateStr, idx) => {
+                                if (!dateStr) {
+                                  return <div key={`empty-${idx}`} className="aspect-square"></div>
+                                }
 
-                            const log = logsByDate[dateStr]
-                            const date = new Date(dateStr + 'T00:00:00')
-                            date.setHours(0, 0, 0, 0)
-                            const canProcess = date < today
-                            const processingState = processingStates[dateStr] || { loading: false, error: null }
-                            const status = log?.status || null
-                            const isToday = dateStr === today.toISOString().split('T')[0]
-                            
-                            // Check if it's a simple success (only tick, no other important info)
-                            const isSimpleSuccess = status === 'success' && (!log || (!log.error_message && log.records_processed === null))
+                                const log = logsByDate[dateStr]
+                                const date = new Date(`${dateStr}T00:00:00`)
+                                date.setHours(0, 0, 0, 0)
+                                const canProcess = date < today
+                                const processingState = processingStates[dateStr] || { loading: false, error: null }
+                                const status = log?.status || null
+                                const isToday = dateStr === today.toISOString().split('T')[0]
 
-                            // Determine card styling based on status
-                            let cardClasses = "aspect-square bg-white/10 backdrop-blur-sm rounded-lg border flex flex-col transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer"
-                            let borderColor = "border-white/20"
-                            let bgGradient = ""
-                            let paddingClass = "p-2"
+                                // Check if it's a simple success (only tick, no other important info)
+                                const isSimpleSuccess =
+                                  status === 'success' &&
+                                  (!log || (!log.error_message && log.records_processed === null))
 
-                            if (status === 'success') {
-                              borderColor = "border-green-500/50"
-                              bgGradient = "bg-linear-to-br from-green-500/20 to-green-600/10"
-                              // Make it more compact if it's simple success
-                              if (isSimpleSuccess) {
-                                paddingClass = "p-1.5"
-                              }
-                            } else if (status === 'failed') {
-                              borderColor = "border-red-500/50"
-                              bgGradient = "bg-linear-to-br from-red-500/20 to-red-600/10"
-                            } else if (status === 'running') {
-                              borderColor = "border-yellow-500/50"
-                              bgGradient = "bg-linear-to-br from-yellow-500/20 to-yellow-600/10"
-                            } else {
-                              borderColor = "border-gray-500/30"
-                              bgGradient = "bg-linear-to-br from-gray-500/10 to-gray-600/5"
-                            }
+                                // Determine card styling based on status
+                                const cardClasses =
+                                  'aspect-square bg-white/10 backdrop-blur-sm rounded-lg border flex flex-col transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer'
+                                let borderColor = 'border-white/20'
+                                let bgGradient = ''
+                                let paddingClass = 'p-2'
 
-                            if (isToday) {
-                              borderColor = "border-blue-400/70 border-2"
-                            }
+                                if (status === 'success') {
+                                  borderColor = 'border-green-500/50'
+                                  bgGradient = 'bg-linear-to-br from-green-500/20 to-green-600/10'
+                                  // Make it more compact if it's simple success
+                                  if (isSimpleSuccess) {
+                                    paddingClass = 'p-1.5'
+                                  }
+                                } else if (status === 'failed') {
+                                  borderColor = 'border-red-500/50'
+                                  bgGradient = 'bg-linear-to-br from-red-500/20 to-red-600/10'
+                                } else if (status === 'running') {
+                                  borderColor = 'border-yellow-500/50'
+                                  bgGradient = 'bg-linear-to-br from-yellow-500/20 to-yellow-600/10'
+                                } else {
+                                  borderColor = 'border-gray-500/30'
+                                  bgGradient = 'bg-linear-to-br from-gray-500/10 to-gray-600/5'
+                                }
 
-                            return (
-                              <div
-                                key={dateStr}
-                                className={`${cardClasses} ${bgGradient} ${borderColor} ${paddingClass} ${!canProcess ? 'opacity-50' : ''}`}
-                                title={isToday ? 'Today' : ''}
-                              >
-                                {/* Date Number */}
-                                <div className={`flex items-center justify-between ${isSimpleSuccess ? 'mb-0.5' : 'mb-1'}`}>
-                                  <span className={`${isSimpleSuccess ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-blue-300' : 'text-white'}`}>
-                                    {new Date(dateStr).getDate()}
-                                  </span>
-                                  {isToday && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
-                                  )}
-                                </div>
+                                if (isToday) {
+                                  borderColor = 'border-blue-400/70 border-2'
+                                }
 
-                                {/* Status Icon - Smaller for simple success */}
-                                {!isSimpleSuccess && (
-                                  <div className="flex-1 flex items-center justify-center mb-1">
-                                    {status === 'success' && (
-                                      <svg className="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                    {status === 'failed' && (
-                                      <svg className="w-5 h-5 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    )}
-                                    {status === 'running' && (
-                                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-yellow-300 border-t-transparent"></div>
-                                    )}
-                                    {!status && (
-                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                      </svg>
-                                    )}
-                                  </div>
-                                )}
+                                return (
+                                  <div
+                                    key={dateStr}
+                                    className={`${cardClasses} ${bgGradient} ${borderColor} ${paddingClass} ${!canProcess ? 'opacity-50' : ''}`}
+                                    title={isToday ? 'Today' : ''}
+                                  >
+                                    {/* Date Number */}
+                                    <div
+                                      className={`flex items-center justify-between ${isSimpleSuccess ? 'mb-0.5' : 'mb-1'}`}
+                                    >
+                                      <span
+                                        className={`${isSimpleSuccess ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-blue-300' : 'text-white'}`}
+                                      >
+                                        {new Date(dateStr).getDate()}
+                                      </span>
+                                      {isToday && (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></div>
+                                      )}
+                                    </div>
 
-                                {/* Simple Success - Just show small icon */}
-                                {isSimpleSuccess && (
-                                  <div className="flex-1 flex items-center justify-center mb-0.5">
-                                    <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </div>
-                                )}
-
-                                {/* Quick Stats - Only show if not simple success */}
-                                {log && !isSimpleSuccess && (
-                                  <div className="text-[10px] text-white/70 space-y-0.5">
-                                    {log.records_processed !== null && (
-                                      <div className="flex items-center gap-1">
-                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <span className="truncate">{log.records_processed || 0}</span>
+                                    {/* Status Icon - Smaller for simple success */}
+                                    {!isSimpleSuccess && (
+                                      <div className="flex-1 flex items-center justify-center mb-1">
+                                        {status === 'success' && (
+                                          <svg
+                                            className="w-5 h-5 text-green-300"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M5 13l4 4L19 7"
+                                            />
+                                          </svg>
+                                        )}
+                                        {status === 'failed' && (
+                                          <svg
+                                            className="w-5 h-5 text-red-300"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M6 18L18 6M6 6l12 12"
+                                            />
+                                          </svg>
+                                        )}
+                                        {status === 'running' && (
+                                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-yellow-300 border-t-transparent"></div>
+                                        )}
+                                        {!status && (
+                                          <svg
+                                            className="w-4 h-4 text-gray-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                                            />
+                                          </svg>
+                                        )}
                                       </div>
                                     )}
-                                  </div>
-                                )}
 
-                                {/* Process Button - Larger for simple success */}
-                                {canProcess && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleDateProcessing(dateStr)
-                                    }}
-                                    disabled={processingState.loading}
-                                    className={`w-full bg-linear-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
-                                      isSimpleSuccess 
-                                        ? 'px-2 py-2 text-xs' 
-                                        : 'mt-1 px-1.5 py-1 text-[10px]'
-                                    }`}
-                                  >
-                                    {processingState.loading ? (
-                                      <>
-                                        <div className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isSimpleSuccess ? 'h-3 w-3' : 'h-2.5 w-2.5'}`}></div>
-                                        <span>Processing</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <svg className={isSimpleSuccess ? 'w-3 h-3' : 'w-2.5 h-2.5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    {/* Simple Success - Just show small icon */}
+                                    {isSimpleSuccess && (
+                                      <div className="flex-1 flex items-center justify-center mb-0.5">
+                                        <svg
+                                          className="w-4 h-4 text-green-300"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M5 13l4 4L19 7"
+                                          />
                                         </svg>
-                                        <span>Process</span>
-                                      </>
+                                      </div>
                                     )}
-                                  </button>
-                                )}
-                              </div>
-                            )
-                          })
-                        })()}
+
+                                    {/* Quick Stats - Only show if not simple success */}
+                                    {log && !isSimpleSuccess && (
+                                      <div className="text-[10px] text-white/70 space-y-0.5">
+                                        {log.records_processed !== null && (
+                                          <div className="flex items-center gap-1">
+                                            <svg
+                                              className="w-2.5 h-2.5"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                              />
+                                            </svg>
+                                            <span className="truncate">{log.records_processed || 0}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Process Button - Larger for simple success */}
+                                    {canProcess && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleDateProcessing(dateStr)
+                                        }}
+                                        disabled={processingState.loading}
+                                        className={`w-full bg-linear-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
+                                          isSimpleSuccess ? 'px-2 py-2 text-xs' : 'mt-1 px-1.5 py-1 text-[10px]'
+                                        }`}
+                                      >
+                                        {processingState.loading ? (
+                                          <>
+                                            <div
+                                              className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isSimpleSuccess ? 'h-3 w-3' : 'h-2.5 w-2.5'}`}
+                                            ></div>
+                                            <span>Processing</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <svg
+                                              className={isSimpleSuccess ? 'w-3 h-3' : 'w-2.5 h-2.5'}
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                              />
+                                            </svg>
+                                            <span>Process</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                )
+                              })
+                            })()}
                       </div>
                     </div>
 
                     {/* Detailed View Toggle - Hidden when loading */}
                     {!processingLogsLoading && (
-                    <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                      <details className="group">
-                        <summary className="cursor-pointer flex items-center justify-between text-white font-medium hover:text-blue-300 transition-colors">
-                          <span>View Detailed Information</span>
-                          <svg className="w-5 h-5 transform group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </summary>
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {allDates.map((dateStr) => {
-                            const log = logsByDate[dateStr]
-                            if (!log) return null
+                      <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                        <details className="group">
+                          <summary className="cursor-pointer flex items-center justify-between text-white font-medium hover:text-blue-300 transition-colors">
+                            <span>View Detailed Information</span>
+                            <svg
+                              className="w-5 h-5 transform group-open:rotate-180 transition-transform"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </summary>
+                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {allDates.map((dateStr) => {
+                              const log = logsByDate[dateStr]
+                              if (!log) return null
 
-                            return (
-                              <div
-                                key={dateStr}
-                                className={`bg-white/10 backdrop-blur-sm rounded-lg p-3 border ${
-                                  log.status === 'success'
-                                    ? 'border-green-500/30'
-                                    : log.status === 'failed'
-                                    ? 'border-red-500/30'
-                                    : 'border-yellow-500/30'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="text-sm font-semibold text-white">
-                                    {new Date(dateStr).toLocaleDateString('id-ID', {
-                                      day: 'numeric',
-                                      month: 'short',
-                                      year: 'numeric',
-                                    })}
-                                  </h4>
-                                  <span
-                                    className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                      log.status === 'success'
-                                        ? 'bg-green-500/20 text-green-300'
-                                        : log.status === 'failed'
-                                        ? 'bg-red-500/20 text-red-300'
-                                        : 'bg-yellow-500/20 text-yellow-300'
-                                    }`}
-                                  >
-                                    {log.status}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-white/70 space-y-1.5">
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Records Processed:</span>
-                                    <span className="text-white">{log.records_processed || 0}</span>
+                              return (
+                                <div
+                                  key={dateStr}
+                                  className={`bg-white/10 backdrop-blur-sm rounded-lg p-3 border ${
+                                    log.status === 'success'
+                                      ? 'border-green-500/30'
+                                      : log.status === 'failed'
+                                        ? 'border-red-500/30'
+                                        : 'border-yellow-500/30'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-sm font-semibold text-white">
+                                      {new Date(dateStr).toLocaleDateString('id-ID', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                      })}
+                                    </h4>
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                        log.status === 'success'
+                                          ? 'bg-green-500/20 text-green-300'
+                                          : log.status === 'failed'
+                                            ? 'bg-red-500/20 text-red-300'
+                                            : 'bg-yellow-500/20 text-yellow-300'
+                                      }`}
+                                    >
+                                      {log.status}
+                                    </span>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Records Inserted:</span>
-                                    <span className="text-white">{log.records_inserted || 0}</span>
+                                  <div className="text-xs text-white/70 space-y-1.5">
+                                    <div className="flex justify-between">
+                                      <span className="font-medium">Records Processed:</span>
+                                      <span className="text-white">{log.records_processed || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="font-medium">Records Inserted:</span>
+                                      <span className="text-white">{log.records_inserted || 0}</span>
+                                    </div>
+                                    {log.start_time && (
+                                      <div>
+                                        <span className="font-medium">Start:</span>{' '}
+                                        <span className="text-white/90">
+                                          {new Date(log.start_time).toLocaleString('id-ID', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          })}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {log.end_time && (
+                                      <div>
+                                        <span className="font-medium">End:</span>{' '}
+                                        <span className="text-white/90">
+                                          {new Date(log.end_time).toLocaleString('id-ID', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          })}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {log.error_message && (
+                                      <div className="mt-2 p-2 bg-red-500/10 rounded border border-red-500/20">
+                                        <p className="text-red-300 text-xs break-words">{log.error_message}</p>
+                                      </div>
+                                    )}
                                   </div>
-                                  {log.start_time && (
-                                    <div>
-                                      <span className="font-medium">Start:</span>{' '}
-                                      <span className="text-white/90">
-                                        {new Date(log.start_time).toLocaleString('id-ID', {
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                        })}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {log.end_time && (
-                                    <div>
-                                      <span className="font-medium">End:</span>{' '}
-                                      <span className="text-white/90">
-                                        {new Date(log.end_time).toLocaleString('id-ID', {
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                        })}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {log.error_message && (
-                                    <div className="mt-2 p-2 bg-red-500/10 rounded border border-red-500/20">
-                                      <p className="text-red-300 text-xs break-words">{log.error_message}</p>
-                                    </div>
-                                  )}
                                 </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </details>
-                    </div>
+                              )
+                            })}
+                          </div>
+                        </details>
+                      </div>
                     )}
                   </div>
                 )
               })()
             ) : (
-              <div className="p-8 text-center text-white/70">
-                Select a job to view processing logs
-              </div>
+              <div className="p-8 text-center text-white/70">Select a job to view processing logs</div>
             )}
           </div>
         )}
@@ -1525,8 +1686,9 @@ function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">Job List</h3>
               <p className="text-white/70 text-sm mb-2">
-                All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and representative query text.
-                Use <strong className="text-white">Application Data Processing</strong> with the same job to inspect calendar logs.
+                All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and
+                representative query text. Use <strong className="text-white">Application Data Processing</strong> with
+                the same job to inspect calendar logs.
               </p>
             </div>
 
@@ -1543,119 +1705,113 @@ function SuperadminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recapCatalogLoading ? (
-                      Array.from({ length: 8 }).map((_, i) => (
-                        <tr key={`recap-catalog-skeleton-${i}`} className="border-t border-white/10">
-                          <td className="px-3 py-2">
-                            <div className="h-4 w-40 max-w-full rounded bg-white/20 animate-pulse mb-2" />
-                            <div className="h-7 w-[11rem] max-w-full rounded bg-white/15 animate-pulse" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="h-3 w-28 rounded bg-white/20 animate-pulse" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="h-3 w-24 rounded bg-white/20 animate-pulse" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="h-3 w-32 rounded bg-white/20 animate-pulse" />
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="h-3 w-36 rounded bg-white/20 animate-pulse mb-1" />
-                            <div className="h-2 w-24 rounded bg-white/10 animate-pulse" />
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      (recapCatalogData?.data ?? []).map((row) => (
-                        <Fragment key={row.id}>
-                          <tr
-                            className="border-t border-white/10 hover:bg-white/5 cursor-pointer"
-                            onClick={() =>
-                              setRecapExpandedId((id) => (id === row.id ? null : row.id))
-                            }
-                          >
-                            <td className="px-3 py-2 text-white">
-                              <div className="font-medium">{row.title}</div>
-                              <div
-                                className="mt-2 flex flex-wrap items-center gap-2"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <input
-                                  type="date"
-                                  className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs max-w-[11rem]"
-                                  value={recapManualDates[row.id] ?? ''}
-                                  onChange={(e) =>
-                                    setRecapManualDates((prev) => ({
-                                      ...prev,
-                                      [row.id]: e.target.value,
-                                    }))
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  className="px-2 py-1 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs disabled:opacity-50"
-                                  disabled={recapTriggerMutation.isPending}
-                                  onClick={() => {
-                                    const d = recapManualDates[row.id]?.trim()
-                                    recapTriggerMutation.mutate({
-                                      catalogEntryId: row.id,
-                                      date: d || undefined,
-                                    })
-                                  }}
-                                >
-                                  Run now (empty date = H-1)
-                                </button>
-                              </div>
+                    {recapCatalogLoading
+                      ? Array.from({ length: 8 }).map((_, i) => (
+                          <tr key={`recap-catalog-skeleton-${i}`} className="border-t border-white/10">
+                            <td className="px-3 py-2">
+                              <div className="h-4 w-40 max-w-full rounded bg-white/20 animate-pulse mb-2" />
+                              <div className="h-7 w-[11rem] max-w-full rounded bg-white/15 animate-pulse" />
                             </td>
-                            <td className="px-3 py-2 text-white/90 font-mono text-xs">{row.id}</td>
-                            <td className="px-3 py-2 text-white/80">{row.recapKind}</td>
-                            <td className="px-3 py-2 text-white/80 font-mono text-xs">{row.outputTable}</td>
-                            <td className="px-3 py-2 text-white/70 text-xs">
-                              {row.scheduleEnvVar ?? '—'}
-                              <br />
-                              <span className="text-white/50">
-                                {(row as { scheduleCronResolved?: string }).scheduleCronResolved ?? ''}
-                              </span>
+                            <td className="px-3 py-2">
+                              <div className="h-3 w-28 rounded bg-white/20 animate-pulse" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="h-3 w-24 rounded bg-white/20 animate-pulse" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="h-3 w-32 rounded bg-white/20 animate-pulse" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="h-3 w-36 rounded bg-white/20 animate-pulse mb-1" />
+                              <div className="h-2 w-24 rounded bg-white/10 animate-pulse" />
                             </td>
                           </tr>
-                          {recapExpandedId === row.id && (
-                            <tr className="bg-black/20">
-                              <td colSpan={5} className="px-4 py-3 text-white/90">
-                                <p className="text-sm mb-2">{row.description}</p>
-                                <p className="text-xs text-white/70 mb-2">{row.briefProcessSummary}</p>
-                                <p className="text-xs text-white/50 mb-1">
-                                  Function: <code className="text-white/80">{row.functionName}</code> · Doc:{' '}
-                                  <code className="text-white/80">{row.rawSqlRepoPath}</code>
-                                </p>
-                                <details open className="mt-2">
-                                  <summary className="cursor-pointer text-blue-300 text-sm mb-1">
-                                    Representative query (brief)
-                                  </summary>
-                                  <pre className="mt-2 p-3 rounded bg-black/40 border border-white/10 text-xs overflow-x-auto whitespace-pre-wrap">
-                                    {row.briefQuery}
-                                  </pre>
-                                </details>
+                        ))
+                      : (recapCatalogData?.data ?? []).map((row) => (
+                          <Fragment key={row.id}>
+                            <tr
+                              className="border-t border-white/10 hover:bg-white/5 cursor-pointer"
+                              onClick={() => setRecapExpandedId((id) => (id === row.id ? null : row.id))}
+                            >
+                              <td className="px-3 py-2 text-white">
+                                <div className="font-medium">{row.title}</div>
+                                <div
+                                  className="mt-2 flex flex-wrap items-center gap-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="date"
+                                    className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs max-w-[11rem]"
+                                    value={recapManualDates[row.id] ?? ''}
+                                    onChange={(e) =>
+                                      setRecapManualDates((prev) => ({
+                                        ...prev,
+                                        [row.id]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                  <button
+                                    type="button"
+                                    className="px-2 py-1 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs disabled:opacity-50"
+                                    disabled={recapTriggerMutation.isPending}
+                                    onClick={() => {
+                                      const d = recapManualDates[row.id]?.trim()
+                                      recapTriggerMutation.mutate({
+                                        catalogEntryId: row.id,
+                                        date: d || undefined,
+                                      })
+                                    }}
+                                  >
+                                    Run now (empty date = H-1)
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-white/90 font-mono text-xs">{row.id}</td>
+                              <td className="px-3 py-2 text-white/80">{row.recapKind}</td>
+                              <td className="px-3 py-2 text-white/80 font-mono text-xs">{row.outputTable}</td>
+                              <td className="px-3 py-2 text-white/70 text-xs">
+                                {row.scheduleEnvVar ?? '—'}
+                                <br />
+                                <span className="text-white/50">
+                                  {(row as { scheduleCronResolved?: string }).scheduleCronResolved ?? ''}
+                                </span>
                               </td>
                             </tr>
-                          )}
-                        </Fragment>
-                      ))
-                    )}
+                            {recapExpandedId === row.id && (
+                              <tr className="bg-black/20">
+                                <td colSpan={5} className="px-4 py-3 text-white/90">
+                                  <p className="text-sm mb-2">{row.description}</p>
+                                  <p className="text-xs text-white/70 mb-2">{row.briefProcessSummary}</p>
+                                  <p className="text-xs text-white/50 mb-1">
+                                    Function: <code className="text-white/80">{row.functionName}</code> · Doc:{' '}
+                                    <code className="text-white/80">{row.rawSqlRepoPath}</code>
+                                  </p>
+                                  <details open className="mt-2">
+                                    <summary className="cursor-pointer text-blue-300 text-sm mb-1">
+                                      Representative query (brief)
+                                    </summary>
+                                    <pre className="mt-2 p-3 rounded bg-black/40 border border-white/10 text-xs overflow-x-auto whitespace-pre-wrap">
+                                      {row.briefQuery}
+                                    </pre>
+                                  </details>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        ))}
                   </tbody>
-                  </table>
-                </div>
-                {!recapCatalogLoading && recapTriggerMutation.isError && (
-                  <p className="p-3 text-red-300 text-sm">
-                    {recapTriggerMutation.error?.message ?? 'Trigger failed'}
-                  </p>
-                )}
-                {!recapCatalogLoading && recapTriggerMutation.isSuccess && recapTriggerMutation.data?.data && (
-                  <p className="p-3 text-green-300 text-sm">
-                    {recapTriggerMutation.data.data.message} — status:{' '}
-                    {recapTriggerMutation.data.data.logEntry?.status ?? '—'}
-                  </p>
-                )}
+                </table>
               </div>
+              {!recapCatalogLoading && recapTriggerMutation.isError && (
+                <p className="p-3 text-red-300 text-sm">{recapTriggerMutation.error?.message ?? 'Trigger failed'}</p>
+              )}
+              {!recapCatalogLoading && recapTriggerMutation.isSuccess && recapTriggerMutation.data?.data && (
+                <p className="p-3 text-green-300 text-sm">
+                  {recapTriggerMutation.data.data.message} — status:{' '}
+                  {recapTriggerMutation.data.data.logEntry?.status ?? '—'}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -1665,7 +1821,9 @@ function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">FDW Configuration</h3>
               <p className="text-white/70 text-sm">
-                Manage Foreign Data Wrapper (FDW) source tables. These are shared tables imported from external databases (e.g. itm_db) used by apps like EDC Agen and EDC Merchant. Run migration to apply changes: <code className="bg-white/10 px-1 rounded text-xs">DB_NAME=platform_db npm run db:migrate</code>
+                Manage Foreign Data Wrapper (FDW) source tables. These are shared tables imported from external
+                databases (e.g. itm_db) used by apps like EDC Agen and EDC Merchant. Run migration to apply changes:{' '}
+                <code className="bg-white/10 px-1 rounded text-xs">DB_NAME=platform_db npm run db:migrate</code>
               </p>
             </div>
 
@@ -1673,7 +1831,9 @@ function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">FDW Source Tables</h3>
               <p className="text-white/70 text-sm mb-4">
-                Add or remove source tables imported via postgres_fdw. Includes both app database connections (e.g. bale_db, bale_bisnis_db) and shared external tables (e.g. itm_db). After changes, run migration to recreate the foreign server and table mappings.
+                Add or remove source tables imported via postgres_fdw. Includes both app database connections (e.g.
+                bale_db, bale_bisnis_db) and shared external tables (e.g. itm_db). After changes, run migration to
+                recreate the foreign server and table mappings.
               </p>
               <div className="space-y-4">
                 <div className="overflow-x-auto">
@@ -1681,28 +1841,32 @@ function SuperadminPage() {
                     <thead className="bg-white/5">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Source DB</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Table Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                          Table Name
+                        </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Schema</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                      {(fdwData?.data?.fdwSources ?? []).map((row: { id: number; source_db_name: string; table_name: string; schema_name?: string }) => (
-                        <tr key={row.id} className="hover:bg-white/5">
-                          <td className="px-4 py-3 text-sm text-white/90">{row.source_db_name}</td>
-                          <td className="px-4 py-3 text-sm text-white/90">{row.table_name}</td>
-                          <td className="px-4 py-3 text-sm text-white/90">{row.schema_name || 'public'}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <button
-                              onClick={() => fdwRemoveMutation.mutate({ id: row.id })}
-                              disabled={fdwRemoveMutation.isPending}
-                              className="px-2 py-1 bg-red-600/80 hover:bg-red-500 text-white rounded text-xs disabled:opacity-50"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {(fdwData?.data?.fdwSources ?? []).map(
+                        (row: { id: number; source_db_name: string; table_name: string; schema_name?: string }) => (
+                          <tr key={row.id} className="hover:bg-white/5">
+                            <td className="px-4 py-3 text-sm text-white/90">{row.source_db_name}</td>
+                            <td className="px-4 py-3 text-sm text-white/90">{row.table_name}</td>
+                            <td className="px-4 py-3 text-sm text-white/90">{row.schema_name || 'public'}</td>
+                            <td className="px-4 py-3 text-sm">
+                              <button
+                                onClick={() => fdwRemoveMutation.mutate({ id: row.id })}
+                                disabled={fdwRemoveMutation.isPending}
+                                className="px-2 py-1 bg-red-600/80 hover:bg-red-500 text-white rounded text-xs disabled:opacity-50"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ),
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1747,14 +1911,27 @@ function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <h3 className="text-lg font-semibold text-white mb-2">Housekeeping Rules</h3>
               <p className="text-white/70 text-sm">
-                Configure retention per raw table. Raw tables that are shared across multiple apps (e.g. EDC Agen, EDC Merchant, and EDC Merchant Ancol all use the same <code className="bg-white/10 px-1 rounded">itm_db</code> tables) appear as a single row. Running housekeeping deletes rows older than the configured retention period directly from the raw table.
+                Configure retention per raw table. Raw tables that are shared across multiple apps (e.g. EDC Agen, EDC
+                Merchant, and EDC Merchant Ancol all use the same{' '}
+                <code className="bg-white/10 px-1 rounded">itm_db</code> tables) appear as a single row. Running
+                housekeeping deletes rows older than the configured retention period directly from the raw table.
               </p>
             </div>
 
             {/* pg_cron schedule info */}
             <div className="flex items-start gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-4 py-3">
-              <svg className="w-4 h-4 text-indigo-300 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-4 h-4 text-indigo-300 mt-0.5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <div className="text-sm text-indigo-200 space-y-1">
                 <p>
@@ -1764,7 +1941,12 @@ function SuperadminPage() {
                   </code>
                 </p>
                 <p className="text-indigo-300/80 text-xs">
-                  One job <code className="bg-indigo-500/20 px-1 rounded">housekeeping-all</code> runs <code className="bg-indigo-500/20 px-1 rounded">sp_run_all_raw_housekeeping()</code> on the platform DB. New rows you add below are included on the next run — no app redeploy. Register or refresh that job with <code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>. To change the schedule, set <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
+                  One job <code className="bg-indigo-500/20 px-1 rounded">housekeeping-all</code> runs{' '}
+                  <code className="bg-indigo-500/20 px-1 rounded">sp_run_all_raw_housekeeping()</code> on the platform
+                  DB. New rows you add below are included on the next run — no app redeploy. Register or refresh that
+                  job with <code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>. To change the
+                  schedule, set <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in{' '}
+                  <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
                 </p>
               </div>
             </div>
@@ -1772,7 +1954,8 @@ function SuperadminPage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 space-y-3">
               <h4 className="text-sm font-semibold text-white">Add raw table</h4>
               <p className="text-xs text-white/60">
-                Use the platform relation name (prefixed FDW foreign table when applicable, e.g. <code className="bg-white/10 px-1 rounded">bale_db_raw_bale</code>), not only the short view name.
+                Use the platform relation name (prefixed FDW foreign table when applicable, e.g.{' '}
+                <code className="bg-white/10 px-1 rounded">bale_db_raw_bale</code>), not only the short view name.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <input
@@ -1795,12 +1978,18 @@ function SuperadminPage() {
                 />
                 <select
                   value={newHkForm.date_column_type}
-                  onChange={(e) => setNewHkForm((p) => ({ ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' }))}
+                  onChange={(e) =>
+                    setNewHkForm((p) => ({ ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' }))
+                  }
                   className="px-2 py-1.5 bg-white/10 border border-white/20 rounded text-white text-sm"
                   style={{ colorScheme: 'dark' }}
                 >
-                  <option value="timestamp" className="bg-gray-800">timestamp / date</option>
-                  <option value="int_1yymmdd" className="bg-gray-800">integer 1YYMMDD (e.g. TRXMDT)</option>
+                  <option value="timestamp" className="bg-gray-800">
+                    timestamp / date
+                  </option>
+                  <option value="int_1yymmdd" className="bg-gray-800">
+                    integer 1YYMMDD (e.g. TRXMDT)
+                  </option>
                 </select>
                 <input
                   type="number"
@@ -1831,7 +2020,9 @@ function SuperadminPage() {
                     notes: newHkForm.notes.trim() === '' ? null : newHkForm.notes.trim(),
                   })
                 }}
-                disabled={upsertHousekeepingMutation.isPending || !newHkForm.db_name.trim() || !newHkForm.table_name.trim()}
+                disabled={
+                  upsertHousekeepingMutation.isPending || !newHkForm.db_name.trim() || !newHkForm.table_name.trim()
+                }
                 className="px-3 py-1.5 bg-purple-600/80 hover:bg-purple-500 text-white rounded text-sm disabled:opacity-50"
               >
                 {upsertHousekeepingMutation.isPending ? 'Saving…' : 'Save row'}
@@ -1848,237 +2039,304 @@ function SuperadminPage() {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Database</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Table</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Date Column</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Retention (days)</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                          Date Column
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">
+                          Retention (days)
+                        </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/70 uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                      {(housekeepingData?.data ?? []).map((row: {
-                        id: number
-                        db_name: string
-                        table_name: string
-                        date_column: string | null
-                        date_column_type: string | null
-                        retention_days: number | null
-                        notes: string | null
-                      }) => {
-                        const canRun = !!row.date_column && !!row.retention_days
-                        const isRefNoDate = !row.date_column && (row.notes?.toLowerCase().includes('reference') ?? false)
-                        return (
-                        <tr key={row.id} className={`hover:bg-white/5 ${!row.date_column ? 'opacity-70' : ''}`}>
-                          <td className="px-4 py-3 text-sm text-white/80 font-mono">{row.db_name}</td>
-                          <td className="px-4 py-3 text-sm text-white font-mono font-medium">{row.table_name}</td>
+                      {(housekeepingData?.data ?? []).map(
+                        (row: {
+                          id: number
+                          db_name: string
+                          table_name: string
+                          date_column: string | null
+                          date_column_type: string | null
+                          retention_days: number | null
+                          notes: string | null
+                        }) => {
+                          const canRun = !!row.date_column && !!row.retention_days
+                          const isRefNoDate =
+                            !row.date_column && (row.notes?.toLowerCase().includes('reference') ?? false)
+                          return (
+                            <tr key={row.id} className={`hover:bg-white/5 ${!row.date_column ? 'opacity-70' : ''}`}>
+                              <td className="px-4 py-3 text-sm text-white/80 font-mono">{row.db_name}</td>
+                              <td className="px-4 py-3 text-sm text-white font-mono font-medium">{row.table_name}</td>
 
-                          {/* Date column cell */}
-                          <td className="px-4 py-3 text-sm">
-                            {editingDateConfig?.id === row.id ? (
-                              <div className="flex flex-col gap-2 max-w-[220px]">
-                                <input
-                                  value={editingDateConfig.date_column}
-                                  onChange={(e) => setEditingDateConfig((p) => p ? { ...p, date_column: e.target.value } : null)}
-                                  className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono"
-                                  placeholder="column_name"
-                                />
-                                <select
-                                  value={editingDateConfig.date_column_type}
-                                  onChange={(e) => setEditingDateConfig((p) => p ? { ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' } : null)}
-                                  className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
-                                  style={{ colorScheme: 'dark' }}
-                                >
-                                  <option value="timestamp" className="bg-gray-800">timestamp / date</option>
-                                  <option value="int_1yymmdd" className="bg-gray-800">integer 1YYMMDD</option>
-                                </select>
-                                <div className="flex gap-1">
+                              {/* Date column cell */}
+                              <td className="px-4 py-3 text-sm">
+                                {editingDateConfig?.id === row.id ? (
+                                  <div className="flex flex-col gap-2 max-w-[220px]">
+                                    <input
+                                      value={editingDateConfig.date_column}
+                                      onChange={(e) =>
+                                        setEditingDateConfig((p) => (p ? { ...p, date_column: e.target.value } : null))
+                                      }
+                                      className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs font-mono"
+                                      placeholder="column_name"
+                                    />
+                                    <select
+                                      value={editingDateConfig.date_column_type}
+                                      onChange={(e) =>
+                                        setEditingDateConfig((p) =>
+                                          p
+                                            ? { ...p, date_column_type: e.target.value as 'timestamp' | 'int_1yymmdd' }
+                                            : null,
+                                        )
+                                      }
+                                      className="px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
+                                      style={{ colorScheme: 'dark' }}
+                                    >
+                                      <option value="timestamp" className="bg-gray-800">
+                                        timestamp / date
+                                      </option>
+                                      <option value="int_1yymmdd" className="bg-gray-800">
+                                        integer 1YYMMDD
+                                      </option>
+                                    </select>
+                                    <div className="flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const col = editingDateConfig.date_column.trim()
+                                          if (!col) return
+                                          updateConfigMutation.mutate(
+                                            {
+                                              id: row.id,
+                                              date_column: col,
+                                              date_column_type: editingDateConfig.date_column_type,
+                                            },
+                                            { onSuccess: () => setEditingDateConfig(null) },
+                                          )
+                                        }}
+                                        disabled={
+                                          updateConfigMutation.isPending || !editingDateConfig.date_column.trim()
+                                        }
+                                        className="px-2 py-0.5 bg-green-600/80 text-white rounded text-xs"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingDateConfig(null)}
+                                        className="px-2 py-0.5 bg-white/20 text-white rounded text-xs"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : row.date_column ? (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-blue-300">
+                                        {row.date_column}
+                                      </code>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setEditingDateConfig({
+                                            id: row.id,
+                                            date_column: row.date_column ?? '',
+                                            date_column_type:
+                                              row.date_column_type === 'int_1yymmdd' ? 'int_1yymmdd' : 'timestamp',
+                                          })
+                                        }
+                                        className="px-1.5 py-0.5 bg-blue-600/50 text-white rounded text-[10px]"
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                    {row.date_column_type === 'int_1yymmdd' && (
+                                      <p className="text-xs text-white/40">integer 1YYMMDD format</p>
+                                    )}
+                                  </div>
+                                ) : isRefNoDate ? (
+                                  <div className="space-y-0.5">
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/10 text-white/60 rounded text-xs"
+                                      title={row.notes ?? ''}
+                                    >
+                                      Not applicable
+                                    </span>
+                                    {row.notes && <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded text-xs">
+                                      Pending setup
+                                    </span>
+                                    {row.notes && <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEditingDateConfig({
+                                          id: row.id,
+                                          date_column: '',
+                                          date_column_type: 'timestamp',
+                                        })
+                                      }
+                                      className="text-xs text-blue-300 hover:underline"
+                                    >
+                                      Set date column
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Retention days cell */}
+                              <td className="px-4 py-3 text-sm">
+                                {editingRetention?.id === row.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={editingRetention.value}
+                                      onChange={(e) =>
+                                        setEditingRetention((p) => (p ? { ...p, value: e.target.value } : null))
+                                      }
+                                      className="w-24 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                      placeholder="days"
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        const days = parseInt(editingRetention.value, 10)
+                                        if (!Number.isNaN(days) && days > 0) {
+                                          updateConfigMutation.mutate(
+                                            { id: row.id, retention_days: days },
+                                            { onSuccess: () => setEditingRetention(null) },
+                                          )
+                                        }
+                                      }}
+                                      disabled={updateConfigMutation.isPending}
+                                      className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
+                                    >
+                                      {updateConfigMutation.isPending ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingRetention(null)}
+                                      className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    {row.date_column || !isRefNoDate ? (
+                                      <>
+                                        <span className={row.retention_days ? 'text-white' : 'text-white/40 italic'}>
+                                          {row.retention_days ? `${row.retention_days} days` : 'Not set'}
+                                        </span>
+                                        <button
+                                          onClick={() =>
+                                            setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })
+                                          }
+                                          className="px-2 py-0.5 bg-blue-600/60 hover:bg-blue-500 text-white rounded text-xs"
+                                          disabled={isRefNoDate}
+                                        >
+                                          Edit
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <span className="text-white/30 italic text-xs">N/A</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Actions cell */}
+                              <td className="px-4 py-3 text-sm">
+                                <div className="flex flex-col gap-1">
+                                  <button
+                                    onClick={async () => {
+                                      setHousekeepingRunning((p) => ({ ...p, [row.id]: true }))
+                                      setHousekeepingMessages((p) => {
+                                        const n = { ...p }
+                                        delete n[row.id]
+                                        return n
+                                      })
+                                      try {
+                                        const result = await runHousekeepingMutation.mutateAsync({ id: row.id })
+                                        setHousekeepingMessages((p) => ({
+                                          ...p,
+                                          [row.id]: { type: 'success', text: result.message },
+                                        }))
+                                      } catch (e: any) {
+                                        setHousekeepingMessages((p) => ({
+                                          ...p,
+                                          [row.id]: { type: 'error', text: e?.message ?? 'Error running housekeeping' },
+                                        }))
+                                      } finally {
+                                        setHousekeepingRunning((p) => ({ ...p, [row.id]: false }))
+                                      }
+                                    }}
+                                    disabled={!canRun || housekeepingRunning[row.id]}
+                                    className="px-3 py-1 bg-orange-600/80 hover:bg-orange-500 text-white rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                                    title={
+                                      !row.date_column
+                                        ? 'Configure date column and retention first'
+                                        : !row.retention_days
+                                          ? 'Set retention days first'
+                                          : 'Run housekeeping'
+                                    }
+                                  >
+                                    {housekeepingRunning[row.id] ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                                        Running...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                          />
+                                        </svg>
+                                        Run Housekeeping
+                                      </>
+                                    )}
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const col = editingDateConfig.date_column.trim()
-                                      if (!col) return
-                                      updateConfigMutation.mutate(
-                                        {
-                                          id: row.id,
-                                          date_column: col,
-                                          date_column_type: editingDateConfig.date_column_type,
-                                        },
-                                        { onSuccess: () => setEditingDateConfig(null) },
+                                      if (
+                                        !window.confirm(
+                                          `Remove housekeeping config for ${row.db_name}.${row.table_name}?`,
+                                        )
                                       )
+                                        return
+                                      deleteHousekeepingMutation.mutate({ id: row.id })
                                     }}
-                                    disabled={updateConfigMutation.isPending || !editingDateConfig.date_column.trim()}
-                                    className="px-2 py-0.5 bg-green-600/80 text-white rounded text-xs"
+                                    disabled={deleteHousekeepingMutation.isPending}
+                                    className="px-3 py-1 bg-red-900/50 hover:bg-red-800/60 text-red-200 rounded text-xs disabled:opacity-50"
                                   >
-                                    Save
+                                    Delete row
                                   </button>
-                                  <button type="button" onClick={() => setEditingDateConfig(null)} className="px-2 py-0.5 bg-white/20 text-white rounded text-xs">Cancel</button>
-                                </div>
-                              </div>
-                            ) : row.date_column ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1 flex-wrap">
-                                  <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs text-blue-300">{row.date_column}</code>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingDateConfig({
-                                      id: row.id,
-                                      date_column: row.date_column ?? '',
-                                      date_column_type: row.date_column_type === 'int_1yymmdd' ? 'int_1yymmdd' : 'timestamp',
-                                    })}
-                                    className="px-1.5 py-0.5 bg-blue-600/50 text-white rounded text-[10px]"
-                                  >
-                                    Edit
-                                  </button>
-                                </div>
-                                {row.date_column_type === 'int_1yymmdd' && (
-                                  <p className="text-xs text-white/40">integer 1YYMMDD format</p>
-                                )}
-                              </div>
-                            ) : isRefNoDate ? (
-                              <div className="space-y-0.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/10 text-white/60 rounded text-xs" title={row.notes ?? ''}>
-                                  Not applicable
-                                </span>
-                                {row.notes && (
-                                  <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="space-y-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded text-xs">
-                                  Pending setup
-                                </span>
-                                {row.notes && (
-                                  <p className="text-xs text-white/40 max-w-[200px]">{row.notes}</p>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingDateConfig({
-                                    id: row.id,
-                                    date_column: '',
-                                    date_column_type: 'timestamp',
-                                  })}
-                                  className="text-xs text-blue-300 hover:underline"
-                                >
-                                  Set date column
-                                </button>
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Retention days cell */}
-                          <td className="px-4 py-3 text-sm">
-                            {editingRetention?.id === row.id ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={editingRetention.value}
-                                  onChange={(e) => setEditingRetention((p) => p ? { ...p, value: e.target.value } : null)}
-                                  className="w-24 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                                  placeholder="days"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const days = parseInt(editingRetention.value)
-                                    if (!isNaN(days) && days > 0) {
-                                      updateConfigMutation.mutate(
-                                        { id: row.id, retention_days: days },
-                                        { onSuccess: () => setEditingRetention(null) }
-                                      )
-                                    }
-                                  }}
-                                  disabled={updateConfigMutation.isPending}
-                                  className="px-2 py-1 bg-green-600/80 hover:bg-green-500 text-white rounded text-xs disabled:opacity-50"
-                                >
-                                  {updateConfigMutation.isPending ? 'Saving...' : 'Save'}
-                                </button>
-                                <button
-                                  onClick={() => setEditingRetention(null)}
-                                  className="px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                {row.date_column || !isRefNoDate ? (
-                                  <>
-                                    <span className={row.retention_days ? 'text-white' : 'text-white/40 italic'}>
-                                      {row.retention_days ? `${row.retention_days} days` : 'Not set'}
-                                    </span>
-                                    <button
-                                      onClick={() => setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })}
-                                      className="px-2 py-0.5 bg-blue-600/60 hover:bg-blue-500 text-white rounded text-xs"
-                                      disabled={isRefNoDate}
+                                  {housekeepingMessages[row.id] && (
+                                    <p
+                                      className={`text-xs ${housekeepingMessages[row.id].type === 'success' ? 'text-green-300' : 'text-red-300'}`}
                                     >
-                                      Edit
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="text-white/30 italic text-xs">N/A</span>
-                                )}
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Actions cell */}
-                          <td className="px-4 py-3 text-sm">
-                            <div className="flex flex-col gap-1">
-                              <button
-                                onClick={async () => {
-                                  setHousekeepingRunning((p) => ({ ...p, [row.id]: true }))
-                                  setHousekeepingMessages((p) => { const n = { ...p }; delete n[row.id]; return n })
-                                  try {
-                                    const result = await runHousekeepingMutation.mutateAsync({ id: row.id })
-                                    setHousekeepingMessages((p) => ({ ...p, [row.id]: { type: 'success', text: result.message } }))
-                                  } catch (e: any) {
-                                    setHousekeepingMessages((p) => ({ ...p, [row.id]: { type: 'error', text: e?.message ?? 'Error running housekeeping' } }))
-                                  } finally {
-                                    setHousekeepingRunning((p) => ({ ...p, [row.id]: false }))
-                                  }
-                                }}
-                                disabled={!canRun || housekeepingRunning[row.id]}
-                                className="px-3 py-1 bg-orange-600/80 hover:bg-orange-500 text-white rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                                title={!row.date_column ? 'Configure date column and retention first' : !row.retention_days ? 'Set retention days first' : 'Run housekeeping'}
-                              >
-                                {housekeepingRunning[row.id] ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
-                                    Running...
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    Run Housekeeping
-                                  </>
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (!window.confirm(`Remove housekeeping config for ${row.db_name}.${row.table_name}?`)) return
-                                  deleteHousekeepingMutation.mutate({ id: row.id })
-                                }}
-                                disabled={deleteHousekeepingMutation.isPending}
-                                className="px-3 py-1 bg-red-900/50 hover:bg-red-800/60 text-red-200 rounded text-xs disabled:opacity-50"
-                              >
-                                Delete row
-                              </button>
-                              {housekeepingMessages[row.id] && (
-                                <p className={`text-xs ${housekeepingMessages[row.id].type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
-                                  {housekeepingMessages[row.id].text}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                        )
-                      })}
+                                      {housekeepingMessages[row.id].text}
+                                    </p>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        },
+                      )}
                     </tbody>
                   </table>
                   {(housekeepingData?.data?.length ?? 0) === 0 && (
-                    <div className="p-8 text-center text-white/50">No raw tables configured. Run migration to seed from apps, or add a row above.</div>
+                    <div className="p-8 text-center text-white/50">
+                      No raw tables configured. Run migration to seed from apps, or add a row above.
+                    </div>
                   )}
                 </div>
               )}
@@ -2103,9 +2361,15 @@ function SuperadminPage() {
                   className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   style={{ colorScheme: 'dark' }}
                 >
-                  <option value="superadmin" className="bg-gray-700 text-white">Superadmin</option>
-                  <option value="admin" className="bg-gray-700 text-white">Admin</option>
-                  <option value="user" className="bg-gray-700 text-white">User</option>
+                  <option value="superadmin" className="bg-gray-700 text-white">
+                    Superadmin
+                  </option>
+                  <option value="admin" className="bg-gray-700 text-white">
+                    Admin
+                  </option>
+                  <option value="user" className="bg-gray-700 text-white">
+                    User
+                  </option>
                 </select>
               </div>
               <div className="flex gap-2 justify-end">
@@ -2188,9 +2452,15 @@ function SuperadminPage() {
                   className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   style={{ colorScheme: 'dark' }}
                 >
-                  <option value="superadmin" className="bg-gray-700 text-white">Superadmin</option>
-                  <option value="admin" className="bg-gray-700 text-white">Admin</option>
-                  <option value="user" className="bg-gray-700 text-white">User</option>
+                  <option value="superadmin" className="bg-gray-700 text-white">
+                    Superadmin
+                  </option>
+                  <option value="admin" className="bg-gray-700 text-white">
+                    Admin
+                  </option>
+                  <option value="user" className="bg-gray-700 text-white">
+                    User
+                  </option>
                 </select>
               </div>
               <div className="flex gap-2 justify-end">

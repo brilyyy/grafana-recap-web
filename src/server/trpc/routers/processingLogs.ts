@@ -1,22 +1,26 @@
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { eq, and, sql, desc, count } from 'drizzle-orm'
-import { router, superAdminProcedure } from '../init'
+import { and, count, desc, eq, sql } from 'drizzle-orm'
+import { z } from 'zod'
+import { RecapValidationError, triggerRecap } from '@/application/recap/trigger-recap'
 import { db } from '@/db'
-import { appProcessingLog, appIdentifier } from '@/db/schema'
-import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { appIdentifier, appProcessingLog } from '@/db/schema'
 import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
-import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
+import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { router, superAdminProcedure } from '../init'
 
 export const processingLogsRouter = router({
   list: superAdminProcedure
-    .input(z.object({
-      page: z.number().int().min(1).default(1),
-      limit: z.number().int().min(1).max(200).default(50),
-      app_id: z.number().int().optional(),
-      status: z.string().optional(),
-      recap_kind: z.string().optional(),
-    }).optional())
+    .input(
+      z
+        .object({
+          page: z.number().int().min(1).default(1),
+          limit: z.number().int().min(1).max(200).default(50),
+          app_id: z.number().int().optional(),
+          status: z.string().optional(),
+          recap_kind: z.string().optional(),
+        })
+        .optional(),
+    )
     .query(async ({ input }) => {
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
@@ -25,7 +29,8 @@ export const processingLogsRouter = router({
       const conditions = []
       if (input?.app_id) conditions.push(eq(appProcessingLog.idAppIdentifier, input.app_id))
       if (input?.status) conditions.push(eq(appProcessingLog.status, input.status as 'running' | 'success' | 'failed'))
-      if (input?.recap_kind) conditions.push(sql`COALESCE(${appProcessingLog.recapKind}, 'success_rate_daily') = ${input.recap_kind}`)
+      if (input?.recap_kind)
+        conditions.push(sql`COALESCE(${appProcessingLog.recapKind}, 'success_rate_daily') = ${input.recap_kind}`)
       const where = conditions.length > 0 ? and(...conditions) : undefined
 
       const logs = await db
@@ -59,11 +64,13 @@ export const processingLogsRouter = router({
 
   /** Latest log per processing date for one catalog job within a month */
   byMonth: superAdminProcedure
-    .input(z.object({
-      catalogEntryId: z.string().min(1),
-      month: z.number().int().min(1).max(12),
-      year: z.number().int().min(2000).max(2100),
-    }))
+    .input(
+      z.object({
+        catalogEntryId: z.string().min(1),
+        month: z.number().int().min(1).max(12),
+        year: z.number().int().min(2000).max(2100),
+      }),
+    )
     .query(async ({ input }) => {
       const entry = getCatalogEntryById(input.catalogEntryId)
       if (!entry) {

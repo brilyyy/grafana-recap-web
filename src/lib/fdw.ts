@@ -1,4 +1,4 @@
-import { createHash } from 'crypto'
+import { createHash } from 'node:crypto'
 
 /**
  * Build the local PostgreSQL identifier for a prefixed foreign table: `{sourceDb}_{tableName}`.

@@ -1,16 +1,7 @@
-import {
-  pgTable,
-  varchar,
-  integer,
-  text,
-  timestamp,
-  date,
-  index,
-  serial,
-} from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { users } from './auth'
+import { date, index, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { appIdentifier } from './applications'
+import { users } from './auth'
 
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
@@ -39,7 +30,7 @@ export const appProcessingLog = pgTable(
     statusIdx: index('idx_apl_status').on(t.status, t.createdAt),
     processingDateIdx: index('idx_app_processing_log_processing_date').on(t.processingDate),
     catalogEntryDateIdx: index('idx_apl_catalog_entry_date').on(t.catalogEntryId, t.processingDate),
-  })
+  }),
 )
 
 export const auditLogs = pgTable(
@@ -61,7 +52,7 @@ export const auditLogs = pgTable(
     actionIdx: index('idx_audit_action').on(t.action),
     resourceTypeIdx: index('idx_audit_resource_type').on(t.resourceType),
     createdAtIdx: index('idx_audit_created_at').on(t.createdAt),
-  })
+  }),
 )
 
 export const rateLimitLogs = pgTable(
@@ -75,7 +66,7 @@ export const rateLimitLogs = pgTable(
   (t) => ({
     ipEndpointIdx: index('idx_ip_endpoint').on(t.ipAddress, t.endpoint),
     blockedAtIdx: index('idx_blocked_at').on(t.blockedAt),
-  })
+  }),
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

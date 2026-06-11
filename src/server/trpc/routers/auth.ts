@@ -1,13 +1,13 @@
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { eq, and, sql, count } from 'drizzle-orm'
-import { router, publicProcedure, protectedProcedure, superAdminProcedure } from '../init'
-import { auth } from '@/lib/better-auth'
+import { and, count, eq, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import { db } from '@/db'
-import { users, pendingUserRequests } from '@/db/schema'
-import { hashPassword } from '@/lib/auth'
+import { pendingUserRequests, users } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
+import { hashPassword } from '@/lib/auth'
+import { auth } from '@/lib/better-auth'
 import type { ApiResponse } from '@/types'
+import { protectedProcedure, publicProcedure, router, superAdminProcedure } from '../init'
 
 export const authRouter = router({
   /** Check current session */
@@ -78,7 +78,8 @@ export const authRouter = router({
           .select({ id: users.id })
           .from(users)
           .where(sql`${users.username} = ${username} OR ${users.email} = ${email}`)
-        if (existingUser.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
+        if (existingUser.length > 0)
+          throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
 
         const existingReq = await db
           .select({ id: pendingUserRequests.id })
@@ -119,7 +120,7 @@ export const authRouter = router({
         email: z.string().email(),
         password: z.string().min(8),
         requestedRole: z.enum(['admin', 'user']).default('user'),
-      })
+      }),
     )
     .mutation(async ({ input, ctx }) => {
       const { username, email, password, requestedRole } = input
@@ -130,7 +131,8 @@ export const authRouter = router({
         .select({ id: users.id })
         .from(users)
         .where(sql`${users.username} = ${username} OR ${users.email} = ${email}`)
-      if (existingUser.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
+      if (existingUser.length > 0)
+        throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
 
       const existingReq = await db
         .select({ id: pendingUserRequests.id })
@@ -163,14 +165,16 @@ export const authRouter = router({
 
       // Try BetterAuth admin plugin first (fallback to direct insert)
       const betterAuthRole: 'admin' | 'user' = approvedRole === 'superadmin' ? 'admin' : approvedRole
-      await auth.api.createUser({
-        body: {
-          name: pending.username,
-          email: pending.email,
-          password: undefined as any,
-          role: betterAuthRole,
-        },
-      }).catch(() => null)
+      await auth.api
+        .createUser({
+          body: {
+            name: pending.username,
+            email: pending.email,
+            password: undefined as any,
+            role: betterAuthRole,
+          },
+        })
+        .catch(() => null)
 
       await db.transaction(async (tx) => {
         await tx.insert(users).values({
@@ -190,7 +194,14 @@ export const authRouter = router({
           .where(eq(pendingUserRequests.id, id))
       })
 
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'USER_REQUEST_APPROVED', 'pending_user_request', id.toString(), `Approved: ${pending.username} as ${approvedRole}`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'USER_REQUEST_APPROVED',
+        'pending_user_request',
+        id.toString(),
+        `Approved: ${pending.username} as ${approvedRole}`,
+      )
       return { success: true, message: `User "${pending.username}" created with role "${approvedRole}"` } as ApiResponse
     }),
 
@@ -216,7 +227,14 @@ export const authRouter = router({
         })
         .where(eq(pendingUserRequests.id, id))
 
-      await logAuditEvent(ctx.session.userId, ctx.session.username, 'USER_REQUEST_REJECTED', 'pending_user_request', id.toString(), `Rejected: ${pending.username}`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'USER_REQUEST_REJECTED',
+        'pending_user_request',
+        id.toString(),
+        `Rejected: ${pending.username}`,
+      )
       return { success: true, message: 'User request rejected' } as ApiResponse
     }),
 

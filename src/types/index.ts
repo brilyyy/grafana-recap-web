@@ -58,4 +58,3 @@ export interface DictionaryViewEntry {
   rc_description: string | null
   error_type: 'S' | 'N' | 'Sukses'
 }
-

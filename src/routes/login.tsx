@@ -1,11 +1,11 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
-import { trpc } from '@/router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { AlertCircle, Loader2, Lock, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Lock, User, AlertCircle } from 'lucide-react'
+import { trpc } from '@/router'
 
 export const Route = createFileRoute('/login')({
   ssr: false,
@@ -57,8 +57,14 @@ function LoginPage() {
       {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '1s' }}
+        />
+        <div
+          className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '2s' }}
+        />
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-in fade-in duration-300">
@@ -71,9 +77,7 @@ function LoginPage() {
             <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
               Welcome Back
             </h1>
-            <p className="text-white/70 text-sm md:text-base">
-              Sign in to access the dashboard
-            </p>
+            <p className="text-white/70 text-sm md:text-base">Sign in to access the dashboard</p>
           </div>
 
           {/* Form */}
@@ -117,7 +121,10 @@ function LoginPage() {
             </div>
 
             {error && (
-              <Alert variant="destructive" className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300">
+              <Alert
+                variant="destructive"
+                className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300"
+              >
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -141,9 +148,7 @@ function LoginPage() {
 
           {/* Footer */}
           <div className="pt-4 border-t border-white/10 space-y-3">
-            <p className="text-center text-white/50 text-xs">
-              Secure access to your dashboard
-            </p>
+            <p className="text-center text-white/50 text-xs">Secure access to your dashboard</p>
             <Link
               to="/register"
               className="block w-full text-center bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-all border border-white/20 hover:border-white/30"
