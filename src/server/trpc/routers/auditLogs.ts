@@ -1,9 +1,8 @@
 import { z } from 'zod'
+import { eq, and, gte, lte, ilike, sql, count, desc } from 'drizzle-orm'
 import { router, superAdminProcedure } from '../init'
-import { pool } from '@/lib/db'
-import { env } from '@/env'
-
-const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
+import { db } from '@/db'
+import { auditLogs } from '@/db/schema'
 
 export const auditLogsRouter = router({
   list: superAdminProcedure
@@ -21,21 +20,38 @@ export const auditLogsRouter = router({
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
       const offset = (page - 1) * limit
-      const params: any[] = []
-      let where = 'WHERE 1=1'
-      if (input?.action) { where += ' AND action = ?'; params.push(input.action) }
-      if (input?.userId) { where += ' AND user_id = ?'; params.push(input.userId) }
-      if (input?.resourceType) { where += ' AND resource_type = ?'; params.push(input.resourceType) }
-      if (input?.username) { where += ' AND username LIKE ?'; params.push(`%${input.username}%`) }
-      if (input?.startDate) { where += ' AND created_at >= ?'; params.push(input.startDate) }
-      if (input?.endDate) { where += ' AND created_at <= ?'; params.push(input.endDate) }
 
-      const [logs]: any = await pool.execute(
-        `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
-      )
-      const [countResult]: any = await pool.execute(`SELECT COUNT(*) as total FROM audit_logs ${where}`, params)
+      const conditions = []
+      if (input?.action) conditions.push(eq(auditLogs.action, input.action))
+      if (input?.userId) conditions.push(eq(auditLogs.userId, input.userId))
+      if (input?.resourceType) conditions.push(eq(auditLogs.resourceType, input.resourceType))
+      if (input?.username) conditions.push(ilike(auditLogs.username, `%${input.username}%`))
+      if (input?.startDate) conditions.push(gte(auditLogs.createdAt, sql`${input.startDate}::timestamp`))
+      if (input?.endDate) conditions.push(lte(auditLogs.createdAt, sql`${input.endDate}::timestamp`))
+      const where = conditions.length > 0 ? and(...conditions) : undefined
+
+      const logs = await db
+        .select({
+          id: auditLogs.id,
+          user_id: auditLogs.userId,
+          username: auditLogs.username,
+          action: auditLogs.action,
+          resource_type: auditLogs.resourceType,
+          resource_id: auditLogs.resourceId,
+          details: auditLogs.details,
+          ip_address: auditLogs.ipAddress,
+          user_agent: auditLogs.userAgent,
+          created_at: auditLogs.createdAt,
+        })
+        .from(auditLogs)
+        .where(where)
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(limit)
+        .offset(offset)
+
+      const countResult = await db.select({ total: count() }).from(auditLogs).where(where)
       const total = countResult[0].total
+
       return { success: true, data: { logs, total, page, limit, totalPages: Math.ceil(total / limit) } }
     }),
 
@@ -44,52 +60,44 @@ export const auditLogsRouter = router({
     .query(async ({ input }) => {
       const days = input?.days ?? 30
 
-      let dateFilter: string
-      let dateParams: any[]
-      if (isPostgres) {
-        dateFilter = `created_at >= NOW() - INTERVAL '${days} days'`
-        dateParams = []
-      } else {
-        dateFilter = `created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)`
-        dateParams = [days]
-      }
+      const actionCounts = await db.execute(sql`
+        SELECT action, COUNT(*)::int as count FROM audit_logs
+        WHERE created_at >= NOW() - (${days} || ' days')::interval
+        GROUP BY action ORDER BY count DESC LIMIT 10
+      `)
 
-      const connection = await pool.getConnection()
-      try {
-        const [actionCounts]: any = await connection.execute(
-          `SELECT action, COUNT(*) as count FROM audit_logs WHERE ${dateFilter} GROUP BY action ORDER BY count DESC LIMIT 10`,
-          dateParams
-        )
-        const [resourceTypeCounts]: any = await connection.execute(
-          `SELECT resource_type, COUNT(*) as count FROM audit_logs WHERE ${dateFilter} GROUP BY resource_type ORDER BY count DESC`,
-          dateParams
-        )
-        const dateFunc = isPostgres ? 'DATE(created_at)' : 'DATE(created_at)'
-        const [dailyActivity]: any = await connection.execute(
-          `SELECT ${dateFunc} as date, COUNT(*) as count FROM audit_logs WHERE ${dateFilter} GROUP BY ${dateFunc} ORDER BY date DESC`,
-          dateParams
-        )
-        const [topUsers]: any = await connection.execute(
-          `SELECT username, COUNT(*) as count FROM audit_logs WHERE ${dateFilter} AND username IS NOT NULL GROUP BY username ORDER BY count DESC LIMIT 10`,
-          dateParams
-        )
-        const [totalResult]: any = await connection.execute(
-          `SELECT COUNT(*) as total FROM audit_logs WHERE ${dateFilter}`,
-          dateParams
-        )
+      const resourceTypeCounts = await db.execute(sql`
+        SELECT resource_type, COUNT(*)::int as count FROM audit_logs
+        WHERE created_at >= NOW() - (${days} || ' days')::interval
+        GROUP BY resource_type ORDER BY count DESC
+      `)
 
-        return {
-          success: true,
-          data: {
-            total: totalResult[0]?.total || 0,
-            actionCounts: actionCounts || [],
-            resourceTypeCounts: resourceTypeCounts || [],
-            dailyActivity: dailyActivity || [],
-            topUsers: topUsers || [],
-          },
-        }
-      } finally {
-        connection.release()
+      const dailyActivity = await db.execute(sql`
+        SELECT DATE(created_at)::text as date, COUNT(*)::int as count FROM audit_logs
+        WHERE created_at >= NOW() - (${days} || ' days')::interval
+        GROUP BY DATE(created_at) ORDER BY date DESC
+      `)
+
+      const topUsers = await db.execute(sql`
+        SELECT username, COUNT(*)::int as count FROM audit_logs
+        WHERE created_at >= NOW() - (${days} || ' days')::interval AND username IS NOT NULL
+        GROUP BY username ORDER BY count DESC LIMIT 10
+      `)
+
+      const totalResult = await db.execute(sql`
+        SELECT COUNT(*)::int as total FROM audit_logs
+        WHERE created_at >= NOW() - (${days} || ' days')::interval
+      `)
+
+      return {
+        success: true,
+        data: {
+          total: Number(totalResult.rows[0]?.total ?? 0),
+          actionCounts: actionCounts.rows || [],
+          resourceTypeCounts: resourceTypeCounts.rows || [],
+          dailyActivity: dailyActivity.rows || [],
+          topUsers: topUsers.rows || [],
+        },
       }
     }),
 })

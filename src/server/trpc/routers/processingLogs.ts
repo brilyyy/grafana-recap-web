@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq, and, sql, desc, count } from 'drizzle-orm'
 import { router, superAdminProcedure } from '../init'
-import { pool } from '@/lib/db'
+import { db } from '@/db'
+import { appProcessingLog, appIdentifier } from '@/db/schema'
 import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
 import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
 import { triggerRecap, RecapValidationError } from '@/application/recap/trigger-recap'
@@ -19,30 +21,39 @@ export const processingLogsRouter = router({
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
       const offset = (page - 1) * limit
-      const params: unknown[] = []
-      let where = 'WHERE 1=1'
-      if (input?.app_id) {
-        where += ' AND apl.id_app_identifier = ?'
-        params.push(input.app_id)
-      }
-      if (input?.status) {
-        where += ' AND apl.status = ?'
-        params.push(input.status)
-      }
-      if (input?.recap_kind) {
-        where += ' AND COALESCE(apl.recap_kind, \'success_rate_daily\') = ?'
-        params.push(input.recap_kind)
-      }
 
-      const [logs]: any = await pool.execute(
-        `SELECT apl.*, ai.app_name FROM app_processing_log apl
-         JOIN app_identifier ai ON apl.id_app_identifier = ai.id
-         ${where} ORDER BY apl.created_at DESC LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
-      )
-      const [countResult]: any = await pool.execute(
-        `SELECT COUNT(*) as total FROM app_processing_log apl ${where}`, params
-      )
+      const conditions = []
+      if (input?.app_id) conditions.push(eq(appProcessingLog.idAppIdentifier, input.app_id))
+      if (input?.status) conditions.push(eq(appProcessingLog.status, input.status as 'running' | 'success' | 'failed'))
+      if (input?.recap_kind) conditions.push(sql`COALESCE(${appProcessingLog.recapKind}, 'success_rate_daily') = ${input.recap_kind}`)
+      const where = conditions.length > 0 ? and(...conditions) : undefined
+
+      const logs = await db
+        .select({
+          id: appProcessingLog.id,
+          app_name: appProcessingLog.appName,
+          id_app_identifier: appProcessingLog.idAppIdentifier,
+          processing_date: appProcessingLog.processingDate,
+          start_time: appProcessingLog.startTime,
+          end_time: appProcessingLog.endTime,
+          status: appProcessingLog.status,
+          records_processed: appProcessingLog.recordsProcessed,
+          records_inserted: appProcessingLog.recordsInserted,
+          records_skipped: appProcessingLog.recordsSkipped,
+          error_message: appProcessingLog.errorMessage,
+          recap_kind: appProcessingLog.recapKind,
+          catalog_entry_id: appProcessingLog.catalogEntryId,
+          created_at: appProcessingLog.createdAt,
+        })
+        .from(appProcessingLog)
+        .innerJoin(appIdentifier, eq(appProcessingLog.idAppIdentifier, appIdentifier.id))
+        .where(where)
+        .orderBy(desc(appProcessingLog.createdAt))
+        .limit(limit)
+        .offset(offset)
+
+      const countResult = await db.select({ total: count() }).from(appProcessingLog).where(where)
+
       return { success: true, data: { logs, total: countResult[0].total, page, limit } }
     }),
 
@@ -64,39 +75,39 @@ export const processingLogsRouter = router({
       const lastDay = new Date(input.year, input.month, 0).getDate()
       const endDate = `${input.year}-${String(input.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-      const [logs]: any = await pool.execute(
-        `SELECT DISTINCT ON (processing_date)
+      const result = await db.execute(sql`
+        SELECT DISTINCT ON (processing_date)
            id, app_name, catalog_entry_id,
            TO_CHAR(processing_date, 'YYYY-MM-DD') as processing_date,
            status, records_processed, records_inserted,
            start_time, end_time, error_message,
            COALESCE(recap_kind, 'success_rate_daily') as recap_kind
          FROM app_processing_log
-         WHERE processing_date >= ?::date
-           AND processing_date <= ?::date
+         WHERE processing_date >= ${startDate}::date
+           AND processing_date <= ${endDate}::date
            AND (
-             catalog_entry_id = ?
+             catalog_entry_id = ${logFilter.catalogEntryId}
              OR (
                catalog_entry_id IS NULL
-               AND app_name = ?
-               AND COALESCE(recap_kind, 'success_rate_daily') = ?
+               AND app_name = ${logFilter.appName}
+               AND COALESCE(recap_kind, 'success_rate_daily') = ${logFilter.recapKind}
              )
            )
-         ORDER BY processing_date DESC, created_at DESC`,
-        [startDate, endDate, logFilter.catalogEntryId, logFilter.appName, logFilter.recapKind]
-      )
-      return { success: true, data: logs ?? [] }
+         ORDER BY processing_date DESC, created_at DESC
+      `)
+      return { success: true, data: (result.rows ?? []) as any[] }
     }),
 
   processManual: superAdminProcedure
     .input(z.object({ app_id: z.number().int(), date: z.string().optional() }))
     .mutation(async ({ input }) => {
-      const [apps]: any = await pool.execute('SELECT app_name FROM app_identifier WHERE id = ?', [
-        input.app_id,
-      ])
-      if (apps.length === 0) return { success: false, message: 'Application not found' }
+      const [app] = await db
+        .select({ appName: appIdentifier.appName })
+        .from(appIdentifier)
+        .where(eq(appIdentifier.id, input.app_id))
+      if (!app) return { success: false, message: 'Application not found' }
 
-      const appKey = normalizeAppNameToKey(apps[0].app_name as string)
+      const appKey = normalizeAppNameToKey(app.appName)
       try {
         const result = await triggerRecap({
           catalogEntryId: `sr:${appKey}`,

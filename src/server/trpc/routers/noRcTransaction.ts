@@ -1,58 +1,71 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq, and, or, isNull, sql, asc, count } from 'drizzle-orm'
 import { router, protectedProcedure } from '../init'
-import { pool } from '@/lib/db'
+import { db } from '@/db'
+import { appSuccessRate, appIdentifier, unmappedRc, responseCodeDictionary } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
-
-const unmappedRcUpsertSql = `INSERT INTO "unmapped_rc" ("id_app_identifier","jenis_transaksi","rc","rc_description","status_transaksi","error_type") VALUES (?,?,?,?,?,?) ON CONFLICT ("id_app_identifier","jenis_transaksi","rc") DO UPDATE SET "rc_description"=EXCLUDED."rc_description","status_transaksi"=EXCLUDED."status_transaksi"`
 
 /**
  * Assign an RC to an app_success_rate row that has none.
  * If the RC exists in the dictionary the error_type is auto-assigned,
  * otherwise the RC is queued in unmapped_rc for manual mapping.
  */
-async function assignRc(connection: any, id: number, rcRaw: string, rcDescriptionRaw?: string | null) {
+async function assignRc(tx: any, id: number, rcRaw: string, rcDescriptionRaw?: string | null) {
   const rc = rcRaw.trim()
-  const rc_description = rcDescriptionRaw?.trim() || null
+  const rcDescription = rcDescriptionRaw?.trim() || null
 
   // 1. Update app_success_rate.rc and rc_description
-  await connection.execute(
-    'UPDATE app_success_rate SET rc = ?, rc_description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [rc, rc_description, id]
-  )
+  await tx
+    .update(appSuccessRate)
+    .set({ rc, rcDescription, updatedAt: sql`NOW()` })
+    .where(eq(appSuccessRate.id, id))
 
   // 2. Get id_app_identifier, jenis_transaksi and status_transaksi from the record
-  const [recordResult]: any = await connection.execute(
-    'SELECT id_app_identifier, jenis_transaksi, status_transaksi FROM app_success_rate WHERE id = ?',
-    [id]
-  )
-  if (recordResult.length === 0) {
+  const [record] = await tx
+    .select({
+      idAppIdentifier: appSuccessRate.idAppIdentifier,
+      jenisTransaksi: appSuccessRate.jenisTransaksi,
+      statusTransaksi: appSuccessRate.statusTransaksi,
+    })
+    .from(appSuccessRate)
+    .where(eq(appSuccessRate.id, id))
+  if (!record) {
     throw new TRPCError({ code: 'NOT_FOUND', message: `Record with id ${id} not found` })
   }
-  const { id_app_identifier, jenis_transaksi, status_transaksi } = recordResult[0]
 
   // 3. Check whether the RC exists in the dictionary
-  const [dictionaryResult]: any = await connection.execute(
-    'SELECT error_type FROM response_code_dictionary WHERE id_app_identifier = ? AND jenis_transaksi = ? AND rc = ?',
-    [id_app_identifier, jenis_transaksi || '', rc]
-  )
+  const [dictEntry] = await tx
+    .select({ errorType: responseCodeDictionary.errorType })
+    .from(responseCodeDictionary)
+    .where(and(
+      eq(responseCodeDictionary.idAppIdentifier, record.idAppIdentifier),
+      eq(responseCodeDictionary.jenisTransaksi, record.jenisTransaksi || ''),
+      eq(responseCodeDictionary.rc, rc),
+    ))
 
-  if (dictionaryResult.length > 0) {
+  if (dictEntry) {
     // RC in dictionary -> auto-assign error_type
-    await connection.execute(
-      'UPDATE app_success_rate SET error_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [dictionaryResult[0].error_type, id]
-    )
+    await tx
+      .update(appSuccessRate)
+      .set({ errorType: dictEntry.errorType, updatedAt: sql`NOW()` })
+      .where(eq(appSuccessRate.id, id))
   } else {
     // RC not in dictionary -> queue in unmapped_rc (error_type stays NULL)
-    await connection.execute(unmappedRcUpsertSql, [
-      id_app_identifier,
-      jenis_transaksi || '',
-      rc,
-      rc_description,
-      status_transaksi ?? null,
-      null,
-    ])
+    await tx
+      .insert(unmappedRc)
+      .values({
+        idAppIdentifier: record.idAppIdentifier,
+        jenisTransaksi: record.jenisTransaksi || '',
+        rc,
+        rcDescription,
+        statusTransaksi: record.statusTransaksi ?? null,
+        errorType: null,
+      })
+      .onConflictDoUpdate({
+        target: [unmappedRc.idAppIdentifier, unmappedRc.jenisTransaksi, unmappedRc.rc],
+        set: { rcDescription, statusTransaksi: record.statusTransaksi ?? null },
+      })
   }
 }
 
@@ -63,37 +76,53 @@ export const noRcTransactionRouter = router({
       const page = input?.page ?? 1
       const limit = input?.limit ?? 50
       const offset = (page - 1) * limit
-      const params: any[] = []
-      let where = 'WHERE a.rc IS NULL AND a.error_type IS NULL'
-      if (input?.app_id) { where += ' AND a.id_app_identifier = ?'; params.push(input.app_id) }
 
-      const [rows]: any = await pool.execute(
-        `SELECT a.*, app.app_name FROM app_success_rate a
-         LEFT JOIN app_identifier app ON a.id_app_identifier = app.id
-         ${where} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
-      )
-      const [countResult]: any = await pool.execute(
-        `SELECT COUNT(*) as total FROM app_success_rate a ${where}`,
-        params
-      )
-      return { success: true, data: { entries: rows, total: Number(countResult[0].total), page, limit } }
+      const conditions = [isNull(appSuccessRate.rc), isNull(appSuccessRate.errorType)]
+      if (input?.app_id) {
+        conditions.push(eq(appSuccessRate.idAppIdentifier, input.app_id))
+      }
+      const where = and(...conditions)
+
+      const baseQuery = db
+        .select({
+          id: appSuccessRate.id,
+          id_app_identifier: appSuccessRate.idAppIdentifier,
+          app_name: appIdentifier.appName,
+          tanggal_transaksi: appSuccessRate.tanggalTransaksi,
+          bulan: appSuccessRate.bulan,
+          tahun: appSuccessRate.tahun,
+          jenis_transaksi: appSuccessRate.jenisTransaksi,
+          rc: appSuccessRate.rc,
+          rc_description: appSuccessRate.rcDescription,
+          total_transaksi: appSuccessRate.totalTransaksi,
+          total_nominal: appSuccessRate.totalNominal,
+          total_biaya_admin: appSuccessRate.totalBiayaAdmin,
+          status_transaksi: appSuccessRate.statusTransaksi,
+          error_type: appSuccessRate.errorType,
+          created_at: appSuccessRate.createdAt,
+          updated_at: appSuccessRate.updatedAt,
+        })
+        .from(appSuccessRate)
+        .innerJoin(appIdentifier, eq(appSuccessRate.idAppIdentifier, appIdentifier.id))
+        .where(where)
+        .orderBy(sql`${appSuccessRate.createdAt} DESC`)
+
+      const entries = await baseQuery.limit(limit).offset(offset)
+
+      const countResult = await db
+        .select({ total: count() })
+        .from(appSuccessRate)
+        .where(where)
+
+      return { success: true, data: { entries, total: countResult[0].total, page, limit } }
     }),
 
   submit: protectedProcedure
     .input(z.object({ id: z.number().int(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const connection = await pool.getConnection()
-      try {
-        await connection.beginTransaction()
-        await assignRc(connection, input.id, input.rc, input.rc_description)
-        await connection.commit()
-      } catch (error) {
-        await connection.rollback()
-        throw error
-      } finally {
-        connection.release()
-      }
+      await db.transaction(async (tx) => {
+        await assignRc(tx, input.id, input.rc, input.rc_description)
+      })
       await logAuditEvent(ctx.session.userId, ctx.session.username, 'NO_RC_TRANSACTION_SUBMITTED', 'app_success_rate', input.id.toString(), `Submitted RC ${input.rc.trim()} for no RC transaction`)
       return { success: true, message: `RC ${input.rc.trim()} has been assigned successfully` }
     }),
@@ -101,19 +130,11 @@ export const noRcTransactionRouter = router({
   submitBatch: protectedProcedure
     .input(z.object({ items: z.array(z.object({ id: z.number().int(), rc: z.string().min(1), rc_description: z.string().nullable().optional() })).min(1) }))
     .mutation(async ({ input, ctx }) => {
-      const connection = await pool.getConnection()
-      try {
-        await connection.beginTransaction()
+      await db.transaction(async (tx) => {
         for (const item of input.items) {
-          await assignRc(connection, item.id, item.rc, item.rc_description)
+          await assignRc(tx, item.id, item.rc, item.rc_description)
         }
-        await connection.commit()
-      } catch (error) {
-        await connection.rollback()
-        throw error
-      } finally {
-        connection.release()
-      }
+      })
       await logAuditEvent(ctx.session.userId, ctx.session.username, 'NO_RC_BATCH_SUBMITTED', 'app_success_rate', null, `Assigned RC to ${input.items.length} transactions`)
       return { success: true, message: `${input.items.length} RC(s) have been assigned successfully` }
     }),

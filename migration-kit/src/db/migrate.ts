@@ -908,7 +908,7 @@ async function runFdwSetup() {
 
 async function runStoredProcedures() {
   console.log('\n⚙️  Phase 5: Stored procedures')
-  await runProcedures(exec, true)
+  await runProcedures(exec)
 
   // PostgreSQL-only: housekeeping utility function
   // Reads retention_days at runtime so UI changes take effect without re-running migration

@@ -1,8 +1,10 @@
 export interface Application {
   id: number
   app_name: string
-  created_at?: Date
-  updated_at?: Date
+  db_name?: string | null
+  raw_table_name?: string | null
+  created_at?: Date | string
+  updated_at?: Date | string
 }
 
 export interface ApiResponse<T = any> {
@@ -31,8 +33,8 @@ export interface SuccessRateEntry {
   status_transaksi: string | null // VARCHAR, boleh null atau value apapun
   error_type: 'S' | 'N' | 'Sukses' | null // BOLEH null
   id_app_identifier: number
-  created_at?: Date
-  updated_at?: Date
+  created_at?: Date | string
+  updated_at?: Date | string
 }
 
 export interface UnmappedRC {
@@ -44,7 +46,7 @@ export interface UnmappedRC {
   rc_description: string | null
   status_transaksi: string | null // VARCHAR, boleh null atau value apapun
   error_type: 'S' | 'N' | 'Sukses' | null
-  created_at?: Date
+  created_at?: Date | string
 }
 
 export interface DictionaryViewEntry {

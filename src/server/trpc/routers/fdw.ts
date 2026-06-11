@@ -1,15 +1,16 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { sql } from 'drizzle-orm'
 import { router, publicProcedure, superAdminProcedure } from '../init'
-import { pool } from '@/lib/db'
+import { db } from '@/db'
 import { logAuditEvent } from '@/lib/audit'
 
 export const fdwRouter = router({
   list: publicProcedure.query(async () => {
-    const [rows]: any = await pool.execute(
-      'SELECT id, source_db_name, table_name, schema_name, created_at FROM fdw_source_table ORDER BY source_db_name, table_name'
+    const result = await db.execute(
+      sql`SELECT id, source_db_name, table_name, schema_name, created_at FROM fdw_source_table ORDER BY source_db_name, table_name`
     )
-    return { success: true, data: { fdwSources: rows } }
+    return { success: true, data: { fdwSources: result.rows as any[] } }
   }),
 
   add: superAdminProcedure
@@ -20,10 +21,10 @@ export const fdwRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       try {
-        await pool.execute(
-          'INSERT INTO fdw_source_table (source_db_name, table_name, schema_name) VALUES (?, ?, ?)',
-          [input.source_db_name, input.table_name, input.schema_name ?? 'public']
-        )
+        await db.execute(sql`
+          INSERT INTO fdw_source_table (source_db_name, table_name, schema_name)
+          VALUES (${input.source_db_name}, ${input.table_name}, ${input.schema_name ?? 'public'})
+        `)
         await logAuditEvent(
           ctx.session.userId,
           ctx.session.username,
@@ -44,11 +45,14 @@ export const fdwRouter = router({
   remove: superAdminProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input, ctx }) => {
-      const [rows]: any = await pool.execute('SELECT source_db_name, table_name FROM fdw_source_table WHERE id = ?', [input.id])
+      const result = await db.execute(sql`
+        SELECT source_db_name, table_name FROM fdw_source_table WHERE id = ${input.id}
+      `)
+      const rows = result.rows as any[]
       if (rows.length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'FDW source not found' })
       }
-      await pool.execute('DELETE FROM fdw_source_table WHERE id = ?', [input.id])
+      await db.execute(sql`DELETE FROM fdw_source_table WHERE id = ${input.id}`)
       const row = rows[0]
       await logAuditEvent(
         ctx.session.userId,

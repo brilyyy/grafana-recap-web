@@ -1,4 +1,5 @@
-import { pool } from '@/lib/db'
+import { db } from '@/db'
+import { auditLogs } from '@/db/schema'
 
 export interface AuditLog {
   id?: number
@@ -24,11 +25,16 @@ export async function logAuditEvent(
   userAgent: string | null = null
 ): Promise<void> {
   try {
-    await pool.execute(
-      `INSERT INTO audit_logs (user_id, username, action, resource_type, resource_id, details, ip_address, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [userId, username, action, resourceType, resourceId, details, ipAddress, userAgent]
-    )
+    await db.insert(auditLogs).values({
+      userId,
+      username,
+      action,
+      resourceType,
+      resourceId,
+      details,
+      ipAddress,
+      userAgent,
+    })
   } catch (error) {
     console.error('Failed to log audit event:', error)
   }

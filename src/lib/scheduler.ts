@@ -13,130 +13,57 @@ let cmsCorpRecapTask: any = null
 let baleKorporaCorpRecapTask: any = null
 
 /**
+ * Run a stored procedure with a NULL date argument through the shared
+ * Drizzle connection pool. Imports are dynamic so the scheduler module
+ * stays cheap to load until a job actually fires.
+ */
+async function runStoredProcedure(procedureName: string): Promise<void> {
+  const { db } = await import('@/db')
+  const { sql } = await import('drizzle-orm')
+  await db.execute(sql`SELECT ${sql.raw(`public.${procedureName}`)}(${null}::date)`)
+}
+
+/**
  * Execute the Bale daily processing stored procedure.
  */
 async function executeBaleProcessing(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host:     process.env.DB_HOST,
-    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_process_bale_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_process_bale_daily')
 }
 
 /**
  * Execute the Bale Bisnis daily processing stored procedure.
  */
 async function executeBaleBisnisProcessing(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host:     process.env.DB_HOST,
-    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_process_bale_bisnis_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_process_bale_bisnis_daily')
 }
 
 /**
  * Execute the CMS daily processing stored procedure.
  */
 async function executeCmsProcessing(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host:     process.env.DB_HOST,
-    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_process_cms_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_process_cms_daily')
 }
 
 async function executeCmsCorpRecap(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT ?? '5432', 10),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_recap_cms_corp_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_recap_cms_corp_daily')
 }
 
 async function executeBaleKorporaCorpRecap(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT ?? '5432', 10),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_recap_bale_korpora_corp_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_recap_bale_korpora_corp_daily')
 }
 
 /**
  * Execute the Bale Korpora daily processing stored procedure.
  */
 async function executeBaleKorporaProcessing(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host:     process.env.DB_HOST,
-    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_process_bale_korpora_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_process_bale_korpora_daily')
 }
 
 /**
  * Execute the OLOB daily processing stored procedure.
  */
 async function executeOlobProcessing(): Promise<void> {
-  const { Pool } = await import('pg')
-  const pool = new Pool({
-    host:     process.env.DB_HOST,
-    port:     parseInt(process.env.DB_PORT ?? '5432', 10),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  })
-  try {
-    await pool.query('SELECT public.sp_process_olob_daily($1::date)', [null])
-  } finally {
-    await pool.end()
-  }
+  await runStoredProcedure('sp_process_olob_daily')
 }
 
 /**

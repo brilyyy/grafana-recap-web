@@ -1,11 +1,11 @@
 import { z } from 'zod'
+import { eq, and, sql, asc, count } from 'drizzle-orm'
 import { router, protectedProcedure } from '../init'
-import { pool } from '@/lib/db'
+import { db } from '@/db'
+import { unmappedRc, appIdentifier, responseCodeDictionary, appSuccessRate } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
 
 const errorTypeEnum = z.enum(['S', 'N', 'Sukses'])
-
-const rcDictUpsertSql = `INSERT INTO "response_code_dictionary" ("id_app_identifier","jenis_transaksi","rc","error_type") VALUES (?,?,?,?) ON CONFLICT ("id_app_identifier","jenis_transaksi","rc") DO UPDATE SET "error_type"=EXCLUDED."error_type"`
 
 interface MappingItem {
   id: number
@@ -16,27 +16,40 @@ interface MappingItem {
 }
 
 /** Upsert dictionary entry, propagate error_type to app_success_rate, remove from unmapped_rc. */
-async function applyMapping(connection: any, item: MappingItem) {
+async function applyMapping(tx: any, item: MappingItem) {
   const { id, id_app_identifier, jenis_transaksi, rc, error_type } = item
+  const jt = jenis_transaksi || ''
 
-  // 1. Insert into response_code_dictionary with upsert
-  await connection.execute(rcDictUpsertSql, [id_app_identifier, jenis_transaksi || '', rc, error_type])
+  // 1. Upsert into response_code_dictionary
+  await tx
+    .insert(responseCodeDictionary)
+    .values({ idAppIdentifier: id_app_identifier, jenisTransaksi: jt, rc, errorType: error_type })
+    .onConflictDoUpdate({
+      target: [responseCodeDictionary.idAppIdentifier, responseCodeDictionary.jenisTransaksi, responseCodeDictionary.rc],
+      set: { errorType: error_type },
+    })
 
-  // 2. Update every app_success_rate row for the same composite key
+  // 2. Propagate error_type to app_success_rate
   if (jenis_transaksi != null && String(jenis_transaksi).trim() !== '') {
-    await connection.execute(
-      'UPDATE app_success_rate SET error_type = ? WHERE id_app_identifier = ? AND jenis_transaksi = ? AND rc = ?',
-      [error_type, id_app_identifier, jenis_transaksi, rc]
-    )
+    await tx
+      .update(appSuccessRate)
+      .set({ errorType: error_type })
+      .where(and(
+        eq(appSuccessRate.idAppIdentifier, id_app_identifier),
+        eq(appSuccessRate.jenisTransaksi, jenis_transaksi),
+        eq(appSuccessRate.rc, rc),
+      ))
   } else {
-    await connection.execute(
-      "UPDATE app_success_rate SET error_type = ? WHERE id_app_identifier = ? AND rc = ? AND (jenis_transaksi IS NULL OR jenis_transaksi = '')",
-      [error_type, id_app_identifier, rc]
-    )
+    await tx.execute(sql`
+      UPDATE app_success_rate SET error_type = ${error_type}
+      WHERE id_app_identifier = ${id_app_identifier}
+        AND rc = ${rc}
+        AND (jenis_transaksi IS NULL OR jenis_transaksi = '')
+    `)
   }
 
   // 3. Delete from unmapped_rc
-  await connection.execute('DELETE FROM unmapped_rc WHERE id = ?', [id])
+  await tx.delete(unmappedRc).where(eq(unmappedRc.id, id))
 }
 
 export const unmappedRcRouter = router({
@@ -47,36 +60,46 @@ export const unmappedRcRouter = router({
       const limit = input?.limit ?? 50
       const offset = (page - 1) * limit
       const fetchAll = input?.fetch_all ?? false
-      const params: any[] = []
-      let where = 'WHERE 1=1'
-      if (input?.app_id) { where += ' AND ur.id_app_identifier = ?'; params.push(input.app_id) }
 
-      const [rows]: any = await pool.execute(
-        `SELECT ur.*, ai.app_name FROM unmapped_rc ur
-         JOIN app_identifier ai ON ur.id_app_identifier = ai.id
-         ${where} ORDER BY ur.created_at DESC ${fetchAll ? '' : 'LIMIT ? OFFSET ?'}`,
-        fetchAll ? params : [...params, limit, offset]
-      )
-      const [countResult]: any = await pool.execute(
-        `SELECT COUNT(*) as total FROM unmapped_rc ur ${where}`, params
-      )
-      return { success: true, data: { entries: rows, total: Number(countResult[0].total), page, limit } }
+      const conditions = []
+      if (input?.app_id) {
+        conditions.push(eq(unmappedRc.idAppIdentifier, input.app_id))
+      }
+      const where = conditions.length > 0 ? and(...conditions) : undefined
+
+      const baseQuery = db
+        .select({
+          id: unmappedRc.id,
+          id_app_identifier: unmappedRc.idAppIdentifier,
+          app_name: appIdentifier.appName,
+          jenis_transaksi: unmappedRc.jenisTransaksi,
+          rc: unmappedRc.rc,
+          rc_description: unmappedRc.rcDescription,
+          status_transaksi: unmappedRc.statusTransaksi,
+          error_type: unmappedRc.errorType,
+          created_at: unmappedRc.createdAt,
+        })
+        .from(unmappedRc)
+        .innerJoin(appIdentifier, eq(unmappedRc.idAppIdentifier, appIdentifier.id))
+        .where(where)
+        .orderBy(sql`${unmappedRc.createdAt} DESC`)
+
+      const entries = fetchAll ? await baseQuery : await baseQuery.limit(limit).offset(offset)
+
+      const countResult = await db
+        .select({ total: count() })
+        .from(unmappedRc)
+        .where(where)
+
+      return { success: true, data: { entries, total: countResult[0].total, page, limit } }
     }),
 
   submit: protectedProcedure
     .input(z.object({ id: z.number().int(), id_app_identifier: z.number().int(), jenis_transaksi: z.string().nullable(), rc: z.string().min(1), error_type: errorTypeEnum }))
     .mutation(async ({ input, ctx }) => {
-      const connection = await pool.getConnection()
-      try {
-        await connection.beginTransaction()
-        await applyMapping(connection, input)
-        await connection.commit()
-      } catch (error) {
-        await connection.rollback()
-        throw error
-      } finally {
-        connection.release()
-      }
+      await db.transaction(async (tx) => {
+        await applyMapping(tx, input)
+      })
       await logAuditEvent(ctx.session.userId, ctx.session.username, 'UNMAPPED_RC_SUBMITTED', 'unmapped_rc', input.id.toString())
       return { success: true, message: `RC mapping added successfully. RC ${input.rc} mapped to ${input.error_type}` }
     }),
@@ -84,19 +107,11 @@ export const unmappedRcRouter = router({
   submitBatch: protectedProcedure
     .input(z.object({ items: z.array(z.object({ id: z.number().int(), id_app_identifier: z.number().int(), jenis_transaksi: z.string().nullable(), rc: z.string().min(1), error_type: errorTypeEnum })) }))
     .mutation(async ({ input, ctx }) => {
-      const connection = await pool.getConnection()
-      try {
-        await connection.beginTransaction()
+      await db.transaction(async (tx) => {
         for (const item of input.items) {
-          await applyMapping(connection, item)
+          await applyMapping(tx, item)
         }
-        await connection.commit()
-      } catch (error) {
-        await connection.rollback()
-        throw error
-      } finally {
-        connection.release()
-      }
+      })
       await logAuditEvent(ctx.session.userId, ctx.session.username, 'UNMAPPED_RC_BATCH_SUBMITTED', 'unmapped_rc', null, `Submitted ${input.items.length} items`)
       return { success: true, message: `Successfully mapped ${input.items.length} RC(s)` }
     }),

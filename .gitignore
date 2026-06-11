@@ -43,3 +43,7 @@ public/components/
 # Uploads
 public/uploads/
 .code-review-graph/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json

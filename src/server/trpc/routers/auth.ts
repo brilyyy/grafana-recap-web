@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq, and, sql, count } from 'drizzle-orm'
 import { router, publicProcedure, protectedProcedure, superAdminProcedure } from '../init'
 import { auth } from '@/lib/better-auth'
-import { pool } from '@/lib/db'
+import { db } from '@/db'
+import { users, pendingUserRequests } from '@/db/schema'
 import { hashPassword } from '@/lib/auth'
 import { logAuditEvent } from '@/lib/audit'
 import type { ApiResponse } from '@/types'
@@ -28,25 +30,33 @@ export const authRouter = router({
 
   /** Check if any admin exists */
   checkAdmin: publicProcedure.query(async () => {
-    const [admins]: any = await pool.execute(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'admin' OR role = 'superadmin'"
-    )
+    const [result] = await db
+      .select({ count: count() })
+      .from(users)
+      .where(sql`${users.role} = 'admin' OR ${users.role} = 'superadmin'`)
     return {
       success: true,
-      data: { adminExists: admins[0].count > 0 },
+      data: { adminExists: result.count > 0 },
     } as ApiResponse
   }),
 
   /** Get pending user requests (superadmin only) */
   pendingRequests: superAdminProcedure.query(async () => {
-    const [requests]: any = await pool.execute(
-      `SELECT pur.id, pur.username, pur.email, pur.requested_role, pur.status,
-              pur.created_at, pur.updated_at, u.username as requested_by_username
-       FROM pending_user_requests pur
-       LEFT JOIN users u ON pur.requested_by = u.id
-       WHERE pur.status = 'pending'
-       ORDER BY pur.created_at DESC`
-    )
+    const requests = await db
+      .select({
+        id: pendingUserRequests.id,
+        username: pendingUserRequests.username,
+        email: pendingUserRequests.email,
+        requested_role: pendingUserRequests.requestedRole,
+        status: pendingUserRequests.status,
+        created_at: pendingUserRequests.createdAt,
+        updated_at: pendingUserRequests.updatedAt,
+        requested_by_username: users.username,
+      })
+      .from(pendingUserRequests)
+      .leftJoin(users, eq(pendingUserRequests.requestedById, users.id))
+      .where(eq(pendingUserRequests.status, 'pending'))
+      .orderBy(sql`${pendingUserRequests.createdAt} DESC`)
     return { success: true, data: { requests } } as ApiResponse
   }),
 
@@ -56,29 +66,34 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { username, email, password } = input
 
-      const [admins]: any = await pool.execute(
-        "SELECT COUNT(*) as count FROM users WHERE role = 'admin' OR role = 'superadmin'"
-      )
+      const [adminCount] = await db
+        .select({ count: count() })
+        .from(users)
+        .where(sql`${users.role} = 'admin' OR ${users.role} = 'superadmin'`)
       const passwordHash = await hashPassword(password)
 
-      if (admins[0].count > 0) {
+      if (adminCount.count > 0) {
         // Check duplicates
-        const [existing]: any = await pool.execute(
-          'SELECT id FROM users WHERE username = ? OR email = ?',
-          [username, email]
-        )
-        if (existing.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
+        const existingUser = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(sql`${users.username} = ${username} OR ${users.email} = ${email}`)
+        if (existingUser.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
 
-        const [existingReqs]: any = await pool.execute(
-          'SELECT id FROM pending_user_requests WHERE username = ? OR email = ?',
-          [username, email]
-        )
-        if (existingReqs.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Request already pending' })
+        const existingReq = await db
+          .select({ id: pendingUserRequests.id })
+          .from(pendingUserRequests)
+          .where(sql`${pendingUserRequests.username} = ${username} OR ${pendingUserRequests.email} = ${email}`)
+        if (existingReq.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Request already pending' })
 
-        await pool.execute(
-          "INSERT INTO pending_user_requests (username, email, password_hash, requested_role, requested_by, status) VALUES (?, ?, ?, ?, NULL, 'pending')",
-          [username, email, passwordHash, 'admin']
-        )
+        await db.insert(pendingUserRequests).values({
+          username,
+          email,
+          passwordHash,
+          requestedRole: 'admin',
+          requestedById: null,
+          status: 'pending',
+        })
         return {
           success: true,
           message: 'Admin registration request submitted. Awaiting superadmin approval.',
@@ -87,10 +102,12 @@ export const authRouter = router({
       }
 
       // First-time setup
-      await pool.execute(
-        'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-        [username, email, passwordHash, 'admin']
-      )
+      await db.insert(users).values({
+        username,
+        email,
+        passwordHash,
+        role: 'admin',
+      })
       return { success: true, message: 'Admin user created successfully (first-time setup)' } as ApiResponse
     }),
 
@@ -109,22 +126,26 @@ export const authRouter = router({
       const passwordHash = await hashPassword(password)
       const requestedById = ctx.session?.userId ?? null
 
-      const [existing]: any = await pool.execute(
-        'SELECT id FROM users WHERE username = ? OR email = ?',
-        [username, email]
-      )
-      if (existing.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
+      const existingUser = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(sql`${users.username} = ${username} OR ${users.email} = ${email}`)
+      if (existingUser.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Username or email already exists' })
 
-      const [existingReqs]: any = await pool.execute(
-        'SELECT id FROM pending_user_requests WHERE username = ? OR email = ?',
-        [username, email]
-      )
-      if (existingReqs.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Request already pending' })
+      const existingReq = await db
+        .select({ id: pendingUserRequests.id })
+        .from(pendingUserRequests)
+        .where(sql`${pendingUserRequests.username} = ${username} OR ${pendingUserRequests.email} = ${email}`)
+      if (existingReq.length > 0) throw new TRPCError({ code: 'CONFLICT', message: 'Request already pending' })
 
-      await pool.execute(
-        "INSERT INTO pending_user_requests (username, email, password_hash, requested_role, requested_by, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-        [username, email, passwordHash, requestedRole, requestedById]
-      )
+      await db.insert(pendingUserRequests).values({
+        username,
+        email,
+        passwordHash,
+        requestedRole,
+        requestedById,
+        status: 'pending',
+      })
       return { success: true, message: 'Registration request submitted. Awaiting approval.' } as ApiResponse
     }),
 
@@ -134,46 +155,40 @@ export const authRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { id, approvedRole } = input
 
-      const betterAuthRole: 'admin' | 'user' | ('admin' | 'user')[] | undefined =
-        approvedRole === 'superadmin' ? 'admin' : approvedRole
+      const [pending] = await db
+        .select()
+        .from(pendingUserRequests)
+        .where(and(eq(pendingUserRequests.id, id), eq(pendingUserRequests.status, 'pending')))
+      if (!pending) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pending request not found' })
 
-      const [requests]: any = await pool.execute(
-        "SELECT * FROM pending_user_requests WHERE id = ? AND status = 'pending'",
-        [id]
-      )
-      if (requests.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pending request not found' })
-
-      const pending = requests[0]
-
-      // Create user via BetterAuth Admin plugin
+      // Try BetterAuth admin plugin first (fallback to direct insert)
+      const betterAuthRole: 'admin' | 'user' = approvedRole === 'superadmin' ? 'admin' : approvedRole
       await auth.api.createUser({
         body: {
           name: pending.username,
           email: pending.email,
-          password: undefined as any, // Use existing password_hash via direct insert below
+          password: undefined as any,
           role: betterAuthRole,
         },
-      }).catch(() => null) // Fallback to direct insert if admin API not set up yet
+      }).catch(() => null)
 
-      // Direct insert to preserve password_hash from the pending request
-      const connection = await pool.getConnection()
-      await connection.beginTransaction()
-      try {
-        await connection.execute(
-          'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-          [pending.username, pending.email, pending.password_hash, approvedRole]
-        )
-        await connection.execute(
-          "UPDATE pending_user_requests SET status = 'approved', approved_role = ?, approved_by = ?, updated_at = NOW() WHERE id = ?",
-          [approvedRole, ctx.session.userId, id]
-        )
-        await connection.commit()
-      } catch (e) {
-        await connection.rollback()
-        throw e
-      } finally {
-        connection.release()
-      }
+      await db.transaction(async (tx) => {
+        await tx.insert(users).values({
+          username: pending.username,
+          email: pending.email,
+          passwordHash: pending.passwordHash,
+          role: approvedRole,
+        })
+        await tx
+          .update(pendingUserRequests)
+          .set({
+            status: 'approved',
+            approvedRole,
+            approvedById: ctx.session.userId,
+            updatedAt: sql`NOW()`,
+          })
+          .where(eq(pendingUserRequests.id, id))
+      })
 
       await logAuditEvent(ctx.session.userId, ctx.session.username, 'USER_REQUEST_APPROVED', 'pending_user_request', id.toString(), `Approved: ${pending.username} as ${approvedRole}`)
       return { success: true, message: `User "${pending.username}" created with role "${approvedRole}"` } as ApiResponse
@@ -185,17 +200,21 @@ export const authRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { id, rejectionReason } = input
 
-      const [requests]: any = await pool.execute(
-        "SELECT * FROM pending_user_requests WHERE id = ? AND status = 'pending'",
-        [id]
-      )
-      if (requests.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pending request not found' })
+      const [pending] = await db
+        .select()
+        .from(pendingUserRequests)
+        .where(and(eq(pendingUserRequests.id, id), eq(pendingUserRequests.status, 'pending')))
+      if (!pending) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pending request not found' })
 
-      const pending = requests[0]
-      await pool.execute(
-        "UPDATE pending_user_requests SET status = 'rejected', rejected_by = ?, rejection_reason = ?, updated_at = NOW() WHERE id = ?",
-        [ctx.session.userId, rejectionReason ?? null, id]
-      )
+      await db
+        .update(pendingUserRequests)
+        .set({
+          status: 'rejected',
+          rejectedById: ctx.session.userId,
+          rejectionReason: rejectionReason ?? null,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(pendingUserRequests.id, id))
 
       await logAuditEvent(ctx.session.userId, ctx.session.username, 'USER_REQUEST_REJECTED', 'pending_user_request', id.toString(), `Rejected: ${pending.username}`)
       return { success: true, message: 'User request rejected' } as ApiResponse

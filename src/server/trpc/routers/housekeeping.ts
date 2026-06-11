@@ -1,13 +1,11 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { sql, type SQL } from 'drizzle-orm'
 import { router, superAdminProcedure } from '../init'
-import { pool } from '@/lib/db'
-import { env } from '@/env'
+import { db } from '@/db'
 import { logAuditEvent } from '@/lib/audit'
 
-const isPostgres = env.DB_TYPE === 'postgresql' || env.DB_TYPE === 'postgres'
-
-/** Safe PostgreSQL/MySQL identifier for column names (matches format %I usage in DB functions). */
+/** Safe PostgreSQL identifier for column names */
 const sqlIdentifierSchema = z
   .string()
   .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'Invalid column name')
@@ -34,12 +32,12 @@ export const housekeepingRouter = router({
   }),
 
   list: superAdminProcedure.query(async () => {
-    const [rows]: any = await pool.execute(
-      `SELECT id, db_name, table_name, date_column, date_column_type, retention_days, notes
-       FROM raw_table_housekeeping
-       ORDER BY db_name, table_name`
-    )
-    return { success: true, data: rows as {
+    const result = await db.execute(sql`
+      SELECT id, db_name, table_name, date_column, date_column_type, retention_days, notes
+      FROM raw_table_housekeeping
+      ORDER BY db_name, table_name
+    `)
+    return { success: true, data: result.rows as {
       id: number
       db_name: string
       table_name: string
@@ -66,40 +64,30 @@ export const housekeepingRouter = router({
       { message: 'At least one field to update is required' },
     ))
     .mutation(async ({ input, ctx }) => {
-      const [rows]: any = await pool.execute(
-        'SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ?',
-        [input.id]
-      )
-      if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      const checkResult = await db.execute(sql`
+        SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
+      `)
+      if (checkResult.rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
 
-      const sets: string[] = []
-      const vals: unknown[] = []
-
+      const setClauses: SQL[] = []
       if (input.retention_days !== undefined) {
-        sets.push('retention_days = ?')
-        vals.push(input.retention_days)
+        setClauses.push(sql`retention_days = ${input.retention_days}`)
       }
       if (input.date_column !== undefined) {
         const col = input.date_column === '' ? null : input.date_column
-        sets.push('date_column = ?')
-        vals.push(col)
+        setClauses.push(sql`date_column = ${col}`)
       }
       if (input.date_column_type !== undefined) {
-        sets.push('date_column_type = ?')
-        vals.push(input.date_column_type)
+        setClauses.push(sql`date_column_type = ${input.date_column_type}`)
       }
       if (input.notes !== undefined) {
-        sets.push('notes = ?')
-        vals.push(input.notes)
+        setClauses.push(sql`notes = ${input.notes}`)
       }
 
-      vals.push(input.id)
-      await pool.execute(
-        `UPDATE raw_table_housekeeping SET ${sets.join(', ')} WHERE id = ?`,
-        vals
-      )
+      const setSql = sql.join(setClauses, sql.raw(', '))
+      await db.execute(sql`UPDATE raw_table_housekeeping SET ${setSql} WHERE id = ${input.id}`)
 
-      const row = rows[0]
+      const row = checkResult.rows[0] as any
       await logAuditEvent(
         ctx.session.userId,
         ctx.session.username,
@@ -123,16 +111,15 @@ export const housekeepingRouter = router({
       retention_days: z.number().int().min(1).nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const [rows]: any = await pool.execute(
-        'SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ?',
-        [input.id]
-      )
-      if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
-      await pool.execute(
-        'UPDATE raw_table_housekeeping SET retention_days = ? WHERE id = ?',
-        [input.retention_days, input.id]
-      )
-      const row = rows[0]
+      const checkResult = await db.execute(sql`
+        SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
+      `)
+      if (checkResult.rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+
+      await db.execute(sql`
+        UPDATE raw_table_housekeeping SET retention_days = ${input.retention_days} WHERE id = ${input.id}
+      `)
+      const row = checkResult.rows[0] as any
       await logAuditEvent(
         ctx.session.userId,
         ctx.session.username,
@@ -159,35 +146,20 @@ export const housekeepingRouter = router({
       const notes = input.notes ?? null
       const retention = input.retention_days ?? null
 
-      if (isPostgres) {
-        await pool.execute(
-          `INSERT INTO raw_table_housekeeping ("db_name","table_name","date_column","date_column_type","retention_days","notes")
-           VALUES (?,?,?,?,?,?)
-           ON CONFLICT ("db_name","table_name") DO UPDATE SET
-             "date_column" = EXCLUDED."date_column",
-             "date_column_type" = EXCLUDED."date_column_type",
-             "retention_days" = EXCLUDED."retention_days",
-             "notes" = EXCLUDED."notes"`,
-          [input.db_name, input.table_name, dateCol, dateColType, retention, notes]
-        )
-      } else {
-        await pool.execute(
-          `INSERT INTO raw_table_housekeeping (\`db_name\`,\`table_name\`,\`date_column\`,\`date_column_type\`,\`retention_days\`,\`notes\`)
-           VALUES (?,?,?,?,?,?)
-           ON DUPLICATE KEY UPDATE
-             \`date_column\` = VALUES(\`date_column\`),
-             \`date_column_type\` = VALUES(\`date_column_type\`),
-             \`retention_days\` = VALUES(\`retention_days\`),
-             \`notes\` = VALUES(\`notes\`)`,
-          [input.db_name, input.table_name, dateCol, dateColType, retention, notes]
-        )
-      }
+      await db.execute(sql`
+        INSERT INTO raw_table_housekeeping ("db_name","table_name","date_column","date_column_type","retention_days","notes")
+        VALUES (${input.db_name}, ${input.table_name}, ${dateCol}, ${dateColType}, ${retention}, ${notes})
+        ON CONFLICT ("db_name","table_name") DO UPDATE SET
+          "date_column" = EXCLUDED."date_column",
+          "date_column_type" = EXCLUDED."date_column_type",
+          "retention_days" = EXCLUDED."retention_days",
+          "notes" = EXCLUDED."notes"
+      `)
 
-      const [inserted]: any = await pool.execute(
-        'SELECT id FROM raw_table_housekeeping WHERE db_name = ? AND table_name = ?',
-        [input.db_name, input.table_name]
-      )
-      const id = inserted[0]?.id
+      const inserted = await db.execute(sql`
+        SELECT id FROM raw_table_housekeeping WHERE db_name = ${input.db_name} AND table_name = ${input.table_name}
+      `)
+      const id = (inserted.rows[0] as any)?.id
 
       await logAuditEvent(
         ctx.session.userId,
@@ -203,13 +175,13 @@ export const housekeepingRouter = router({
   deleteRow: superAdminProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input, ctx }) => {
-      const [rows]: any = await pool.execute(
-        'SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ?',
-        [input.id]
-      )
-      if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
-      await pool.execute('DELETE FROM raw_table_housekeeping WHERE id = ?', [input.id])
-      const row = rows[0]
+      const checkResult = await db.execute(sql`
+        SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
+      `)
+      if (checkResult.rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+
+      await db.execute(sql`DELETE FROM raw_table_housekeeping WHERE id = ${input.id}`)
+      const row = checkResult.rows[0] as any
       await logAuditEvent(
         ctx.session.userId,
         ctx.session.username,
@@ -224,13 +196,13 @@ export const housekeepingRouter = router({
   run: superAdminProcedure
     .input(z.object({ id: z.number().int() }))
     .mutation(async ({ input, ctx }) => {
-      const [rows]: any = await pool.execute(
-        'SELECT db_name, table_name, date_column, date_column_type, retention_days FROM raw_table_housekeeping WHERE id = ?',
-        [input.id]
-      )
-      if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      const checkResult = await db.execute(sql`
+        SELECT db_name, table_name, date_column, date_column_type, retention_days
+        FROM raw_table_housekeeping WHERE id = ${input.id}
+      `)
+      if (checkResult.rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
 
-      const row = rows[0] as {
+      const row = checkResult.rows[0] as {
         db_name: string
         table_name: string
         date_column: string | null
@@ -248,36 +220,9 @@ export const housekeepingRouter = router({
         })
       }
 
-      let deletedCount = 0
-
-      if (isPostgres) {
-        const [out]: any = await pool.execute(
-          'SELECT public.sp_run_raw_housekeeping(?) AS deleted',
-          [input.id]
-        )
-        const first = out[0] as { deleted?: number } | undefined
-        deletedCount = Number(first?.deleted ?? 0)
-      } else {
-        const n = row.retention_days
-        if (row.date_column_type === 'int_1yymmdd') {
-          const [result]: any = await pool.execute(
-            `DELETE FROM \`${row.db_name}\`.\`${row.table_name}\`
-             WHERE \`${row.date_column}\` < (
-               1000000
-               + (YEAR(DATE_SUB(CURDATE(), INTERVAL ${n} DAY)) % 100) * 10000
-               + MONTH(DATE_SUB(CURDATE(), INTERVAL ${n} DAY)) * 100
-               + DAY(DATE_SUB(CURDATE(), INTERVAL ${n} DAY))
-             )`
-          )
-          deletedCount = result?.affectedRows ?? 0
-        } else {
-          const [result]: any = await pool.execute(
-            `DELETE FROM \`${row.db_name}\`.\`${row.table_name}\`
-             WHERE \`${row.date_column}\` < DATE_SUB(CURDATE(), INTERVAL ${n} DAY)`
-          )
-          deletedCount = result?.affectedRows ?? 0
-        }
-      }
+      const out = await db.execute(sql`SELECT public.sp_run_raw_housekeeping(${input.id}) AS deleted`)
+      const first = out.rows[0] as { deleted?: number } | undefined
+      const deletedCount = Number(first?.deleted ?? 0)
 
       await logAuditEvent(
         ctx.session.userId,

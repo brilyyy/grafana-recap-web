@@ -37,6 +37,14 @@
 - Verify: tsc clean (2 pre-existing migrate.ts errors remain), `next build` clean.
 - NOT manually tested in browser (no dev DB run this session) — flag for Phase 7 smoke.
 
-### Phase 2 — Drizzle schema split + raw SQL conversion (pending)
+### Phase 2 — Drizzle schema split + raw SQL conversion (in progress)
+
+**2a DONE (uncommitted yet, commits with 2b):** schema split into src/db/schema/{enums,auth,applications,dictionary,logging,index}.ts; pg.ts DELETED (zero importers remained); drizzle.config.ts → schema/index.ts; better-auth + src/db/index.ts updated. GATE PASSED: drizzle-kit generate before/after — normalized statement sets identical (42 statements; raw diff was ordering only). tsc clean (2 pre-existing migrate.ts errors only).
+
+**2b IN FLIGHT — two background agents on disjoint files:**
+- Agent 1: 12 tRPC routers + audit.ts + rateLimit.ts + trigger-recap.ts → Drizzle query builder (snake_case aliases preserve response shapes!); fdw/housekeeping stay db.execute (tables not in schema); stored procs stay db.execute
+- Agent 2: scheduler.ts + migrate.ts (incl. fixing pre-existing TS2554 at :910) + kept REST routes off shim + DELETE redundant REST routes (plan change: deletion moved from Phase 6 to now because shim removal would break compile of unused routes; frontend verified migrated). Logout: agent checks LogoutButton → better-auth signOut if referenced.
+
+**After agents:** main thread deletes src/lib/db.ts, greps zero `@/lib/db` importers, re-runs drizzle gate, tsc + next build, commits Phase 2.
 
 ### Phase 3 — TanStack Start swap (pending)

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/db'
+import { eq } from 'drizzle-orm'
+import { db } from '@/db'
+import { users } from '@/db/schema'
 import { auth } from '@/lib/better-auth'
 import { logAuditEvent, getClientIp, getUserAgent } from '@/lib/audit'
 import { enforceRateLimit, RATE_LIMITS } from '@/lib/rateLimit'
@@ -20,14 +22,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Look up email by username (BetterAuth signs in by email)
-    let users: any
-    const [result]: any = await pool.execute(
-      'SELECT id, username, email, role FROM users WHERE username = ?',
-      [username]
-    )
-    users = result
+    const result = await db
+      .select({ id: users.id, username: users.username, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.username, username))
 
-    if (users.length === 0) {
+    if (result.length === 0) {
       await logAuditEvent(null, username, 'LOGIN_FAILED', 'auth', null, 'Invalid username', getClientIp(request), getUserAgent(request))
       return NextResponse.json(
         { success: false, message: 'Invalid username or password' } as ApiResponse,
@@ -35,16 +35,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = users[0]
+    const user = result[0]
 
     // Use BetterAuth to sign in – it verifies the password and creates the session cookie
     let sessionUser: any
     try {
-      const result = await auth.api.signInEmail({
+      const signInResult = await auth.api.signInEmail({
         body: { email: user.email, password },
         headers: request.headers,
       })
-      sessionUser = result.user
+      sessionUser = signInResult.user
     } catch {
       await logAuditEvent(user.id, username, 'LOGIN_FAILED', 'auth', null, 'Invalid password', getClientIp(request), getUserAgent(request))
       return NextResponse.json(

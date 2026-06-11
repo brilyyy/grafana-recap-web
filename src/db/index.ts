@@ -1,7 +1,7 @@
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres'
 import { Pool as PgPool } from 'pg'
 import { env } from '@/env'
-import * as pgSchema from './schema/pg'
+import * as pgSchema from './schema'
 
 function createPgDb() {
   const pool = new PgPool({

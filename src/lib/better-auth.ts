@@ -4,7 +4,7 @@ import { admin } from 'better-auth/plugins'
 import { nextCookies } from 'better-auth/next-js'
 import { db } from '@/db'
 import { env } from '@/env'
-import * as pgSchema from '@/db/schema/pg'
+import * as pgSchema from '@/db/schema'
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
