@@ -1,9 +1,10 @@
 /**
- * Scheduler instance storage
- * Using 'any' type because node-cron is dynamically imported
+ * Scheduler – node-cron v4 based
  *
- * Note: MySQL branches are deprecated. Use PostgreSQL + pg_cron instead.
+ * Each job invokes a PostgreSQL stored procedure via Drizzle.
+ * Schedules are configurable via environment variables.
  */
+
 let baleProcessingTask: any = null
 let baleBisnisProcessingTask: any = null
 let olobProcessingTask: any = null
@@ -64,15 +65,6 @@ async function executeBaleKorporaProcessing(): Promise<void> {
  */
 async function executeOlobProcessing(): Promise<void> {
   await runStoredProcedure('sp_process_olob_daily')
-}
-
-/**
- * Check if application-level scheduler should be used
- */
-function shouldUseAppLevelScheduler(): boolean {
-  const value = process.env.USE_APP_LEVEL_SCHEDULER
-  console.log('USE_APP_LEVEL_SCHEDULER : ', value)
-  return value === 'true'
 }
 
 /**
@@ -305,12 +297,6 @@ export async function initializeScheduler(): Promise<void> {
     return
   }
 
-  // Only initialize if app-level scheduler is enabled
-  if (!shouldUseAppLevelScheduler()) {
-    console.log('ℹ️  Application-level scheduler disabled (USE_APP_LEVEL_SCHEDULER != true)')
-    return
-  }
-
-  console.log('ℹ️  Initializing application-level scheduler for PostgreSQL...')
+  console.log('ℹ️  Initializing scheduler...')
   await setupProcessingSchedulers()
 }

@@ -1918,7 +1918,7 @@ function SuperadminPage() {
               </p>
             </div>
 
-            {/* pg_cron schedule info */}
+            {/* scheduler info */}
             <div className="flex items-start gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-4 py-3">
               <svg
                 className="w-4 h-4 text-indigo-300 mt-0.5 shrink-0"
@@ -1935,18 +1935,15 @@ function SuperadminPage() {
               </svg>
               <div className="text-sm text-indigo-200 space-y-1">
                 <p>
-                  <span className="font-semibold text-indigo-100">pg_cron auto-schedule: </span>
+                  <span className="font-semibold text-indigo-100">Housekeeping schedule: </span>
                   <code className="bg-indigo-500/20 px-1.5 py-0.5 rounded text-xs font-mono text-indigo-100">
                     {housekeepingScheduleData?.data?.schedule ?? '0 2 * * *'}
                   </code>
                 </p>
                 <p className="text-indigo-300/80 text-xs">
-                  One job <code className="bg-indigo-500/20 px-1 rounded">housekeeping-all</code> runs{' '}
-                  <code className="bg-indigo-500/20 px-1 rounded">sp_run_all_raw_housekeeping()</code> on the platform
-                  DB. New rows you add below are included on the next run — no app redeploy. Register or refresh that
-                  job with <code className="bg-indigo-500/20 px-1 rounded">npm run db:migrate</code>. To change the
+                  Housekeeping runs via node-cron on the app server. To change the
                   schedule, set <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in{' '}
-                  <code className="bg-indigo-500/20 px-1 rounded">.env</code> and re-run migration.
+                  <code className="bg-indigo-500/20 px-1 rounded">.env</code> and restart the app.
                 </p>
               </div>
             </div>

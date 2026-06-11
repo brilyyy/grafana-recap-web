@@ -7,10 +7,10 @@
   },
   "css": {
     "formatter": {
-      "enabled": false
+      "enabled": true
     },
     "parser": {
-      "cssModules": true
+      "tailwindDirectives": true
     }
   },
   "formatter": {
@@ -40,7 +40,8 @@
       "!migration-kit/**",
       "!scripts/**",
       "!.output/**",
-      "!dist/**"
+      "!dist/**",
+      "!src/components/ui/**"
     ],
     "rules": {
       "recommended": true,

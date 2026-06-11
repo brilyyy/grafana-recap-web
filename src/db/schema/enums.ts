@@ -1,8 +1,16 @@
-import { pgEnum } from 'drizzle-orm/pg-core'
+import { pgEnum } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export const userRoleEnum = pgEnum('user_role', ['superadmin', 'admin', 'user'])
-export const requestedRoleEnum = pgEnum('requested_role', ['admin', 'user'])
-export const requestStatusEnum = pgEnum('request_status', ['pending', 'approved', 'rejected'])
-export const errorTypeEnum = pgEnum('error_type', ['S', 'N', 'Sukses'])
+export const userRoleEnum = pgEnum("user_role", [
+  "superadmin",
+  "admin",
+  "user",
+]);
+export const requestedRoleEnum = pgEnum("requested_role", ["admin", "user"]);
+export const requestStatusEnum = pgEnum("request_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+export const errorTypeEnum = pgEnum("error_type", ["S", "N", "Sukses"]);
