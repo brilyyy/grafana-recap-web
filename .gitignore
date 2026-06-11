@@ -1,18 +1,12 @@
 # Dependencies
 node_modules/
-/.pnp
-.pnp.js
 
 # Testing
 /coverage
 
-# Next.js
-/.next/
-/out/
-
-# Production
-/build
+# Build output
 dist/
+.output/
 
 # Misc
 .DS_Store
@@ -28,22 +22,18 @@ yarn-error.log*
 .env*.local
 .env.production
 
-# Vercel
-.vercel
-
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
-# Old files (Express.js version)
-index.js
-public/index.html
-public/components/
+# Drizzle (generated migrations)
+drizzle/
 
 # Uploads
 public/uploads/
+
+# Code review graph
 .code-review-graph/
 
-# MemPalace per-project files (issue #185)
+# MemPalace per-project files
 mempalace.yaml
 entities.json
