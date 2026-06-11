@@ -1,0 +1,123 @@
+# ============================================
+# SECTION 1: NEXT.JS & BUILD IGNORES
+# ============================================
+
+# Dependencies & Build Artifacts
+node_modules/
+.next/
+out/
+build/
+dist/
+.cache/
+.parcel-cache/
+
+# Environment & System Files
+.env
+.env.local
+.env*.local
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE & OS Specific Folders
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================
+# SECTION 2: AGENTIC AI FOLDER IGNORES
+# ============================================
+
+# Common agent memory & workspace directories
+.agent/
+.ai/
+.assistant/
+.cursor/
+.copilot/
+.claude/
+.gemini/
+.llm/
+.agentic/
+agent_workspace/
+ai_memory/
+agent_memory/
+memories/
+context/
+prompts/
+agents/
+agents_data/
+
+# Agent-specific config or cache
+.agentic-cache/
+.ai-cache/
+*.agent-context.json
+*.ai-memory.json
+agent_memory.json
+context_memory.json
+
+# Agent logs & vector stores
+.agent_logs/
+.vector_store/
+.embeddings/
+chroma_db/
+pinecone_data/
+qdrant_data/
+weaviate_data/
+faiss_index/
+langchain_cache/
+.rag_cache/
+
+# ============================================
+# SECTION 3: DISABLE ALL MEDIA EXTRACTION
+# ============================================
+
+# Block All Image Formats
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.bmp
+*.ico
+*.tiff
+*.tif
+*.avif
+*.jfif
+
+# Block All Video Formats
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+*.flv
+*.wmv
+*.m4v
+*.mpg
+*.mpeg
+
+# Block All Audio Formats
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.m4a
+*.opus
+*.wma
+
+# Block Other Media Types (GIFs/Vector)
+*.gif
+*.svg
+*.psd
+*.ai
+*.eps
+
+# Block Screenshots & Raw Media Exports
+**/screenshots/
+**/exports/
+**/assets/
+**/public/**/*.@(png|jpg|jpeg|webp|svg|gif|mp4)
