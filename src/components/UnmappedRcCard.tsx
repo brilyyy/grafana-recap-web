@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { UnmappedRC } from '@/types'
 import { useApplications } from '@/hooks/useApplications'
+import { trpc } from '@/lib/trpc'
 
 export default function UnmappedRcCard() {
   const [unmappedRcs, setUnmappedRcs] = useState<UnmappedRC[]>([])
@@ -16,26 +17,30 @@ export default function UnmappedRcCard() {
   const [submittingAll, setSubmittingAll] = useState(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
+  const utils = trpc.useUtils()
+  const submitMutation = trpc.unmappedRc.submit.useMutation()
+  const submitBatchMutation = trpc.unmappedRc.submitBatch.useMutation()
+
   const loadUnmappedRcs = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      const params = new URLSearchParams()
-      if (selectedAppId) {
-        params.append('appId', selectedAppId)
-      }
-
-      const response = await fetch(`/api/unmapped-rc?${params.toString()}`)
-      const result = await response.json()
+      const result = await utils.unmappedRc.list.fetch(
+        {
+          fetch_all: true,
+          ...(selectedAppId ? { app_id: parseInt(selectedAppId) } : {}),
+        },
+        { staleTime: 0 }
+      )
 
       if (result.success) {
-        setUnmappedRcs(result.data)
+        setUnmappedRcs(result.data.entries as UnmappedRC[])
         // Reset selections when data reloads
         setSelectedItems(new Set())
         setSelectedErrorTypes({})
       } else {
-        throw new Error(result.message || 'Failed to load unmapped RCs')
+        throw new Error('Failed to load unmapped RCs')
       }
     } catch (err: any) {
       setError(err.message)
@@ -43,7 +48,7 @@ export default function UnmappedRcCard() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedAppId])
+  }, [selectedAppId, utils])
 
   // Applications loaded via useApplications hook
 
@@ -125,24 +130,16 @@ export default function UnmappedRcCard() {
         id: rc.id,
         id_app_identifier: rc.id_app_identifier,
         jenis_transaksi: rc.jenis_transaksi,
-        rc: rc.rc,
+        rc: rc.rc ?? '',
         error_type: selectedErrorTypes[rc.id],
       }))
 
-      const response = await fetch('/api/unmapped-rc/submit-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mappings }),
-      })
-
-      const result = await response.json()
+      const result = await submitBatchMutation.mutateAsync({ items: mappings })
 
       if (result.success) {
-        setMessage({ 
-          text: result.message || `Successfully mapped ${result.data?.success || itemsToSubmit.length} RC(s)`, 
-          type: 'success' 
+        setMessage({
+          text: result.message || `Successfully mapped ${itemsToSubmit.length} RC(s)`,
+          type: 'success'
         })
         // Remove submitted items from local state
         const submittedIds = new Set(itemsToSubmit.map(rc => rc.id))
@@ -180,21 +177,13 @@ export default function UnmappedRcCard() {
       setSubmitting(rc.id)
       setMessage(null)
 
-      const response = await fetch('/api/unmapped-rc/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: rc.id,
-          id_app_identifier: rc.id_app_identifier,
-          jenis_transaksi: rc.jenis_transaksi,
-          rc: rc.rc,
-          error_type: errorType,
-        }),
+      const result = await submitMutation.mutateAsync({
+        id: rc.id,
+        id_app_identifier: rc.id_app_identifier,
+        jenis_transaksi: rc.jenis_transaksi,
+        rc: rc.rc ?? '',
+        error_type: errorType,
       })
-
-      const result = await response.json()
 
       if (result.success) {
         setMessage({ text: result.message, type: 'success' })

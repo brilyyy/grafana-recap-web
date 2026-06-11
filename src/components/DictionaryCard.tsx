@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { DictionaryViewEntry, Application } from '@/types'
 import MultiSelectFilter from './MultiSelectFilter'
 import { useApplications } from '@/hooks/useApplications'
+import { trpc } from '@/lib/trpc'
 
 export default function DictionaryCard() {
   const [dictionaryEntries, setDictionaryEntries] = useState<DictionaryViewEntry[]>([])
@@ -31,6 +32,11 @@ export default function DictionaryCard() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const limit = 25
 
+  const utils = trpc.useUtils()
+  const updateErrorTypeMutation = trpc.dictionary.updateErrorType.useMutation()
+  const updateDescriptionMutation = trpc.dictionary.updateDescription.useMutation()
+  const updateDescriptionBatchMutation = trpc.dictionary.updateDescriptionBatch.useMutation()
+
   // Use shared applications hook
   const { applications: sharedApplications } = useApplications()
 
@@ -43,35 +49,33 @@ export default function DictionaryCard() {
       setIsLoading(true)
       setError(null)
 
-      const params = new URLSearchParams()
-      if (searchQuery) params.append('search', searchQuery)
-      if (selectedAppIds.length > 0) params.append('app_id', selectedAppIds.join(','))
-      if (selectedErrorTypes.length > 0) params.append('error_type', selectedErrorTypes.join(','))
-      if (selectedJenisTransaksi.length > 0) params.append('jenis_transaksi', selectedJenisTransaksi.join(','))
-
-      if (!fetchAll) {
-        params.append('page', page.toString())
-        params.append('limit', limit.toString())
-      }
-
-      const response = await fetch(`/api/dictionary?${params.toString()}`)
-      const result = await response.json()
+      const result = await utils.dictionary.list.fetch(
+        {
+          ...(searchQuery ? { search: searchQuery } : {}),
+          ...(selectedAppIds.length > 0 ? { app_ids: selectedAppIds.map(Number) } : {}),
+          ...(selectedErrorTypes.length > 0 ? { error_types: selectedErrorTypes as ('S' | 'N' | 'Sukses')[] } : {}),
+          ...(selectedJenisTransaksi.length > 0 ? { jenis_transaksi: selectedJenisTransaksi } : {}),
+          ...(fetchAll ? { fetch_all: true } : { page, limit }),
+        },
+        { staleTime: 0 }
+      )
 
       if (result.success) {
+        const entries = result.data.entries as DictionaryViewEntry[]
         if (fetchAll) {
-          setAllDictionaryEntries(result.data)
+          setAllDictionaryEntries(entries)
         } else {
-          setDictionaryEntries(result.data)
-          setTotalCount(result.total || result.data.length)
-          setTotalPages(result.totalPages || Math.ceil((result.total || result.data.length) / limit))
-          
+          setDictionaryEntries(entries)
+          setTotalCount(result.data.total || entries.length)
+          setTotalPages(Math.ceil((result.data.total || entries.length) / limit))
+
           // Reset selections when data changes
           setSelectedItems(new Set())
-          
+
           // Extract unique jenis_transaksi values from all data
           const uniqueJenis = Array.from(
             new Set(
-              result.data
+              entries
                 .map((entry: DictionaryViewEntry) => entry.jenis_transaksi)
                 .filter((jenis: string | null) => jenis !== null && jenis !== '')
             )
@@ -79,7 +83,7 @@ export default function DictionaryCard() {
           setUniqueJenisTransaksi(uniqueJenis)
         }
       } else {
-        throw new Error(result.message || 'Failed to load dictionary')
+        throw new Error('Failed to load dictionary')
       }
     } catch (err: any) {
       setError(err.message)
@@ -87,7 +91,7 @@ export default function DictionaryCard() {
     } finally {
       setIsLoading(false)
     }
-  }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, limit])
+  }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, limit, utils])
 
   // Applications loaded via useApplications hook
 
@@ -156,18 +160,10 @@ export default function DictionaryCard() {
       setUpdatingId(id)
       setError(null)
 
-      const response = await fetch('/api/dictionary/update', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          error_type: newErrorType,
-        }),
+      const result = await updateErrorTypeMutation.mutateAsync({
+        id,
+        error_type: newErrorType,
       })
-
-      const result = await response.json()
 
       if (result.success) {
         // Update local state
@@ -206,18 +202,10 @@ export default function DictionaryCard() {
       setError(null)
       setMessage(null)
 
-      const response = await fetch('/api/dictionary/update-description', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          rc_description: newDescription,
-        }),
+      const result = await updateDescriptionMutation.mutateAsync({
+        id,
+        rc_description: newDescription,
       })
-
-      const result = await response.json()
 
       if (result.success) {
         setMessage({ text: result.message || 'RC description updated successfully', type: 'success' })
@@ -278,20 +266,12 @@ export default function DictionaryCard() {
         rc_description: bulkDescription.trim(),
       }))
 
-      const response = await fetch('/api/dictionary/update-description-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ updates }),
-      })
-
-      const result = await response.json()
+      const result = await updateDescriptionBatchMutation.mutateAsync({ updates })
 
       if (result.success) {
-        setMessage({ 
-          text: result.message || `Successfully updated ${result.data?.success || updates.length} RC description(s)`, 
-          type: 'success' 
+        setMessage({
+          text: result.message || `Successfully updated ${updates.length} RC description(s)`,
+          type: 'success'
         })
         // Reload data
         loadDictionary(currentPage, false)
@@ -316,20 +296,22 @@ export default function DictionaryCard() {
       setError(null)
       
       // Fetch all data for export with current filters applied
-      const params = new URLSearchParams()
-      if (searchQuery) params.append('search', searchQuery)
-      if (selectedAppIds.length > 0) params.append('app_id', selectedAppIds.join(','))
-      if (selectedErrorTypes.length > 0) params.append('error_type', selectedErrorTypes.join(','))
-      if (selectedJenisTransaksi.length > 0) params.append('jenis_transaksi', selectedJenisTransaksi.join(','))
-      
-      const response = await fetch(`/api/dictionary?${params.toString()}`)
-      const result = await response.json()
-    
+      const result = await utils.dictionary.list.fetch(
+        {
+          ...(searchQuery ? { search: searchQuery } : {}),
+          ...(selectedAppIds.length > 0 ? { app_ids: selectedAppIds.map(Number) } : {}),
+          ...(selectedErrorTypes.length > 0 ? { error_types: selectedErrorTypes as ('S' | 'N' | 'Sukses')[] } : {}),
+          ...(selectedJenisTransaksi.length > 0 ? { jenis_transaksi: selectedJenisTransaksi } : {}),
+          fetch_all: true,
+        },
+        { staleTime: 0 }
+      )
+
       if (!result.success) {
-        throw new Error(result.message || 'Failed to load dictionary for export')
+        throw new Error('Failed to load dictionary for export')
       }
 
-      const exportData = result.data || []
+      const exportData = (result.data.entries || []) as DictionaryViewEntry[]
       
       if (exportData.length === 0) {
         setError('No data to export with current filters')

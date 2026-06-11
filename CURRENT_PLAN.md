@@ -40,29 +40,29 @@ App builds/runs at end of every phase. Phases 1–2 still on Next.js (independen
 ## Phase 1 — Frontend fetch() → tRPC (still on Next.js)
 
 ### 1.1 Add missing tRPC procedures (reuse REST handler logic verbatim)
-- [ ] Audit `src/server/trpc/routers/auth.ts` — confirm `listPendingRequests`, `approvePendingRequest`, `rejectPendingRequest` exist and match REST behavior (`/api/auth/pending-user-requests`, `/api/auth/approve-user-request/[id]`, `/api/auth/reject-user-request/[id]`); add/fix gaps
-- [ ] Verify `auditLogs.getStats` covers `/api/audit-logs/stats?days=N` (days param); add if missing
-- [ ] Add `recap.processManual` mutation (session-auth, superadmin) mirroring `/api/processing/process-manual` logic — REST route stays for API-key external callers
-- [ ] Verify `processingLogs.list` covers all filters used by superadmin page
+- [x] Audit `src/server/trpc/routers/auth.ts` — confirm `listPendingRequests`, `approvePendingRequest`, `rejectPendingRequest` exist and match REST behavior (`/api/auth/pending-user-requests`, `/api/auth/approve-user-request/[id]`, `/api/auth/reject-user-request/[id]`); add/fix gaps
+- [x] Verify `auditLogs.getStats` covers `/api/audit-logs/stats?days=N` (days param); add if missing
+- [x] Add `recap.processManual` mutation (session-auth, superadmin) mirroring `/api/processing/process-manual` logic — REST route stays for API-key external callers
+- [x] Verify `processingLogs.list` covers all filters used by superadmin page
 
 ### 1.2 Migrate components/pages off fetch()
-- [ ] `src/app/superadmin/page.tsx`: `/api/users*` → `trpc.users.list/get/update/delete/create`
-- [ ] `src/app/superadmin/page.tsx`: pending-user-requests + approve/reject → `trpc.auth.*`
-- [ ] `src/app/superadmin/page.tsx`: `/api/audit-logs*` + stats → `trpc.auditLogs.list/getStats`
-- [ ] `src/app/superadmin/page.tsx`: `/api/processing-logs` → `trpc.processingLogs.list`
-- [ ] `src/app/superadmin/page.tsx`: `/api/processing/process-manual` → `trpc.recap.processManual`
-- [ ] `src/components/DictionaryCard.tsx`: `/api/dictionary`, `update`, `update-description`, `update-description-batch` → `trpc.dictionary.list/updateErrorType/updateDescription/updateDescriptionBatch`
-- [ ] `src/components/UnmappedRcCard.tsx`: list/submit/submit-batch → `trpc.unmappedRc.*`
-- [ ] `src/components/NoRcTransactionCard.tsx`: list/submit/submit-batch → `trpc.noRcTransaction.*`
-- [ ] `src/components/AddAppCard.tsx`: POST `/api/applications` → `trpc.applications.create`
-- [ ] `src/components/AddSuccessRateCard.tsx`: applications list → tRPC (upload itself stays REST)
-- [ ] Leave as REST (intentional): login page `/api/auth/login`, `DictionaryUploadCard` `/api/upload-dictionary`, `AddSuccessRateCard` `/api/upload-success-rate`, `RestartDbCard` `/api/restart-db`
-- [ ] Do NOT delete any REST route yet (Phase 6)
+- [x] `src/app/superadmin/page.tsx`: `/api/users*` → `trpc.users.list/get/update/delete/create`
+- [x] `src/app/superadmin/page.tsx`: pending-user-requests + approve/reject → `trpc.auth.*`
+- [x] `src/app/superadmin/page.tsx`: `/api/audit-logs*` + stats → `trpc.auditLogs.list/getStats`
+- [x] `src/app/superadmin/page.tsx`: `/api/processing-logs` → `trpc.processingLogs.list`
+- [x] `src/app/superadmin/page.tsx`: `/api/processing/process-manual` → `trpc.recap.processManual`
+- [x] `src/components/DictionaryCard.tsx`: `/api/dictionary`, `update`, `update-description`, `update-description-batch` → `trpc.dictionary.list/updateErrorType/updateDescription/updateDescriptionBatch`
+- [x] `src/components/UnmappedRcCard.tsx`: list/submit/submit-batch → `trpc.unmappedRc.*`
+- [x] `src/components/NoRcTransactionCard.tsx`: list/submit/submit-batch → `trpc.noRcTransaction.*`
+- [x] `src/components/AddAppCard.tsx`: POST `/api/applications` → `trpc.applications.create`
+- [x] `src/components/AddSuccessRateCard.tsx`: applications list → tRPC (upload itself stays REST)
+- [x] Leave as REST (intentional): login page `/api/auth/login`, `DictionaryUploadCard` `/api/upload-dictionary`, `AddSuccessRateCard` `/api/upload-success-rate`, `RestartDbCard` `/api/restart-db`
+- [x] Do NOT delete any REST route yet (Phase 6)
 
 ### 1.3 Verify
-- [ ] `pnpm type-check` clean
-- [ ] `pnpm build` clean
-- [ ] Manual: superadmin all tabs, dictionary edit, unmapped-rc submit, no-rc submit, app add, user approval flow
+- [x] `pnpm type-check` clean
+- [x] `pnpm build` clean
+- [ ] Manual: superadmin all tabs, dictionary edit, unmapped-rc submit, no-rc submit, app add, user approval flow — DEFERRED to Phase 7 (no dev DB this session)
 
 ---
 

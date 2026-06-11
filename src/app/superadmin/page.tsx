@@ -134,6 +134,10 @@ export default function SuperadminPage() {
   const [housekeepingRunning, setHousekeepingRunning] = useState<{ [id: number]: boolean }>({})
   const [housekeepingMessages, setHousekeepingMessages] = useState<{ [id: number]: { type: 'success' | 'error'; text: string } }>({})
 
+  const utils = trpc.useUtils()
+  const approveRequestMutation = trpc.auth.approveRequest.useMutation()
+  const rejectRequestMutation = trpc.auth.rejectRequest.useMutation()
+  const updateUserMutation = trpc.users.update.useMutation()
   const { data: authCheck, isLoading: authLoading } = trpc.auth.check.useQuery(undefined, { retry: false })
   const { data: fdwData, refetch: refetchFdw } = trpc.fdw.list.useQuery(undefined, { enabled: !!(isAuthenticated && userRole === 'superadmin' && activeTab === 'app-config') })
   const fdwAddMutation = trpc.fdw.add.useMutation({ onSuccess: () => { refetchFdw(); setNewFdwForm({ source_db_name: '', table_name: '', schema_name: 'public' }) } })
@@ -218,18 +222,15 @@ export default function SuperadminPage() {
   const fetchUsers = async () => {
     try {
       setUsersLoading(true)
-      const params = new URLSearchParams({
-        page: usersPage.toString(),
-        limit: '25',
-        ...Object.fromEntries(Object.entries(usersFilters).filter(([_, v]) => v !== '')),
+      const res = await utils.users.list.fetch({
+        page: usersPage,
+        limit: 25,
+        search: usersFilters.search || undefined,
+        role: usersFilters.role || undefined,
       })
-
-      const response = await fetch(`/api/users?${params}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setUsers(data.data)
-        setUsersTotalPages(data.totalPages)
+      if (res.success) {
+        setUsers(res.data.users)
+        setUsersTotalPages(res.data.totalPages)
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -240,11 +241,9 @@ export default function SuperadminPage() {
 
   const fetchPendingRequests = async () => {
     try {
-      const response = await fetch('/api/auth/pending-user-requests')
-      const data = await response.json()
-
-      if (data.success) {
-        setPendingRequests(data.data.requests)
+      const res = await utils.auth.pendingRequests.fetch()
+      if (res.success) {
+        setPendingRequests((res.data as { requests: PendingUserRequest[] }).requests)
       }
     } catch (error) {
       console.error('Error fetching pending requests:', error)
@@ -256,26 +255,18 @@ export default function SuperadminPage() {
 
     try {
       setProcessing(true)
-      const response = await fetch(`/api/auth/approve-user-request/${selectedRequest.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approvedRole }),
+      await approveRequestMutation.mutateAsync({
+        id: selectedRequest.id,
+        approvedRole: approvedRole as 'superadmin' | 'admin' | 'user',
       })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setShowApproveModal(false)
-        setSelectedRequest(null)
-        setApprovedRole('user')
-        fetchUsers()
-        fetchPendingRequests()
-      } else {
-        alert(data.message || 'Failed to approve user request')
-      }
-    } catch (error) {
+      setShowApproveModal(false)
+      setSelectedRequest(null)
+      setApprovedRole('user')
+      fetchUsers()
+      fetchPendingRequests()
+    } catch (error: any) {
       console.error('Error approving request:', error)
-      alert('Error approving user request')
+      alert(error?.message || 'Error approving user request')
     } finally {
       setProcessing(false)
     }
@@ -286,25 +277,17 @@ export default function SuperadminPage() {
 
     try {
       setProcessing(true)
-      const response = await fetch(`/api/auth/reject-user-request/${selectedRequest.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejectionReason }),
+      await rejectRequestMutation.mutateAsync({
+        id: selectedRequest.id,
+        rejectionReason: rejectionReason || undefined,
       })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setShowRejectModal(false)
-        setSelectedRequest(null)
-        setRejectionReason('')
-        fetchPendingRequests()
-      } else {
-        alert(data.message || 'Failed to reject user request')
-      }
-    } catch (error) {
+      setShowRejectModal(false)
+      setSelectedRequest(null)
+      setRejectionReason('')
+      fetchPendingRequests()
+    } catch (error: any) {
       console.error('Error rejecting request:', error)
-      alert('Error rejecting user request')
+      alert(error?.message || 'Error rejecting user request')
     } finally {
       setProcessing(false)
     }
@@ -315,25 +298,17 @@ export default function SuperadminPage() {
 
     try {
       setProcessing(true)
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
+      await updateUserMutation.mutateAsync({
+        id: selectedUser.id,
+        role: newRole as 'superadmin' | 'admin' | 'user',
       })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setShowEditRoleModal(false)
-        setSelectedUser(null)
-        setNewRole('user')
-        fetchUsers()
-      } else {
-        alert(data.message || 'Failed to update user role')
-      }
-    } catch (error) {
+      setShowEditRoleModal(false)
+      setSelectedUser(null)
+      setNewRole('user')
+      fetchUsers()
+    } catch (error: any) {
       console.error('Error updating role:', error)
-      alert('Error updating user role')
+      alert(error?.message || 'Error updating user role')
     } finally {
       setProcessing(false)
     }
@@ -343,18 +318,18 @@ export default function SuperadminPage() {
   const fetchAuditLogs = async () => {
     try {
       setAuditLoading(true)
-      const params = new URLSearchParams({
-        page: auditPage.toString(),
-        limit: '50',
-        ...Object.fromEntries(Object.entries(auditFilters).filter(([_, v]) => v !== '')),
+      const res = await utils.auditLogs.list.fetch({
+        page: auditPage,
+        limit: 50,
+        action: auditFilters.action || undefined,
+        resourceType: auditFilters.resource_type || undefined,
+        username: auditFilters.username || undefined,
+        startDate: auditFilters.start_date || undefined,
+        endDate: auditFilters.end_date || undefined,
       })
-
-      const response = await fetch(`/api/audit-logs?${params}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setAuditLogs(data.data)
-        setAuditTotalPages(data.totalPages)
+      if (res.success) {
+        setAuditLogs(res.data.logs)
+        setAuditTotalPages(res.data.totalPages)
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error)
@@ -365,11 +340,9 @@ export default function SuperadminPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/audit-logs/stats?days=30')
-      const data = await response.json()
-
-      if (data.success) {
-        setStats(data.data)
+      const res = await utils.auditLogs.stats.fetch({ days: 30 })
+      if (res.success) {
+        setStats(res.data as AuditStats)
       }
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -394,24 +367,15 @@ export default function SuperadminPage() {
 
     try {
       setProcessingLogsLoading(true)
-      const params = new URLSearchParams({
-        catalog_entry_id: processingFilters.catalog_entry_id,
-        month: processingFilters.month.toString(),
-        year: processingFilters.year.toString(),
+      const res = await utils.processingLogs.byMonth.fetch({
+        catalogEntryId: processingFilters.catalog_entry_id,
+        month: processingFilters.month,
+        year: processingFilters.year,
       })
-
-      const response = await fetch(`/api/processing-logs?${params}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setProcessingLogs(data.data || [])
-      } else {
-        alert(data.message || 'Failed to fetch processing logs')
-        setProcessingLogs([])
-      }
-    } catch (error) {
+      setProcessingLogs(res.data || [])
+    } catch (error: any) {
       console.error('Error fetching processing logs:', error)
-      alert('Error fetching processing logs')
+      alert(error?.message || 'Error fetching processing logs')
       setProcessingLogs([])
     } finally {
       setProcessingLogsLoading(false)
@@ -460,51 +424,35 @@ export default function SuperadminPage() {
     }))
 
     try {
-      const response = await fetch('/api/processing/process-manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: date,
-          catalogEntryId: processingFilters.catalog_entry_id,
-        }),
+      const res = await recapTriggerMutation.mutateAsync({
+        catalogEntryId: processingFilters.catalog_entry_id,
+        date,
       })
 
-      const data = await response.json()
-
-      if (data.success) {
-        setProcessingStates((prev) => ({
-          ...prev,
-          [date]: { loading: false, error: null },
-        }))
-        // Show success message
-        if (data.data?.logEntry) {
-          const logEntry = data.data.logEntry
-          const statusMsg = logEntry.status === 'success' 
-            ? `Successfully processed ${logEntry.recordsProcessed || 0} records (${logEntry.recordsInserted || 0} inserted)`
-            : logEntry.status === 'failed'
-            ? `Processing failed: ${logEntry.errorMessage || 'Unknown error'}`
-            : 'Processing is running...'
-          alert(`Processing triggered for ${date}.\n${statusMsg}`)
-        } else {
-          alert(`Processing triggered successfully for ${date}`)
-        }
-        // Refresh processing logs after successful processing
-        // Add small delay to ensure stored procedure has finished writing to database
-        await new Promise(resolve => setTimeout(resolve, 500)) // Wait 500ms for DB write to complete
-        await fetchProcessingLogs()
+      setProcessingStates((prev) => ({
+        ...prev,
+        [date]: { loading: false, error: null },
+      }))
+      const logEntry = res.data?.logEntry
+      if (logEntry) {
+        const statusMsg = logEntry.status === 'success'
+          ? `Successfully processed ${logEntry.recordsProcessed || 0} records (${logEntry.recordsInserted || 0} inserted)`
+          : logEntry.status === 'failed'
+          ? `Processing failed: ${logEntry.errorMessage || 'Unknown error'}`
+          : 'Processing is running...'
+        alert(`Processing triggered for ${date}.\n${statusMsg}`)
       } else {
-        setProcessingStates((prev) => ({
-          ...prev,
-          [date]: { loading: false, error: data.message || 'Processing failed' },
-        }))
-        alert(data.message || 'Failed to process data')
+        alert(`Processing triggered successfully for ${date}`)
       }
+      // Small delay so the stored procedure finishes writing before refresh
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await fetchProcessingLogs()
     } catch (error: any) {
       setProcessingStates((prev) => ({
         ...prev,
-        [date]: { loading: false, error: error.message || 'Error triggering processing' },
+        [date]: { loading: false, error: error?.message || 'Error triggering processing' },
       }))
-      alert('Error triggering processing: ' + error.message)
+      alert('Error triggering processing: ' + (error?.message ?? String(error)))
     }
   }
 

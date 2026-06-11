@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trpc } from '@/lib/trpc'
 
 export default function AddAppCard() {
   const [appName, setAppName] = useState('')
@@ -9,6 +10,8 @@ export default function AddAppCard() {
     text: string
     type: 'success' | 'error'
   } | null>(null)
+
+  const createAppMutation = trpc.applications.create.useMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,15 +22,7 @@ export default function AddAppCard() {
       setIsLoading(true)
       setMessage(null)
 
-      const response = await fetch('/api/applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ appName: appName.trim() }),
-      })
-
-      const result = await response.json()
+      const result = await createAppMutation.mutateAsync({ app_name: appName.trim() })
 
       if (result.success) {
         setMessage({
@@ -47,10 +42,10 @@ export default function AddAppCard() {
           type: 'error',
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding application:', error)
       setMessage({
-        text: 'Error connecting to server',
+        text: error?.message || 'Failed to add application',
         type: 'error',
       })
     } finally {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { SuccessRateEntry } from '@/types'
 import { useApplications } from '@/hooks/useApplications'
+import { trpc } from '@/lib/trpc'
 
 export default function NoRcTransactionCard() {
   const [transactions, setTransactions] = useState<SuccessRateEntry[]>([])
@@ -24,31 +25,34 @@ export default function NoRcTransactionCard() {
   const [limit, setLimit] = useState(25)
   const ROW_COUNT_OPTIONS = [25, 50, 100] as const
 
+  const utils = trpc.useUtils()
+  const submitMutation = trpc.noRcTransaction.submit.useMutation()
+  const submitBatchMutation = trpc.noRcTransaction.submitBatch.useMutation()
+
   const loadTransactions = useCallback(async (page: number) => {
     try {
       setIsLoading(true)
       setError(null)
 
-      const params = new URLSearchParams()
-      params.append('page', page.toString())
-      params.append('limit', limit.toString())
-      if (selectedAppId) {
-        params.append('appId', selectedAppId)
-      }
-
-      const response = await fetch(`/api/no-rc-transaction?${params.toString()}`)
-      const result = await response.json()
+      const result = await utils.noRcTransaction.list.fetch(
+        {
+          page,
+          limit,
+          ...(selectedAppId ? { app_id: parseInt(selectedAppId) } : {}),
+        },
+        { staleTime: 0 }
+      )
 
       if (result.success) {
-        setTransactions(result.data)
-        setTotalPages(result.pagination?.totalPages || 1)
-        setTotalCount(result.pagination?.total || 0)
+        setTransactions(result.data.entries as SuccessRateEntry[])
+        setTotalPages(Math.ceil((result.data.total || 0) / limit) || 1)
+        setTotalCount(result.data.total || 0)
         // Reset selections when data reloads
         setSelectedItems(new Set())
         setEditingRc({})
         setEditingRcDescription({})
       } else {
-        throw new Error(result.message || 'Failed to load no RC transactions')
+        throw new Error('Failed to load no RC transactions')
       }
     } catch (err: any) {
       setError(err.message)
@@ -56,7 +60,7 @@ export default function NoRcTransactionCard() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedAppId, limit])
+  }, [selectedAppId, limit, utils])
 
   // Applications loaded via useApplications hook
 
@@ -149,19 +153,11 @@ export default function NoRcTransactionCard() {
       setSubmitting(id)
       setMessage(null)
 
-      const response = await fetch('/api/no-rc-transaction/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          rc,
-          rc_description: rcDescription || null,
-        }),
+      const result = await submitMutation.mutateAsync({
+        id,
+        rc,
+        rc_description: rcDescription || null,
       })
-
-      const result = await response.json()
 
       if (result.success) {
         setMessage({ text: result.message || 'RC assigned successfully', type: 'success' })
@@ -210,15 +206,7 @@ export default function NoRcTransactionCard() {
         rc_description: bulkRcDescription.trim() || null,
       }))
 
-      const response = await fetch('/api/no-rc-transaction/submit-batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mappings }),
-      })
-
-      const result = await response.json()
+      const result = await submitBatchMutation.mutateAsync({ items: mappings })
 
       if (result.success) {
         setMessage({ 

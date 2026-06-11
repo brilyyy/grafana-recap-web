@@ -25,7 +25,17 @@
 **Pre-existing type errors on main (NOT mine, fix in Phase 2):**
 - `src/db/migrate.ts(910,29)` + `migration-kit/src/db/migrate.ts(911,29)`: TS2554 Expected 1 arguments, got 2
 
-**Phase 1 remaining:** superadmin page handler rewrite, 4 components, type-check+build, manual verify, then phase commit.
+**Phase 1 COMPLETE** (commit follows this note):
+- superadmin/page.tsx: all 9 fetch handlers → tRPC (`trpc.useUtils()` imperative fetches + mutateAsync mutations; handleDateProcessing reuses existing `recapTriggerMutation`)
+- DictionaryCard, UnmappedRcCard, NoRcTransactionCard, AddAppCard → tRPC (via subagent)
+- **Subagent found+fixed pre-existing tRPC router bugs (routers were broken/unsued before):**
+  - `noRcTransaction` router REWRITTEN — old one queried wrong table (`unmapped_rc`); REST semantics = `app_success_rate` rows where `rc IS NULL AND error_type IS NULL`, input `{id, rc, rc_description}`, auto-assign error_type from dictionary or queue into unmapped_rc. Full transactional port.
+  - `unmappedRc.submit/submitBatch` — had MySQL-only `ON DUPLICATE KEY UPDATE` (would crash PG). Now PG `ON CONFLICT` upsert + app_success_rate error_type propagation + delete, in transaction. `list` gained `fetch_all`.
+  - `dictionary.list` gained `app_ids[]/error_types[]/jenis_transaksi[]/fetch_all` + app_name search (UI filters depend on these); `updateErrorType` gained app_success_rate propagation.
+- Imperative `utils.*.fetch()` calls pass `{staleTime: 0}` — provider default 30s would serve stale data on Refresh buttons.
+- Auth tightening side-effect: unmappedRc/noRcTransaction lists now require session (REST GETs were public); applications.create requires superadmin.
+- Verify: tsc clean (2 pre-existing migrate.ts errors remain), `next build` clean.
+- NOT manually tested in browser (no dev DB run this session) — flag for Phase 7 smoke.
 
 ### Phase 2 — Drizzle schema split + raw SQL conversion (pending)
 
