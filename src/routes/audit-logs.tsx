@@ -105,12 +105,12 @@ function AuditLogsPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-6 animate-fade-in">
+    <main className="min-h-screen p-4 md:p-6 animate-in fade-in duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 animate-fade-in">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 animate-in fade-in duration-300">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200">
+            <h1 className="text-2xl md:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200">
               Audit Logs Dashboard
             </h1>
             <p className="text-white/60 text-sm">Monitor semua aktivitas sistem</p>
@@ -131,7 +131,7 @@ function AuditLogsPage() {
 
         {/* Statistics Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-in fade-in duration-300">
             {[
               { label: 'Total Activities', value: stats.total.toLocaleString(), sub: 'Last 30 days' },
               { label: 'Top Action', value: stats.actionCounts[0]?.action || 'N/A', sub: `${stats.actionCounts[0]?.count || 0} times` },
@@ -161,7 +161,7 @@ function AuditLogsPage() {
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full"
+                        className="bg-linear-to-r from-blue-500 to-blue-400 h-2 rounded-full"
                         style={{ width: `${(item.count / (stats.actionCounts[0]?.count || 1)) * 100}%` }}
                       />
                     </div>
@@ -180,7 +180,7 @@ function AuditLogsPage() {
                     <div key={idx} className="flex-1 flex flex-col items-center">
                       <div className="w-full flex flex-col items-center justify-end h-full">
                         <div
-                          className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t"
+                          className="w-full bg-linear-to-t from-blue-600 to-blue-400 rounded-t"
                           style={{ height: `${height}%`, minHeight: '4px' }}
                         />
                       </div>

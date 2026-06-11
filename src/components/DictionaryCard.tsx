@@ -371,17 +371,17 @@ export default function DictionaryCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col border border-white/20">
+    <div className="bg-card border shadow-xs rounded-xl p-3 md:p-4 h-full flex flex-col border border-white/20">
       {/* Icon Header with Action Buttons */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-md flex-shrink-0">
+          <div className="w-8 h-8 rounded-md bg-linear-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-md shrink-0">
             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm md:text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            <h2 className="text-sm md:text-base font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
               RC Dictionary
             </h2>
             <p className="text-xs text-gray-500">View RC mappings</p>
@@ -394,7 +394,7 @@ export default function DictionaryCard() {
             type="button"
             onClick={() => exportToCSV()}
             disabled={isLoading}
-            className="px-2 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-green-600 to-green-800 text-white hover:from-green-700 hover:to-green-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-1"
+            className="px-2 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-green-600 to-green-800 text-white hover:from-green-700 hover:to-green-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-1"
             title="Export all filtered data to CSV"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -407,7 +407,7 @@ export default function DictionaryCard() {
             onClick={() => {
               loadDictionary(currentPage, false)
             }}
-            className="px-2 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
+            className="px-2 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
             title="Refresh data"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,7 +432,7 @@ export default function DictionaryCard() {
             placeholder="Search RC, description, app..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border-2 border-gray-200 bg-white/95 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm hover:border-gray-300"
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border-2 border-gray-200 bg-white/95 backdrop-blur-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-xs hover:border-gray-300"
           />
         </div>
 
@@ -498,19 +498,19 @@ export default function DictionaryCard() {
       {/* Message Display */}
       {message && (
         <div
-          className={`mb-2 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-slide-in ${
+          className={`mb-2 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-in slide-in-from-bottom-5 duration-300 ${
             message.type === 'success'
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
-              : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
+              ? 'bg-linear-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+              : 'bg-linear-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
           }`}
         >
           <div className={`flex gap-1.5 ${message.type === 'error' ? 'items-start' : 'items-center'}`}>
             {message.type === 'success' ? (
-              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             ) : (
-              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             )}
@@ -518,7 +518,7 @@ export default function DictionaryCard() {
             <button
               type="button"
               onClick={() => setMessage(null)}
-              className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+              className="text-gray-400 hover:text-gray-600 shrink-0"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -530,7 +530,7 @@ export default function DictionaryCard() {
 
       {/* Bulk Update Description Controls */}
       {selectedItems.size > 0 && (
-        <div className="mb-2 p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-md border border-blue-200">
+        <div className="mb-2 p-2 bg-linear-to-r from-blue-50 to-indigo-50 rounded-md border border-blue-200">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-blue-800">
               {selectedItems.size} item(s) selected
@@ -540,7 +540,7 @@ export default function DictionaryCard() {
               placeholder="Enter description for selected items..."
               value={bulkDescription}
               onChange={(e) => setBulkDescription(e.target.value)}
-              className="flex-1 min-w-[200px] px-2 py-1 text-xs rounded border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 min-w-[200px] px-2 py-1 text-xs rounded border border-blue-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <button
               type="button"
@@ -587,9 +587,9 @@ export default function DictionaryCard() {
             <p className="text-gray-500 text-xs">Loading...</p>
           </div>
         ) : error ? (
-          <div className="p-2 bg-gradient-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
+          <div className="p-2 bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <div className="flex items-start gap-1.5">
-              <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-red-600 text-xs font-semibold break-words whitespace-normal flex-1">Error: {error}</p>
@@ -605,7 +605,7 @@ export default function DictionaryCard() {
         ) : (
           <div className="flex flex-col h-full min-h-0">
             {/* Total Count Header - Fixed at top */}
-            <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold py-1.5 px-2 rounded-t-md backdrop-blur-sm flex-shrink-0">
+            <div className="bg-linear-to-r from-blue-700 to-blue-900 text-white text-xs font-bold py-1.5 px-2 rounded-t-md backdrop-blur-sm shrink-0">
               <div className="flex items-center justify-between">
                 <span>Showing {dictionaryEntries.length} of {totalCount} entries (Page {currentPage} of {totalPages})</span>
                 <label className="flex items-center gap-1 cursor-pointer text-xs font-normal">
@@ -623,7 +623,7 @@ export default function DictionaryCard() {
             {/* Scrollable Table Container */}
             <div className="flex-1 overflow-auto min-h-0">
               <table className="w-full text-xs">
-                <thead className="bg-gray-100/90 sticky top-0 z-20 shadow-sm">
+                <thead className="bg-gray-100/90 sticky top-0 z-20 shadow-xs">
                   <tr>
                     <th className="px-2 py-1.5 text-center font-semibold text-gray-700 border-b-2 border-gray-300 w-8">
                       <input
@@ -647,8 +647,8 @@ export default function DictionaryCard() {
                       key={entry.id}
                       className={`border-b border-gray-200/50 transition-colors duration-150 ${
                         selectedItems.has(entry.id)
-                          ? 'bg-gradient-to-r from-blue-100 to-blue-50'
-                          : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100'
+                          ? 'bg-linear-to-r from-blue-100 to-blue-50'
+                          : 'hover:bg-linear-to-r hover:from-blue-50 hover:to-blue-100'
                       }`}
                       style={{ animationDelay: `${index * 0.02}s` }}
                     >
@@ -669,7 +669,7 @@ export default function DictionaryCard() {
                               type="text"
                               value={editingDescription}
                               onChange={(e) => setEditingDescription(e.target.value)}
-                              className="flex-1 px-2 py-1 text-xs rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="flex-1 px-2 py-1 text-xs rounded border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -764,7 +764,7 @@ export default function DictionaryCard() {
                                   className={`px-2 py-0.5 rounded border-2 transition-all duration-200 font-semibold text-xs min-w-[45px] ${
                                     colors.bg
                                   } ${colors.text} ${colors.border} ${colors.hover} ${
-                                    isSelected ? 'shadow-md scale-105' : 'shadow-sm'
+                                    isSelected ? 'shadow-md scale-105' : 'shadow-xs'
                                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                   {value}

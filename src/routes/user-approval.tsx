@@ -121,9 +121,9 @@ function UserApprovalPage() {
 
   return (
     <main className="min-h-screen p-2 md:p-4 lg:p-5">
-      <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-3 md:gap-4 animate-fade-in">
+      <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-3 md:gap-4 animate-in fade-in duration-300">
         <div className="flex-1 text-center">
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-1 bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
             User Approval
           </h1>
           <p className="text-white/70 text-xs md:text-sm">
@@ -145,7 +145,7 @@ function UserApprovalPage() {
       </div>
 
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/20 shadow-xl animate-fade-in">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/20 shadow-xl animate-in fade-in duration-300">
           {loading ? (
             <div className="text-center py-12">
               <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-4" />
@@ -169,7 +169,7 @@ function UserApprovalPage() {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/30 to-red-500/30 flex items-center justify-center border border-white/20">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500/30 to-red-500/30 flex items-center justify-center border border-white/20">
                           <span className="text-white font-bold text-lg">
                             {request.username.charAt(0).toUpperCase()}
                           </span>
@@ -237,7 +237,7 @@ function UserApprovalPage() {
                 <select
                   value={approvedRole}
                   onChange={(e) => setApprovedRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="user" className="bg-gray-800">User</option>
                   <option value="admin" className="bg-gray-800">Admin</option>
@@ -285,7 +285,7 @@ function UserApprovalPage() {
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Enter reason for rejection..."
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[100px] resize-none"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-red-500 min-h-[100px] resize-none"
                 />
               </div>
             </div>

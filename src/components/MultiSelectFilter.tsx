@@ -70,7 +70,7 @@ export default function MultiSelectFilter({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full pl-7 pr-8 py-2 text-xs rounded-lg border-2 transition-all shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+        className={`w-full pl-7 pr-8 py-2 text-xs rounded-lg border-2 transition-all shadow-xs hover:border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
           isOpen
             ? 'border-blue-500 bg-white'
             : 'border-gray-200 bg-white/95 backdrop-blur-sm'
@@ -146,7 +146,7 @@ export default function MultiSelectFilter({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-7 pr-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 autoFocus
               />
             </div>

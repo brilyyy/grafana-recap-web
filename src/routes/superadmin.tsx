@@ -508,7 +508,7 @@ function SuperadminPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200">
+            <h1 className="text-2xl md:text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200">
               Superadmin Dashboard
             </h1>
             <p className="text-white/70 text-sm">Manage users and monitor system activities</p>
@@ -674,7 +674,7 @@ function SuperadminPage() {
                       setUsersFilters((prev) => ({ ...prev, search: e.target.value }))
                       setUsersPage(1)
                     }}
-                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                   <select
                     value={usersFilters.role}
@@ -682,7 +682,7 @@ function SuperadminPage() {
                       setUsersFilters((prev) => ({ ...prev, role: e.target.value }))
                       setUsersPage(1)
                     }}
-                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">All Roles</option>
                     <option value="superadmin">Superadmin</option>
@@ -829,11 +829,11 @@ function SuperadminPage() {
                       <div key={idx}>
                         <div className="flex justify-between text-sm mb-1 gap-2">
                           <span className="text-white/90 break-words overflow-hidden flex-1 min-w-0">{item.action}</span>
-                          <span className="text-white/70 flex-shrink-0">{item.count}</span>
+                          <span className="text-white/70 shrink-0">{item.count}</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full"
+                            className="bg-linear-to-r from-blue-500 to-blue-400 h-2 rounded-full"
                             style={{
                               width: `${(item.count / (stats.actionCounts[0]?.count || 1)) * 100}%`,
                             }}
@@ -854,7 +854,7 @@ function SuperadminPage() {
                         <div key={idx} className="flex-1 flex flex-col items-center">
                           <div className="w-full flex flex-col items-center justify-end h-full">
                             <div
-                              className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t"
+                              className="w-full bg-linear-to-t from-blue-600 to-blue-400 rounded-t"
                               style={{ height: `${height}%`, minHeight: '4px' }}
                             ></div>
                           </div>
@@ -887,7 +887,7 @@ function SuperadminPage() {
                       setAuditPage(1)
                     }}
                     placeholder="Filter by action"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -900,7 +900,7 @@ function SuperadminPage() {
                       setAuditPage(1)
                     }}
                     placeholder="Filter by resource"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -913,7 +913,7 @@ function SuperadminPage() {
                       setAuditPage(1)
                     }}
                     placeholder="Filter by username"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -925,7 +925,7 @@ function SuperadminPage() {
                       setAuditFilters((prev) => ({ ...prev, start_date: e.target.value }))
                       setAuditPage(1)
                     }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -937,7 +937,7 @@ function SuperadminPage() {
                       setAuditFilters((prev) => ({ ...prev, end_date: e.target.value }))
                       setAuditPage(1)
                     }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -1048,7 +1048,7 @@ function SuperadminPage() {
                     onChange={(e) => {
                       setProcessingFilters((prev) => ({ ...prev, month: parseInt(e.target.value) }))
                     }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     style={{ colorScheme: 'dark' }}
                   >
                     <option value="1" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>January</option>
@@ -1072,7 +1072,7 @@ function SuperadminPage() {
                     onChange={(e) => {
                       setProcessingFilters((prev) => ({ ...prev, year: parseInt(e.target.value) }))
                     }}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     style={{ colorScheme: 'dark' }}
                   >
                     {Array.from({ length: 10 }, (_, i) => {
@@ -1096,7 +1096,7 @@ function SuperadminPage() {
                     value={processingJobSearch}
                     onChange={(e) => setProcessingJobSearch(e.target.value)}
                     placeholder="Search by job title, ID, or output table"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="md:col-span-2 lg:col-span-4">
@@ -1111,7 +1111,7 @@ function SuperadminPage() {
                       onChange={(e) => {
                         setProcessingFilters((prev) => ({ ...prev, catalog_entry_id: e.target.value }))
                       }}
-                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       style={{ colorScheme: 'dark' }}
                     >
                       <option value="" style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
@@ -1173,7 +1173,7 @@ function SuperadminPage() {
                         }
                         return (
                           <>
-                      <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
+                      <div className="bg-linear-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1182,7 +1182,7 @@ function SuperadminPage() {
                         </div>
                         <p className="text-xl font-bold text-white">{stats.success}</p>
                       </div>
-                      <div className="bg-gradient-to-br from-red-500/20 to-red-600/10 backdrop-blur-sm rounded-lg p-3 border border-red-500/30">
+                      <div className="bg-linear-to-br from-red-500/20 to-red-600/10 backdrop-blur-sm rounded-lg p-3 border border-red-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1191,7 +1191,7 @@ function SuperadminPage() {
                         </div>
                         <p className="text-xl font-bold text-white">{stats.failed}</p>
                       </div>
-                      <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 backdrop-blur-sm rounded-lg p-3 border border-yellow-500/30">
+                      <div className="bg-linear-to-br from-yellow-500/20 to-yellow-600/10 backdrop-blur-sm rounded-lg p-3 border border-yellow-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1200,7 +1200,7 @@ function SuperadminPage() {
                         </div>
                         <p className="text-xl font-bold text-white">{stats.processing}</p>
                       </div>
-                      <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/10 backdrop-blur-sm rounded-lg p-3 border border-gray-500/30">
+                      <div className="bg-linear-to-br from-gray-500/20 to-gray-600/10 backdrop-blur-sm rounded-lg p-3 border border-gray-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -1209,7 +1209,7 @@ function SuperadminPage() {
                         </div>
                         <p className="text-xl font-bold text-white">{stats.notProcessed}</p>
                       </div>
-                      <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
+                      <div className="bg-linear-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
                         <div className="flex items-center gap-2 mb-1">
                           <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -1299,20 +1299,20 @@ function SuperadminPage() {
 
                             if (status === 'success') {
                               borderColor = "border-green-500/50"
-                              bgGradient = "bg-gradient-to-br from-green-500/20 to-green-600/10"
+                              bgGradient = "bg-linear-to-br from-green-500/20 to-green-600/10"
                               // Make it more compact if it's simple success
                               if (isSimpleSuccess) {
                                 paddingClass = "p-1.5"
                               }
                             } else if (status === 'failed') {
                               borderColor = "border-red-500/50"
-                              bgGradient = "bg-gradient-to-br from-red-500/20 to-red-600/10"
+                              bgGradient = "bg-linear-to-br from-red-500/20 to-red-600/10"
                             } else if (status === 'running') {
                               borderColor = "border-yellow-500/50"
-                              bgGradient = "bg-gradient-to-br from-yellow-500/20 to-yellow-600/10"
+                              bgGradient = "bg-linear-to-br from-yellow-500/20 to-yellow-600/10"
                             } else {
                               borderColor = "border-gray-500/30"
-                              bgGradient = "bg-gradient-to-br from-gray-500/10 to-gray-600/5"
+                              bgGradient = "bg-linear-to-br from-gray-500/10 to-gray-600/5"
                             }
 
                             if (isToday) {
@@ -1390,7 +1390,7 @@ function SuperadminPage() {
                                       handleDateProcessing(dateStr)
                                     }}
                                     disabled={processingState.loading}
-                                    className={`w-full bg-gradient-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
+                                    className={`w-full bg-linear-to-r from-blue-600/80 to-blue-500/80 hover:from-blue-500 hover:to-blue-400 text-white rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-1 ${
                                       isSimpleSuccess 
                                         ? 'px-2 py-2 text-xs' 
                                         : 'mt-1 px-1.5 py-1 text-[10px]'
@@ -2100,7 +2100,7 @@ function SuperadminPage() {
                 <select
                   value={approvedRole}
                   onChange={(e) => setApprovedRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   style={{ colorScheme: 'dark' }}
                 >
                   <option value="superadmin" className="bg-gray-700 text-white">Superadmin</option>
@@ -2144,7 +2144,7 @@ function SuperadminPage() {
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Enter rejection reason..."
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
               </div>
@@ -2185,7 +2185,7 @@ function SuperadminPage() {
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-white/20 rounded-lg text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   style={{ colorScheme: 'dark' }}
                 >
                   <option value="superadmin" className="bg-gray-700 text-white">Superadmin</option>

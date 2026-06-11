@@ -232,16 +232,16 @@ export default function NoRcTransactionCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col border border-white/20">
+    <div className="bg-card border shadow-xs rounded-xl p-3 md:p-4 h-full flex flex-col border border-white/20">
       {/* Header */}
       <div className="flex items-center gap-1.5 mb-2">
-        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-orange-600 to-orange-800 flex items-center justify-center shadow-md flex-shrink-0">
+        <div className="w-8 h-8 rounded-md bg-linear-to-br from-orange-600 to-orange-800 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm md:text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent truncate">
+          <h2 className="text-sm md:text-base font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent truncate">
             No RC Transaction
           </h2>
           <p className="text-xs text-gray-500">Transactions without RC</p>
@@ -256,7 +256,7 @@ export default function NoRcTransactionCard() {
             <select
               value={selectedAppId}
               onChange={(e) => setSelectedAppId(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all bg-white"
+              className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all bg-white"
             >
               <option value="">All Applications</option>
               {applications.map((app) => (
@@ -273,7 +273,7 @@ export default function NoRcTransactionCard() {
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
                 disabled={isLoading}
-                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 min-w-[72px] disabled:opacity-70"
+                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 min-w-[72px] disabled:opacity-70"
               >
                 {ROW_COUNT_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -307,7 +307,7 @@ export default function NoRcTransactionCard() {
                       }
                     }}
                     disabled={isLoading}
-                    className="w-8 text-center text-sm bg-transparent border-none focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-70"
+                    className="w-8 text-center text-sm bg-transparent border-none focus:outline-hidden focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-70"
                   />
                   <span className="text-gray-400 text-xs">/ {totalPages}</span>
                 </div>
@@ -333,19 +333,19 @@ export default function NoRcTransactionCard() {
       {/* Message */}
       {message && (
         <div
-          className={`mb-2 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-slide-in ${
+          className={`mb-2 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-in slide-in-from-bottom-5 duration-300 ${
             message.type === 'success'
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
-              : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
+              ? 'bg-linear-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+              : 'bg-linear-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
           }`}
         >
           <div className="flex gap-1.5 items-center">
             {message.type === 'success' ? (
-              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             ) : (
-              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             )}
@@ -374,14 +374,14 @@ export default function NoRcTransactionCard() {
               placeholder="RC (required)"
               value={bulkRc}
               onChange={(e) => setBulkRc(e.target.value)}
-              className="w-full px-2 py-1 text-xs border border-orange-300 rounded focus:outline-none focus:border-orange-500"
+              className="w-full px-2 py-1 text-xs border border-orange-300 rounded focus:outline-hidden focus:border-orange-500"
             />
             <input
               type="text"
               placeholder="RC Description (optional)"
               value={bulkRcDescription}
               onChange={(e) => setBulkRcDescription(e.target.value)}
-              className="w-full px-2 py-1 text-xs border border-orange-300 rounded focus:outline-none focus:border-orange-500"
+              className="w-full px-2 py-1 text-xs border border-orange-300 rounded focus:outline-hidden focus:border-orange-500"
             />
             <button
               onClick={handleSubmitAll}
@@ -402,7 +402,7 @@ export default function NoRcTransactionCard() {
             <p className="text-gray-500 text-xs">Loading...</p>
           </div>
         ) : error ? (
-          <div className="p-2 text-center bg-gradient-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
+          <div className="p-2 text-center bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <svg className="w-4 h-4 text-red-500 mx-auto mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -417,7 +417,7 @@ export default function NoRcTransactionCard() {
           </div>
         ) : (
           <>
-            <div className="sticky top-0 bg-gradient-to-r from-orange-600 to-orange-800 text-white text-xs font-bold py-1 px-1.5 rounded-t-md backdrop-blur-sm z-10">
+            <div className="sticky top-0 bg-linear-to-r from-orange-600 to-orange-800 text-white text-xs font-bold py-1 px-1.5 rounded-t-md backdrop-blur-sm z-10">
               <div className="flex items-center justify-between">
                 <span>Total: {totalCount} Transaksi belum memiliki RC</span>
               </div>
@@ -466,14 +466,14 @@ export default function NoRcTransactionCard() {
                           placeholder="RC (required)"
                           value={rcValue}
                           onChange={(e) => handleRcChange(id, e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-orange-500"
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-hidden focus:border-orange-500"
                         />
                         <input
                           type="text"
                           placeholder="RC Description (optional)"
                           value={rcDescValue}
                           onChange={(e) => handleRcDescriptionChange(id, e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-orange-500"
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-hidden focus:border-orange-500"
                         />
                         <button
                           onClick={() => handleSubmit(transaction)}
@@ -497,7 +497,7 @@ export default function NoRcTransactionCard() {
       <button
         type="button"
         onClick={() => loadTransactions(currentPage)}
-        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
+        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

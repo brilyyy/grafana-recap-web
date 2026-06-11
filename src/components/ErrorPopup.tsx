@@ -64,7 +64,7 @@ export default function ErrorPopup({
                   className="p-3 bg-muted/50 border border-border rounded-lg hover:bg-muted transition-colors"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
+                    <div className="shrink-0 w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
                       <span className="text-xs font-bold text-destructive">
                         {row.rowNumber}
                       </span>

@@ -87,19 +87,19 @@ function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
       {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in">
+      <div className="w-full max-w-md relative z-10 animate-in fade-in duration-300">
         <div className="rounded-2xl shadow-2xl p-8 md:p-10 space-y-6 border border-white/10 bg-black/40 backdrop-blur-xl">
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/20">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/20">
               <UserPlus className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
+            <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
               {adminExists ? 'Request Admin Account' : 'Create First Admin Account'}
             </h1>
             <p className="text-white/70 text-sm md:text-base">
@@ -110,7 +110,7 @@ function RegisterPage() {
             {adminExists && (
               <div className="bg-blue-500/20 border border-blue-400/30 text-white px-4 py-3 rounded-xl text-sm">
                 <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 flex-shrink-0" />
+                  <Info className="w-4 h-4 shrink-0" />
                   <span>Your request will be reviewed by a superadmin before you can login.</span>
                 </div>
               </div>
@@ -188,14 +188,14 @@ function RegisterPage() {
             </div>
 
             {error && (
-              <Alert variant="destructive" className="bg-red-500/20 border-red-400/30 text-white animate-slide-in">
+              <Alert variant="destructive" className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {success && (
-              <Alert className="bg-green-500/20 border-green-400/30 text-white animate-slide-in">
+              <Alert className="bg-green-500/20 border-green-400/30 text-white animate-in slide-in-from-bottom-5 duration-300">
                 <CheckCircle className="h-4 w-4 text-green-400" />
                 <AlertDescription className="text-green-200">{success}</AlertDescription>
               </Alert>
@@ -204,7 +204,7 @@ function RegisterPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-6 border-0"
+              className="w-full bg-linear-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-6 border-0"
             >
               {loading ? (
                 <>

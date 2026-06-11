@@ -212,16 +212,16 @@ export default function UnmappedRcCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col border border-white/20">
+    <div className="bg-card border shadow-xs rounded-xl p-3 md:p-4 h-full flex flex-col border border-white/20">
       {/* Icon Header */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-orange-600 to-orange-800 flex items-center justify-center shadow-md flex-shrink-0">
+        <div className="w-8 h-8 rounded-md bg-linear-to-br from-orange-600 to-orange-800 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm md:text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          <h2 className="text-sm md:text-base font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
             Unmapped RC
           </h2>
           <p className="text-xs text-gray-500">RC belum dimapping</p>
@@ -233,7 +233,7 @@ export default function UnmappedRcCard() {
         <select
           value={selectedAppId}
           onChange={(e) => setSelectedAppId(e.target.value)}
-          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all bg-white/80 backdrop-blur-sm"
+          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all bg-white/80 backdrop-blur-sm"
         >
           <option value="">All Applications</option>
           {applications.map((app) => (
@@ -246,19 +246,19 @@ export default function UnmappedRcCard() {
 
       {message && (
         <div
-          className={`mb-1.5 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-slide-in ${
+          className={`mb-1.5 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-in slide-in-from-bottom-5 duration-300 ${
             message.type === 'success'
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
-              : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
+              ? 'bg-linear-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+              : 'bg-linear-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
           }`}
         >
           <div className={`flex gap-1.5 ${message.type === 'error' ? 'items-start' : 'items-center'}`}>
             {message.type === 'success' ? (
-              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             ) : (
-              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             )}
@@ -274,7 +274,7 @@ export default function UnmappedRcCard() {
             <p className="text-gray-500 text-xs">Loading...</p>
           </div>
         ) : error ? (
-          <div className="p-2 text-center bg-gradient-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
+          <div className="p-2 text-center bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <svg className="w-4 h-4 text-red-500 mx-auto mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -289,7 +289,7 @@ export default function UnmappedRcCard() {
           </div>
         ) : (
           <>
-            <div className="sticky top-0 bg-gradient-to-r from-orange-600 to-orange-800 text-white text-xs font-bold py-1 px-1.5 rounded-t-md backdrop-blur-sm z-10">
+            <div className="sticky top-0 bg-linear-to-r from-orange-600 to-orange-800 text-white text-xs font-bold py-1 px-1.5 rounded-t-md backdrop-blur-sm z-10">
               <div className="flex items-center justify-between">
                 <span>Total: {unmappedRcs.length} RC belum dimapping</span>
                 <div className="flex items-center gap-2">
@@ -333,8 +333,8 @@ export default function UnmappedRcCard() {
                   key={rc.id}
                   className={`py-2 px-2 border-b border-gray-200/50 last:border-b-0 transition-all duration-200 ${
                     selectedItems.has(rc.id) 
-                      ? 'bg-gradient-to-r from-orange-100 to-orange-50' 
-                      : 'hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100'
+                      ? 'bg-linear-to-r from-orange-100 to-orange-50' 
+                      : 'hover:bg-linear-to-r hover:from-orange-50 hover:to-orange-100'
                   }`}
                 >
                   <div className="flex flex-col gap-1.5">
@@ -345,7 +345,7 @@ export default function UnmappedRcCard() {
                           type="checkbox"
                           checked={selectedItems.has(rc.id)}
                           onChange={() => handleSelectItem(rc.id)}
-                          className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 flex-shrink-0"
+                          className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 shrink-0"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -396,7 +396,7 @@ export default function UnmappedRcCard() {
                               className={`flex items-center justify-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border-2 transition-all duration-200 font-semibold text-xs min-w-[60px] ${
                                 colors.bg
                               } ${colors.text} ${colors.border} ${colors.hover} ${
-                                isSelected ? 'shadow-md scale-105' : 'shadow-sm'
+                                isSelected ? 'shadow-md scale-105' : 'shadow-xs'
                               }`}
                             >
                               <input
@@ -422,7 +422,7 @@ export default function UnmappedRcCard() {
                         type="button"
                         onClick={() => handleSubmit(rc)}
                         disabled={!selectedErrorTypes[rc.id] || submitting === rc.id || submittingAll}
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 bg-gradient-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-sm hover:shadow-md"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 bg-linear-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-xs hover:shadow-md"
                       >
                         {submitting === rc.id ? (
                           <>
@@ -452,7 +452,7 @@ export default function UnmappedRcCard() {
       <button
         type="button"
         onClick={loadUnmappedRcs}
-        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
+        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-orange-500 to-orange-700 text-white hover:from-orange-600 hover:to-orange-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

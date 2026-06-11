@@ -323,16 +323,16 @@ export default function DictionaryUploadCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
+    <div className="bg-card border shadow-xs rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
       {/* Icon Header */}
       <div className="flex items-center gap-1.5 mb-2">
-        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-md flex-shrink-0">
+        <div className="w-8 h-8 rounded-md bg-linear-to-br from-red-600 to-red-800 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm md:text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent truncate">
+          <h2 className="text-sm md:text-base font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent truncate">
             Add Dictionary Document
           </h2>
           <p className="text-xs text-gray-500">Upload response code</p>
@@ -350,7 +350,7 @@ export default function DictionaryUploadCard() {
           id="applicationSelect"
           value={selectedAppId}
           onChange={(e) => setSelectedAppId(e.target.value)}
-          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200 transition-all bg-white/80 backdrop-blur-sm mb-2"
+          className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-hidden focus:border-red-500 focus:ring-1 focus:ring-red-200 transition-all bg-white/80 backdrop-blur-sm mb-2"
         >
           <option value="">-- Select Application --</option>
           {applications.map((app) => (
@@ -363,8 +363,8 @@ export default function DictionaryUploadCard() {
         <div
           className={`border-2 border-dashed rounded-md p-3 text-center flex-1 flex items-center justify-center transition-all cursor-pointer relative overflow-hidden min-h-[60px] ${
             isDragging
-              ? 'border-red-500 bg-gradient-to-br from-red-100 to-red-50 scale-105'
-              : 'border-gray-300 bg-gradient-to-br from-gray-50 to-red-50 hover:border-red-400 hover:from-red-50 hover:to-red-100'
+              ? 'border-red-500 bg-linear-to-br from-red-100 to-red-50 scale-105'
+              : 'border-gray-300 bg-linear-to-br from-gray-50 to-red-50 hover:border-red-400 hover:from-red-50 hover:to-red-100'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -410,25 +410,25 @@ export default function DictionaryUploadCard() {
 
       {message && (
         <div
-          className={`mb-2 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-slide-in ${
+          className={`mb-2 p-2 rounded-md text-xs font-medium shadow-md transform transition-all animate-in slide-in-from-bottom-5 duration-300 ${
             message.type === 'success'
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+              ? 'bg-linear-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
               : message.type === 'error'
-              ? 'bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
-              : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-200'
+              ? 'bg-linear-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
+              : 'bg-linear-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-200'
           }`}
         >
           <div className={`flex gap-1.5 ${message.type === 'error' ? 'items-start' : 'items-center'}`}>
             {message.type === 'success' ? (
-              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             ) : message.type === 'error' ? (
-              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             ) : (
-              <svg className="w-3.5 h-3.5 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
@@ -442,7 +442,7 @@ export default function DictionaryUploadCard() {
         type="button"
         onClick={handleUpload}
         disabled={isLoading || !selectedAppId || !selectedFile}
-        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white hover:from-red-700 hover:via-red-800 hover:to-red-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden group mt-auto"
+        className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-red-600 via-red-700 to-red-800 text-white hover:from-red-700 hover:via-red-800 hover:to-red-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 relative overflow-hidden group mt-auto"
       >
         <span className="relative z-10 flex items-center justify-center gap-1.5">
           {isLoading ? (

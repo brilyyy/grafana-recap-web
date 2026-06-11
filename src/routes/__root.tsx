@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router'
 import { trpc, trpcClient, queryClient } from '@/router'
 import { QueryClientProvider } from '@tanstack/react-query'
+import '@/styles/app.css'
 
 export const Route = createRootRoute({
   head: () => ({

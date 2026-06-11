@@ -30,16 +30,16 @@ export default function AppListCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl border border-white/20 will-change-transform" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+    <div className="bg-card border shadow-xs rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl border border-white/20 will-change-transform" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
       {/* Icon Header */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-md flex-shrink-0">
+        <div className="w-8 h-8 rounded-md bg-linear-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm md:text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          <h2 className="text-sm md:text-base font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
             Application List
           </h2>
           <p className="text-xs text-gray-500">Registered apps</p>
@@ -53,9 +53,9 @@ export default function AppListCard() {
             <p className="text-gray-500 text-xs">Loading...</p>
           </div>
         ) : error ? (
-          <div className="p-2 bg-gradient-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
+          <div className="p-2 bg-linear-to-r from-red-50 to-rose-50 rounded-md m-1.5 border border-red-200">
             <div className="flex items-start gap-1.5">
-              <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-red-600 text-xs font-semibold break-words whitespace-normal flex-1">Error: {error}</p>
@@ -70,17 +70,17 @@ export default function AppListCard() {
           </div>
         ) : (
           <>
-            <div className="sticky top-0 bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold text-center py-1 px-1.5 rounded-t-md backdrop-blur-sm z-10">
+            <div className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-900 text-white text-xs font-bold text-center py-1 px-1.5 rounded-t-md backdrop-blur-sm z-10">
               Total: {applications.length}
             </div>
             <ul className="list-none p-0 m-0">
               {applications.map((app, index) => (
                 <li
                   key={app.id}
-                  className="py-1 px-1.5 border-b border-gray-200/50 last:border-b-0 flex items-center gap-1.5 transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 group"
+                  className="py-1 px-1.5 border-b border-gray-200/50 last:border-b-0 flex items-center gap-1.5 transition-all duration-200 hover:bg-linear-to-r hover:from-blue-50 hover:to-blue-100 group"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-xs shadow-sm group-hover:scale-110 transition-transform duration-200 flex-shrink-0">
+                  <div className="w-6 h-6 rounded-md bg-linear-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-xs shadow-xs group-hover:scale-110 transition-transform duration-200 shrink-0">
                     {getInitials(app.app_name)}
                   </div>
                   <span className="font-medium text-xs text-gray-800 group-hover:text-gray-900 flex-1 truncate">
@@ -97,7 +97,7 @@ export default function AppListCard() {
         type="button"
         size="sm"
         onClick={() => refreshApplications()}
-        className="w-full mt-auto bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-xs border-0"
+        className="w-full mt-auto bg-linear-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white text-xs border-0"
       >
         <RefreshCw className="w-3 h-3" />
         Refresh

@@ -53,16 +53,16 @@ export default function AddAppCard() {
   }
 
   return (
-    <div className="glass-card rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
+    <div className="bg-card border shadow-xs rounded-xl p-3 md:p-4 h-full flex flex-col transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20">
       {/* Icon Header */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md flex-shrink-0">
+        <div className="w-8 h-8 rounded-md bg-linear-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-md shrink-0">
           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm md:text-base font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent truncate">
+          <h2 className="text-sm md:text-base font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent truncate">
             Add New App
           </h2>
           <p className="text-xs text-gray-500">Create application</p>
@@ -85,25 +85,25 @@ export default function AddAppCard() {
             onChange={(e) => setAppName(e.target.value)}
             placeholder="Enter name"
             required
-            className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-md text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all bg-white/80 backdrop-blur-sm"
+            className="w-full px-2 py-1.5 border-2 border-gray-200 rounded-md text-xs focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-all bg-white/80 backdrop-blur-sm"
           />
         </div>
 
         {message && (
           <div
-            className={`mb-1.5 p-1.5 rounded-md text-xs font-medium shadow-md transform transition-all animate-slide-in ${
+            className={`mb-1.5 p-1.5 rounded-md text-xs font-medium shadow-md transform transition-all animate-in slide-in-from-bottom-5 duration-300 ${
               message.type === 'success'
-                ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
-                : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
+                ? 'bg-linear-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+                : 'bg-linear-to-r from-red-50 to-rose-50 text-red-800 border border-red-200'
             }`}
           >
             <div className={`flex gap-1 ${message.type === 'error' ? 'items-start' : 'items-center'}`}>
               {message.type === 'success' ? (
-                <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-3 h-3 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               ) : (
-                <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-3 h-3 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               )}
@@ -115,7 +115,7 @@ export default function AddAppCard() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-1 mt-auto"
+          className="w-full px-2.5 py-1.5 rounded-md font-semibold text-xs transition-all duration-300 bg-linear-to-r from-blue-600 to-blue-800 text-white hover:from-blue-700 hover:to-blue-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-1 mt-auto"
         >
           {isLoading ? (
             <>
