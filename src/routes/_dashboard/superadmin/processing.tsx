@@ -1,15 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Check, CircleDashed, Loader2, RefreshCw, Search, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { CircleDashed, Loader2, ListChecks, RefreshCw, Search, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
@@ -70,6 +79,21 @@ function StatTile({ label, value }: { label: string; value: number }) {
   )
 }
 
+function StatusBadge({ status }: { status: ProcessingLog['status'] | null }) {
+  if (!status) {
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        not processed
+      </Badge>
+    )
+  }
+  return (
+    <Badge variant={status === 'success' ? 'secondary' : status === 'failed' ? 'destructive' : 'outline'}>
+      {status}
+    </Badge>
+  )
+}
+
 function ProcessingPage() {
   const { isSuperadmin } = useSuperadminGuard()
   const now = new Date()
@@ -78,6 +102,9 @@ function ProcessingPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [jobSearch, setJobSearch] = useState('')
   const [processingDates, setProcessingDates] = useState<Record<string, boolean>>({})
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set())
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null)
+  const cancelBatchRef = useRef(false)
 
   const catalogQuery = trpc.recap.listCatalog.useQuery(undefined, { enabled: isSuperadmin })
   const catalogEntries = catalogQuery.data?.data ?? []
@@ -88,6 +115,11 @@ function ProcessingPage() {
       setCatalogEntryId(catalogEntries[0].id)
     }
   }, [catalogEntries, catalogEntryId])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset selection when the data scope changes
+  useEffect(() => {
+    setSelectedDates(new Set())
+  }, [catalogEntryId, month, year])
 
   const logsQuery = trpc.processingLogs.byMonth.useQuery(
     { catalogEntryId, month, year },
@@ -109,20 +141,33 @@ function ProcessingPage() {
   })
   const selectedJob = catalogEntries.find((entry) => entry.id === catalogEntryId)
 
+  const allDates = getAllDatesInMonth(month, year)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = today.toISOString().split('T')[0]
+  const processableDates = allDates.filter((d) => new Date(`${d}T00:00:00`) < today)
+
+  const isBatchRunning = batchProgress !== null
+  const allSelected = processableDates.length > 0 && selectedDates.size === processableDates.length
+
+  const toggleDate = (date: string, checked: boolean) => {
+    setSelectedDates((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(date)
+      else next.delete(date)
+      return next
+    })
+  }
+
+  const toggleAll = (checked: boolean) => {
+    setSelectedDates(checked ? new Set(processableDates) : new Set())
+  }
+
   const handleDateProcessing = async (date: string) => {
     if (!catalogEntryId) {
       toast.error('Please select a job before processing data.')
       return
     }
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const processingDate = new Date(`${date}T00:00:00`)
-    processingDate.setHours(0, 0, 0, 0)
-    if (processingDate >= today) {
-      toast.error('Cannot process future dates. Only H-1 (yesterday) and earlier dates can be processed.')
-      return
-    }
-
     setProcessingDates((prev) => ({ ...prev, [date]: true }))
     try {
       const res = await triggerMutation.mutateAsync({ catalogEntryId, date })
@@ -146,11 +191,42 @@ function ProcessingPage() {
     }
   }
 
-  const allDates = getAllDatesInMonth(month, year)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = today.toISOString().split('T')[0]
-  const firstDay = new Date(year, month - 1, 1).getDay()
+  const runBatch = async (dates: string[]) => {
+    if (!catalogEntryId || dates.length === 0) return
+    const sorted = [...dates].sort()
+    cancelBatchRef.current = false
+    setBatchProgress({ current: 0, total: sorted.length })
+    let succeeded = 0
+    let failed = 0
+    for (let i = 0; i < sorted.length; i++) {
+      if (cancelBatchRef.current) break
+      const date = sorted[i]
+      setBatchProgress({ current: i + 1, total: sorted.length })
+      setProcessingDates((prev) => ({ ...prev, [date]: true }))
+      try {
+        const res = await triggerMutation.mutateAsync({ catalogEntryId, date })
+        if (res.data?.logEntry?.status === 'failed') failed++
+        else succeeded++
+      } catch {
+        failed++
+      } finally {
+        setProcessingDates((prev) => ({ ...prev, [date]: false }))
+      }
+    }
+    const skipped = sorted.length - succeeded - failed
+    setBatchProgress(null)
+    setSelectedDates(new Set())
+    if (skipped > 0) {
+      toast.info(`Batch cancelled: ${succeeded} succeeded, ${failed} failed, ${skipped} skipped`)
+    } else if (failed > 0) {
+      toast.error(`Batch finished: ${succeeded} succeeded, ${failed} failed`)
+    } else {
+      toast.success(`Batch finished: ${succeeded} succeeded`)
+    }
+    // Small delay so the stored procedure finishes writing before refresh
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    await logsQuery.refetch()
+  }
 
   const summary = {
     total: allDates.length,
@@ -217,7 +293,7 @@ function ProcessingPage() {
           {catalogQuery.isLoading ? (
             <Skeleton className="h-8 w-full" />
           ) : (
-            <Select value={catalogEntryId} onValueChange={setCatalogEntryId}>
+            <Select value={catalogEntryId} onValueChange={setCatalogEntryId} disabled={isBatchRunning}>
               <SelectTrigger size="sm" className="w-full">
                 <SelectValue placeholder="Select job" />
               </SelectTrigger>
@@ -270,152 +346,182 @@ function ProcessingPage() {
           )}
 
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
+            <CardHeader className="flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <p className="text-base font-medium">
                 {new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
               </p>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-chart-2" /> Success
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-destructive" /> Failed
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-muted-foreground/40" /> Not processed
-                </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {isBatchRunning ? (
+                  <>
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Processing {batchProgress.current}/{batchProgress.total}…
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        cancelBatchRef.current = true
+                      }}
+                    >
+                      <X className="size-3.5" />
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {selectedDates.size > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                        onClick={() => setSelectedDates(new Set())}
+                      >
+                        Clear selection
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={selectedDates.size === 0 || logsQuery.isLoading}
+                      onClick={() => runBatch([...selectedDates])}
+                    >
+                      <ListChecks className="size-3.5" />
+                      Process selected ({selectedDates.size})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={processableDates.length === 0 || logsQuery.isLoading}
+                      onClick={() => runBatch(processableDates)}
+                    >
+                      <RefreshCw className="size-3.5" />
+                      Process all ({processableDates.length})
+                    </Button>
+                  </>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="mb-2 grid grid-cols-7 gap-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div key={day} className="py-1 text-center text-xs font-medium text-muted-foreground">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-2">
-                {[...Array(firstDay).fill(null), ...allDates].map((dateStr, idx) =>
-                  dateStr === null ? (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: leading empty calendar cells
-                    <div key={`empty-${idx}`} className="aspect-square" />
-                  ) : logsQuery.isLoading ? (
-                    <Skeleton key={dateStr} className="aspect-square rounded-lg" />
-                  ) : (
-                    (() => {
+              {logsQuery.isLoading ? (
+                <div className="flex flex-col gap-2">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+                    <Skeleton key={i} className="h-9 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allSelected ? true : selectedDates.size > 0 ? 'indeterminate' : false}
+                          onCheckedChange={(checked) => toggleAll(checked === true)}
+                          disabled={isBatchRunning || processableDates.length === 0}
+                          aria-label="Select all processable dates"
+                        />
+                      </TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Processed</TableHead>
+                      <TableHead className="text-right">Inserted</TableHead>
+                      <TableHead>Processed at</TableHead>
+                      <TableHead>Error</TableHead>
+                      <TableHead className="w-28" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allDates.map((dateStr) => {
                       const log = logsByDate[dateStr]
-                      const status = log?.status ?? null
-                      const date = new Date(`${dateStr}T00:00:00`)
-                      date.setHours(0, 0, 0, 0)
-                      const canProcess = date < today
+                      const canProcess = new Date(`${dateStr}T00:00:00`) < today
                       const isToday = dateStr === todayStr
+                      const isSelected = selectedDates.has(dateStr)
                       const isProcessing = !!processingDates[dateStr]
+                      const processedAt = log?.end_time ?? log?.start_time ?? null
                       return (
-                        <div
+                        <TableRow
                           key={dateStr}
-                          className={cn(
-                            'flex aspect-square flex-col rounded-lg border p-1.5',
-                            isToday && 'border-ring',
-                            !canProcess && 'opacity-50',
-                          )}
-                          title={isToday ? 'Today' : dateStr}
+                          data-state={isSelected ? 'selected' : undefined}
+                          className={cn(!canProcess && 'opacity-50')}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium tabular-nums">{new Date(dateStr).getDate()}</span>
-                            {status === 'success' && <Check className="size-3.5 text-chart-2" />}
-                            {status === 'failed' && <X className="size-3.5 text-destructive" />}
-                            {status === 'running' && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-                          </div>
-                          {log && log.records_processed !== null && (
-                            <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground tabular-nums">
-                              {log.records_processed || 0} rec
-                            </p>
-                          )}
-                          {canProcess && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-auto h-6 w-full px-1 text-[10px]"
-                              onClick={() => handleDateProcessing(dateStr)}
-                              disabled={isProcessing}
-                            >
-                              {isProcessing ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
-                              Process
-                            </Button>
-                          )}
-                        </div>
+                          <TableCell>
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => toggleDate(dateStr, checked === true)}
+                              disabled={!canProcess || isBatchRunning}
+                              aria-label={`Select ${dateStr}`}
+                            />
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <span className="tabular-nums">
+                              {new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', {
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                            {isToday && (
+                              <Badge variant="outline" className="ml-2">
+                                today
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={log?.status ?? null} />
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {log ? log.records_processed || 0 : '—'}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {log ? log.records_inserted || 0 : '—'}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-muted-foreground">
+                            {processedAt
+                              ? new Date(processedAt).toLocaleString('id-ID', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : '—'}
+                          </TableCell>
+                          <TableCell className="max-w-56">
+                            {log?.error_message ? (
+                              <span className="block truncate text-destructive" title={log.error_message}>
+                                {log.error_message}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {canProcess && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7"
+                                onClick={() => handleDateProcessing(dateStr)}
+                                disabled={isProcessing || isBatchRunning}
+                              >
+                                {isProcessing ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="size-3" />
+                                )}
+                                Process
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
                       )
-                    })()
-                  ),
-                )}
-              </div>
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
-
-          {!logsQuery.isLoading && processingLogs.length > 0 && (
-            <details className="group">
-              <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
-                View detailed information
-              </summary>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {allDates.map((dateStr) => {
-                  const log = logsByDate[dateStr]
-                  if (!log) return null
-                  return (
-                    <Card key={dateStr} className="gap-2 py-3">
-                      <CardHeader className="flex-row items-center justify-between px-4">
-                        <p className="text-sm font-medium">
-                          {new Date(dateStr).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </p>
-                        <Badge
-                          variant={
-                            log.status === 'success' ? 'secondary' : log.status === 'failed' ? 'destructive' : 'outline'
-                          }
-                        >
-                          {log.status}
-                        </Badge>
-                      </CardHeader>
-                      <CardContent className="px-4 text-xs text-muted-foreground">
-                        <div className="flex justify-between">
-                          <span>Records processed</span>
-                          <span className="text-foreground tabular-nums">{log.records_processed || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Records inserted</span>
-                          <span className="text-foreground tabular-nums">{log.records_inserted || 0}</span>
-                        </div>
-                        {log.start_time && (
-                          <div className="flex justify-between">
-                            <span>Start</span>
-                            <span className="text-foreground">
-                              {new Date(log.start_time).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        )}
-                        {log.end_time && (
-                          <div className="flex justify-between">
-                            <span>End</span>
-                            <span className="text-foreground">
-                              {new Date(log.end_time).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        )}
-                        {log.error_message && (
-                          <p className="mt-2 break-words rounded-md border border-destructive/30 bg-destructive/5 p-2 text-destructive">
-                            {log.error_message}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </details>
-          )}
         </>
       )}
     </div>
