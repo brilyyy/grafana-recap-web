@@ -12,8 +12,6 @@ This directory stores SQL assets for success-rate aggregation and processing pro
 - `scripts/success_rate/{app}/raw.postgres.sql`: PostgreSQL raw aggregation query.
 - `scripts/success_rate/{app}/procedure.postgres.sql`: PostgreSQL stored function/procedure definition.
 
-MySQL SQL files remain legacy reference and are not the active path for new development.
-
 ## Workflow
 1. Add or update SQL files per app.
 2. Register app metadata in `registry.ts`.
@@ -23,7 +21,6 @@ MySQL SQL files remain legacy reference and are not the active path for new deve
 ## Deep Technical References
 - [Processing Scheduler Technical Notes](../../docs/technical/processing-scheduler.md)
 - [Success Rate Upload Technical Notes](../../docs/technical/success-rate-upload.md)
-- [Migration Kit README](../../migration-kit/README.md)
 
 ## Related Docs
 - [Project README](../../README.md)

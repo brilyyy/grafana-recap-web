@@ -50,6 +50,7 @@ interface SkippedRowsState {
 export default function AddSuccessRateCard() {
   const { applications } = useApplications()
   const utils = trpc.useUtils()
+  const uploadMutation = trpc.uploads.successRate.useMutation()
   const [skipped, setSkipped] = useState<SkippedRowsState | null>(null)
 
   const form = useForm<FormValues>({
@@ -63,8 +64,7 @@ export default function AddSuccessRateCard() {
       formData.append('successRateFile', values.file)
       formData.append('selectedApplicationId', values.appId)
 
-      const response = await fetch('/api/upload-success-rate', { method: 'POST', body: formData })
-      const result = await response.json()
+      const result = await uploadMutation.mutateAsync(formData)
 
       if (result.success) {
         toast.success(result.message || 'Success-rate document uploaded')

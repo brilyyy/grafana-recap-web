@@ -75,104 +75,44 @@ Jalankan DDL ini di database `{app_name}_db` (atau sesuai konfigurasi CDC) sebel
 
 ---
 
-## 4. Update Scheduler dan Cron Setup
+## 4. Update Scheduler
 
-Stored procedure perlu dijadwalkan agar berjalan otomatis (mis. setiap hari jam 00:01). Ada dua mekanisme yang perlu di-update:
+Stored procedure perlu dijadwalkan agar berjalan otomatis (mis. setiap hari jam 00:01).
+Scheduler berjalan di level aplikasi (node-cron, selalu aktif) — pg_cron sudah dihapus.
 
-### 4.1 `src/lib/scheduler.ts` (Application-Level Scheduler)
+### 4.1 `src/lib/scheduler.ts`
 
-**Untuk apa?** Digunakan ketika `USE_APP_LEVEL_SCHEDULER=true` — biasanya untuk **PostgreSQL di Windows** yang tidak punya pg_cron. Scheduler ini memakai **node-cron** di dalam aplikasi Next.js untuk memanggil stored procedure sesuai jadwal.
+Tambahkan satu entry ke tabel `RECAP_JOBS`:
 
-**Yang perlu di-update:**
-1. Tambah variabel task (mis. `cmsProcessingTask`)
-2. Tambah fungsi execute (mis. `executeCmsProcessing()`) yang memanggil `sp_process_{app_key}_daily`
-3. Tambah blok di `setupProcessingSchedulers()` untuk mendaftarkan job node-cron
-4. Tambah ke `stopScheduler()` untuk membersihkan task saat shutdown
-5. Tambah env var: `{APP_KEY}_PROCESSING_SCHEDULE` (mis. `CMS_PROCESSING_SCHEDULE=1 0 * * *`)
+```ts
+{ name: '{App} processing', envVar: '{APP_KEY}_PROCESSING_SCHEDULE', procedure: 'sp_process_{app_key}_daily' },
+```
 
-**Contoh pola** (ikuti struktur Bale/Bale Bisnis yang sudah ada).
+Tidak ada kode lain yang perlu diubah — loop scheduler membaca tabel ini.
+Setelah update, rebuild dan redeploy aplikasi agar job baru aktif.
 
-> **Catatan:** Perubahan `scheduler.ts` memengaruhi **aplikasi Next.js utama**. Setelah di-update, lakukan **rebuild dan redeploy** aplikasi production agar scheduler baru aktif. Migration-kit tidak berisi scheduler — hanya untuk menjalankan migration.
+### 4.2 Environment Variables
 
-### 4.2 `src/db/migrate.ts` (Database Scheduler - pg_cron)
-
-**Untuk apa?** Migration Phase 6 membuat job cron di database menggunakan pg_cron. Job cron otomatis diambil dari `registry.ts` — **tidak perlu edit migrate.ts**. Cukup tambah ke registry dan jalankan migration.
-
-### 4.3 Environment Variables
-
-Tambahkan ke `src/env.ts` (schema) dan `.env.example`:
+Tambahkan ke `src/env.ts` (schema, dengan default `'1 0 * * *'`) dan `.env`:
 ```
 {APP_KEY}_PROCESSING_SCHEDULE=1 0 * * *
 ```
 
-Contoh: `CMS_PROCESSING_SCHEDULE=1 0 * * *`
-
 ---
 
-## 5. Re-copy Migration-Kit ke Production Server
+## 5. Jalankan Migration
 
-Setelah menambah atau mengubah migration (termasuk stored procedures dan cron setup), salin ulang folder `migration-kit` ke server production:
-
-```bash
-# Dari mesin build (dengan akses internet)
-cd migration-kit
-npm install   # atau npm ci
-# Pastikan src/db/migrate.ts sudah sinkron dengan project utama
-
-# Copy ke server production (sesuaikan dengan metode deploy Anda)
-scp -r ./migration-kit user@prod-server:/app/
-```
-
-Pastikan `src/db/migrate.ts` di migration-kit sama dengan `src/db/migrate.ts` di project utama.
-
----
-
-## 6. Setup .env untuk Migration-Kit
-
-Di server production, konfigurasi `.env` di dalam folder migration-kit:
+Dari root project (env `.env` berisi koneksi `platform_db`):
 
 ```bash
-cd /app/migration-kit
-cp .env.example .env
-# Edit .env
-```
-
-**Variabel penting untuk DB_NAME:**
-- `DB_NAME=platform_db` – untuk menjalankan migration schema, procedures, dan FDW ke database platform
-- `DB_NAME=postgres` – untuk mendaftarkan job pg_cron
-
-**PostgreSQL:** Jika memakai pg_cron, jalankan migration dua kali:
-1. Ke `platform_db` – membuat table, procedure, FDW
-2. Ke `postgres` – mendaftarkan job cron
-
----
-
-## 7. Jalankan Migration untuk Cron
-
-Di root project migration-kit:
-
-```bash
-cd /app/migration-kit
-npm run migrate
-```
-
-Ini menjalankan semua fase: schema, procedures, cron/events, seed, dan FDW.
-
-**PostgreSQL dengan pg_cron – urutan eksekusi:**
-```bash
-# 1. Migration ke platform database (table + procedure + FDW)
-DB_NAME=platform_db DB_TYPE=postgresql npm run migrate
-
-# 2. Migration ke database postgres (daftar job pg_cron)
-DB_NAME=postgres DB_TYPE=postgresql npm run migrate
+pnpm db:migrate              # semua fase: schema, procedures, seed, FDW
 ```
 
 **Per fase (opsional):**
-- `npm run migrate:schema` – schema + BetterAuth + processing log + index
-- `npm run migrate:procedures` – stored procedure saja
-- `npm run migrate:cron` – cron/event scheduler
-- `npm run migrate:seed` – seed app identifier + superadmin
-- `npm run migrate:fdw` – FDW servers, user mappings, foreign tables
+- `pnpm db:migrate:schema` – schema + BetterAuth + processing log + index
+- `pnpm db:migrate:procedures` – stored procedure saja
+- `pnpm db:migrate:seed` – seed superadmin
+- `pnpm db:migrate:fdw` – FDW servers, user mappings, foreign tables
 
 ---
 
@@ -184,14 +124,12 @@ DB_NAME=postgres DB_TYPE=postgresql npm run migrate
 | 2a | Success rate queries (PostgreSQL) | `scripts/success_rate/{app_key}/` |
 | 2b | Raw table DDL (PostgreSQL) | `scripts/raw_table_creation/` |
 | 3 | Stored procedures + registry | `scripts/success_rate/{app_key}/` + `registry.ts` |
-| 4 | Update scheduler (jika USE_APP_LEVEL_SCHEDULER) atau env schedule | `src/lib/scheduler.ts` (opsional), `{APP_KEY}_PROCESSING_SCHEDULE` di .env |
-| 5 | Re-copy migration-kit | Ke server production |
-| 6 | Setup .env (DB_NAME, schedule) | `migration-kit/.env` |
-| 7 | Run migration | `cd migration-kit && npm run migrate` |
+| 4 | Tambah entry `RECAP_JOBS` + env schedule | `src/lib/scheduler.ts`, `src/env.ts` |
+| 5 | Run migration | `pnpm db:migrate` |
 
 ---
 
 ## Langkah yang Tidak Perlu Diubah
 
-- **`/api/processing/process-manual`** — Endpoint manual trigger sudah generic; memanggil `sp_process_{app_key}_daily` berdasarkan `app_name` dari body. Tidak perlu endpoint baru per app.
-- **`app_identifier` seed** — Migration Phase 7 sudah menyertakan daftar default apps (Bale, Bale Bisnis, CMS, dll.). Jika app baru ada di daftar, akan ter-seed otomatis. Jika tidak, cukup tambah via frontend (langkah 1).
+- **Manual trigger** — tRPC `recap.triggerManual` / `processingLogs.processManual` sudah generic; memanggil `sp_process_{app_key}_daily` berdasarkan catalog/app. Tidak perlu endpoint baru per app.
+- **`app_identifier` seed** — app baru cukup ditambah via frontend (langkah 1).

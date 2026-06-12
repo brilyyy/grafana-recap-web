@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
-import { httpBatchLink } from '@trpc/client'
+import { httpBatchLink, httpLink, splitLink } from '@trpc/client'
 import { createTRPCReact } from '@trpc/react-query'
 import type { AppRouter } from '@/server/trpc/root'
 import { routeTree } from './routeTree.gen'
@@ -26,8 +26,11 @@ export const queryClient = new QueryClient({
 
 export const trpcClient = trpc.createClient({
   links: [
-    httpBatchLink({
-      url: `${getBaseUrl()}/api/trpc`,
+    // FormData inputs (file uploads) cannot be batched/JSON-serialized
+    splitLink({
+      condition: (op) => op.input instanceof FormData,
+      true: httpLink({ url: `${getBaseUrl()}/api/trpc` }),
+      false: httpBatchLink({ url: `${getBaseUrl()}/api/trpc` }),
     }),
   ],
 })

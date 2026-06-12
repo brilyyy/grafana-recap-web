@@ -13,8 +13,6 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
-import { Route as ApiUploadSuccessRateRouteImport } from './routes/api/upload-success-rate'
-import { Route as ApiUploadDictionaryRouteImport } from './routes/api/upload-dictionary'
 import { Route as DashboardUploadsRouteImport } from './routes/_dashboard/uploads'
 import { Route as DashboardUnmappedRcRouteImport } from './routes/_dashboard/unmapped-rc'
 import { Route as DashboardTransactionsRouteImport } from './routes/_dashboard/transactions'
@@ -22,8 +20,6 @@ import { Route as DashboardDictionaryRouteImport } from './routes/_dashboard/dic
 import { Route as DashboardApplicationRouteImport } from './routes/_dashboard/application'
 import { Route as DashboardSuperadminIndexRouteImport } from './routes/_dashboard/superadmin/index'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
-import { Route as ApiProcessingProcessManualRouteImport } from './routes/api/processing/process-manual'
-import { Route as ApiBaleProcessManualRouteImport } from './routes/api/bale/process-manual'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as DashboardSuperadminUsersRouteImport } from './routes/_dashboard/superadmin/users'
 import { Route as DashboardSuperadminProcessingRouteImport } from './routes/_dashboard/superadmin/processing'
@@ -50,16 +46,6 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRoute,
-} as any)
-const ApiUploadSuccessRateRoute = ApiUploadSuccessRateRouteImport.update({
-  id: '/api/upload-success-rate',
-  path: '/api/upload-success-rate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiUploadDictionaryRoute = ApiUploadDictionaryRouteImport.update({
-  id: '/api/upload-dictionary',
-  path: '/api/upload-dictionary',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardUploadsRoute = DashboardUploadsRouteImport.update({
   id: '/uploads',
@@ -95,17 +81,6 @@ const DashboardSuperadminIndexRoute =
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiProcessingProcessManualRoute =
-  ApiProcessingProcessManualRouteImport.update({
-    id: '/api/processing/process-manual',
-    path: '/api/processing/process-manual',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiBaleProcessManualRoute = ApiBaleProcessManualRouteImport.update({
-  id: '/api/bale/process-manual',
-  path: '/api/bale/process-manual',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -158,8 +133,6 @@ export interface FileRoutesByFullPath {
   '/transactions': typeof DashboardTransactionsRoute
   '/unmapped-rc': typeof DashboardUnmappedRcRoute
   '/uploads': typeof DashboardUploadsRoute
-  '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
-  '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
@@ -167,8 +140,6 @@ export interface FileRoutesByFullPath {
   '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
   '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
-  '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/superadmin/': typeof DashboardSuperadminIndexRoute
 }
@@ -180,8 +151,6 @@ export interface FileRoutesByTo {
   '/transactions': typeof DashboardTransactionsRoute
   '/unmapped-rc': typeof DashboardUnmappedRcRoute
   '/uploads': typeof DashboardUploadsRoute
-  '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
-  '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
   '/': typeof DashboardIndexRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/superadmin/config': typeof DashboardSuperadminConfigRoute
@@ -190,8 +159,6 @@ export interface FileRoutesByTo {
   '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
   '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
-  '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/superadmin': typeof DashboardSuperadminIndexRoute
 }
@@ -205,8 +172,6 @@ export interface FileRoutesById {
   '/_dashboard/transactions': typeof DashboardTransactionsRoute
   '/_dashboard/unmapped-rc': typeof DashboardUnmappedRcRoute
   '/_dashboard/uploads': typeof DashboardUploadsRoute
-  '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
-  '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
   '/_dashboard/': typeof DashboardIndexRoute
   '/_dashboard/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/_dashboard/superadmin/config': typeof DashboardSuperadminConfigRoute
@@ -215,8 +180,6 @@ export interface FileRoutesById {
   '/_dashboard/superadmin/processing': typeof DashboardSuperadminProcessingRoute
   '/_dashboard/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
-  '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/_dashboard/superadmin/': typeof DashboardSuperadminIndexRoute
 }
@@ -231,8 +194,6 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/unmapped-rc'
     | '/uploads'
-    | '/api/upload-dictionary'
-    | '/api/upload-success-rate'
     | '/superadmin/audit-logs'
     | '/superadmin/config'
     | '/superadmin/housekeeping'
@@ -240,8 +201,6 @@ export interface FileRouteTypes {
     | '/superadmin/processing'
     | '/superadmin/users'
     | '/api/auth/$'
-    | '/api/bale/process-manual'
-    | '/api/processing/process-manual'
     | '/api/trpc/$'
     | '/superadmin/'
   fileRoutesByTo: FileRoutesByTo
@@ -253,8 +212,6 @@ export interface FileRouteTypes {
     | '/transactions'
     | '/unmapped-rc'
     | '/uploads'
-    | '/api/upload-dictionary'
-    | '/api/upload-success-rate'
     | '/'
     | '/superadmin/audit-logs'
     | '/superadmin/config'
@@ -263,8 +220,6 @@ export interface FileRouteTypes {
     | '/superadmin/processing'
     | '/superadmin/users'
     | '/api/auth/$'
-    | '/api/bale/process-manual'
-    | '/api/processing/process-manual'
     | '/api/trpc/$'
     | '/superadmin'
   id:
@@ -277,8 +232,6 @@ export interface FileRouteTypes {
     | '/_dashboard/transactions'
     | '/_dashboard/unmapped-rc'
     | '/_dashboard/uploads'
-    | '/api/upload-dictionary'
-    | '/api/upload-success-rate'
     | '/_dashboard/'
     | '/_dashboard/superadmin/audit-logs'
     | '/_dashboard/superadmin/config'
@@ -287,8 +240,6 @@ export interface FileRouteTypes {
     | '/_dashboard/superadmin/processing'
     | '/_dashboard/superadmin/users'
     | '/api/auth/$'
-    | '/api/bale/process-manual'
-    | '/api/processing/process-manual'
     | '/api/trpc/$'
     | '/_dashboard/superadmin/'
   fileRoutesById: FileRoutesById
@@ -297,11 +248,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
-  ApiUploadDictionaryRoute: typeof ApiUploadDictionaryRoute
-  ApiUploadSuccessRateRoute: typeof ApiUploadSuccessRateRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiBaleProcessManualRoute: typeof ApiBaleProcessManualRoute
-  ApiProcessingProcessManualRoute: typeof ApiProcessingProcessManualRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
@@ -334,20 +281,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
-    }
-    '/api/upload-success-rate': {
-      id: '/api/upload-success-rate'
-      path: '/api/upload-success-rate'
-      fullPath: '/api/upload-success-rate'
-      preLoaderRoute: typeof ApiUploadSuccessRateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/upload-dictionary': {
-      id: '/api/upload-dictionary'
-      path: '/api/upload-dictionary'
-      fullPath: '/api/upload-dictionary'
-      preLoaderRoute: typeof ApiUploadDictionaryRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_dashboard/uploads': {
       id: '/_dashboard/uploads'
@@ -396,20 +329,6 @@ declare module '@tanstack/react-router' {
       path: '/api/trpc/$'
       fullPath: '/api/trpc/$'
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/processing/process-manual': {
-      id: '/api/processing/process-manual'
-      path: '/api/processing/process-manual'
-      fullPath: '/api/processing/process-manual'
-      preLoaderRoute: typeof ApiProcessingProcessManualRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/bale/process-manual': {
-      id: '/api/bale/process-manual'
-      path: '/api/bale/process-manual'
-      fullPath: '/api/bale/process-manual'
-      preLoaderRoute: typeof ApiBaleProcessManualRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -504,11 +423,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
-  ApiUploadDictionaryRoute: ApiUploadDictionaryRoute,
-  ApiUploadSuccessRateRoute: ApiUploadSuccessRateRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiBaleProcessManualRoute: ApiBaleProcessManualRoute,
-  ApiProcessingProcessManualRoute: ApiProcessingProcessManualRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport

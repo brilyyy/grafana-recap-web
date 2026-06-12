@@ -5,7 +5,7 @@
 export type RecapModelEntry = {
   modelKey: string
   functionName: string
-  /** pg_cron / app scheduler env var for this job */
+  /** App scheduler (node-cron) env var for this job */
   scheduleEnvVar: string
 }
 

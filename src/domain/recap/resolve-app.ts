@@ -1,4 +1,4 @@
-/** Normalize app_identifier.app_name to procedure app_key (matches process-manual route). */
+/** Normalize app_identifier.app_name to procedure app_key (used by recap triggers). */
 export function normalizeAppNameToKey(name: string): string {
   return (
     name

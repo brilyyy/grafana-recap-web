@@ -39,6 +39,22 @@ Scheduler berjalan di level aplikasi (node-cron) — selalu aktif saat server st
 3. Stored procedure: test manual `SELECT public.sp_process_bale_daily(NULL);`.
 4. Hasil proses: cek `app_processing_log` (juga tampil di halaman Summary dan Superadmin → Processing).
 
+## External Trigger (machine-to-machine)
+
+Manual recap bisa dipicu tanpa session via tRPC `recap.triggerExternal`,
+diautentikasi header `x-recap-api-key` (env `RECAP_TRIGGER_API_KEY`):
+
+```bash
+curl -X POST https://host/api/trpc/recap.triggerExternal \
+  -H 'content-type: application/json' \
+  -H 'x-recap-api-key: <RECAP_TRIGGER_API_KEY>' \
+  -d '{"app_name":"Bale","date":"2026-06-10"}'
+```
+
+Body menerima `app_name` ATAU `catalogEntryId` (mis. `sr:bale`), plus `date`
+opsional (`YYYY-MM-DD`; tanpa `date` = H-1). Endpoint lama
+`POST /api/processing/process-manual` sudah dihapus.
+
 ## Query Debug SQL
 ```sql
 SELECT *

@@ -25,6 +25,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
 import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
 import argon2 from '@node-rs/argon2'
+import { type SQL, sql } from 'drizzle-orm'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { runStoredProcedures as runProcedures } from '../../scripts/success_rate/runProcedures'
 
 // ─── Argument parsing ───────────────────────────────────────────────────────
@@ -71,14 +73,14 @@ function fdwLocalRelationName(sourceDb: string, tableName: string): string {
   return `${raw.slice(0, 55)}_${suffix}`
 }
 
-// ─── Low-level query executor ────────────────────────────────────────────────
+// ─── Low-level query executor (drizzle) ──────────────────────────────────────
 
-type ExecFn = (sql: string, params?: unknown[]) => Promise<unknown[]>
-let exec!: ExecFn
+let migrationDb!: NodePgDatabase
 let closeDb!: () => Promise<void>
 
 async function initConnection() {
   const { Pool } = await import('pg')
+  const { drizzle } = await import('drizzle-orm/node-postgres')
   const pool = new Pool({
     host: DB_HOST,
     port: DB_PORT,
@@ -86,20 +88,28 @@ async function initConnection() {
     password: DB_PASSWORD,
     database: DB_NAME,
   })
-  exec = async (sql, params) => {
-    const result = await pool.query(sql, params as unknown[])
-    return result.rows
-  }
+  migrationDb = drizzle(pool)
   closeDb = () => pool.end()
+}
+
+/** Run a raw (param-less) DDL/SQL string through drizzle. */
+async function exec(text: string): Promise<unknown[]> {
+  const result = await migrationDb.execute(sql.raw(text))
+  return result.rows
+}
+
+/** Run a parameterized drizzle `sql` template. */
+async function execSql(query: SQL): Promise<unknown[]> {
+  const result = await migrationDb.execute(query)
+  return result.rows
 }
 
 // ─── Safety helpers ──────────────────────────────────────────────────────────
 
 async function tableExists(table: string): Promise<boolean> {
   try {
-    const rows = await exec(
-      `SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=$1 LIMIT 1`,
-      [table],
+    const rows = await execSql(
+      sql`SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=${table} LIMIT 1`,
     )
     return rows.length > 0
   } catch {
@@ -109,9 +119,8 @@ async function tableExists(table: string): Promise<boolean> {
 
 async function columnExists(table: string, column: string): Promise<boolean> {
   try {
-    const rows = await exec(
-      `SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 AND column_name=$2 LIMIT 1`,
-      [table, column],
+    const rows = await execSql(
+      sql`SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=${table} AND column_name=${column} LIMIT 1`,
     )
     return rows.length > 0
   } catch {
@@ -121,9 +130,8 @@ async function columnExists(table: string, column: string): Promise<boolean> {
 
 async function indexExists(table: string, idx: string): Promise<boolean> {
   try {
-    const rows = await exec(
-      `SELECT 1 FROM pg_indexes WHERE schemaname='public' AND tablename=$1 AND indexname=$2 LIMIT 1`,
-      [table, idx],
+    const rows = await execSql(
+      sql`SELECT 1 FROM pg_indexes WHERE schemaname='public' AND tablename=${table} AND indexname=${idx} LIMIT 1`,
     )
     return rows.length > 0
   } catch {
@@ -139,7 +147,7 @@ async function createIndexSafely(idxName: string, table: string, columns: string
 
 async function pgEnumExists(name: string): Promise<boolean> {
   try {
-    const rows = await exec(`SELECT 1 FROM pg_type WHERE typname=$1 AND typtype='e' LIMIT 1`, [name])
+    const rows = await execSql(sql`SELECT 1 FROM pg_type WHERE typname=${name} AND typtype='e' LIMIT 1`)
     return rows.length > 0
   } catch {
     return false
@@ -737,7 +745,7 @@ async function runRecapModelTables() {
 
 async function runRecapModelProcedures() {
   console.log('\n⚙️  Phase 5b: Custom recap stored procedures (PostgreSQL)')
-  await runRecapModelStoredProcedures(exec)
+  await runRecapModelStoredProcedures(migrationDb)
   console.log('  ✅ Phase 5b done')
 }
 
@@ -903,7 +911,7 @@ async function runFdwSetup() {
 
 async function runStoredProcedures() {
   console.log('\n⚙️  Phase 5: Stored procedures')
-  await runProcedures(exec)
+  await runProcedures(migrationDb)
 
   // PostgreSQL-only: housekeeping utility function
   // Reads retention_days at runtime so UI changes take effect without re-running migration
@@ -1072,27 +1080,23 @@ async function runSeeds() {
       const hasBetterAuthCols = await columnExists('users', 'email_verified')
       let rows: unknown[]
       if (hasBetterAuthCols) {
-        rows = await exec(
-          `INSERT INTO "users" ("username","email","password_hash","role","name","email_verified")
-           VALUES ($1,$2,$3,'superadmin',$4,1)
-           ON CONFLICT ("username") DO UPDATE SET
-             "email"="excluded"."email",
-             "password_hash"="excluded"."password_hash",
-             "name"="excluded"."name",
-             "email_verified"=1
-           RETURNING "id"`,
-          [username, email, argon2Hash, username],
-        )
+        rows = await execSql(sql`
+          INSERT INTO "users" ("username","email","password_hash","role","name","email_verified")
+          VALUES (${username},${email},${argon2Hash},'superadmin',${username},1)
+          ON CONFLICT ("username") DO UPDATE SET
+            "email"="excluded"."email",
+            "password_hash"="excluded"."password_hash",
+            "name"="excluded"."name",
+            "email_verified"=1
+          RETURNING "id"`)
       } else {
-        rows = await exec(
-          `INSERT INTO "users" ("username","email","password_hash","role")
-           VALUES ($1,$2,$3,'superadmin')
-           ON CONFLICT ("username") DO UPDATE SET
-             "email"="excluded"."email",
-             "password_hash"="excluded"."password_hash"
-           RETURNING "id"`,
-          [username, email, argon2Hash],
-        )
+        rows = await execSql(sql`
+          INSERT INTO "users" ("username","email","password_hash","role")
+          VALUES (${username},${email},${argon2Hash},'superadmin')
+          ON CONFLICT ("username") DO UPDATE SET
+            "email"="excluded"."email",
+            "password_hash"="excluded"."password_hash"
+          RETURNING "id"`)
       }
       userId = rows[0] ? ((rows[0] as Record<string, unknown>).id as number) : null
 
@@ -1101,22 +1105,21 @@ async function runSeeds() {
       // ── Insert / upsert into BetterAuth `account` (credential store) ──────
       // BetterAuth verifies passwords from `account.password`, not `users.password_hash`
       if (userId !== null) {
-        const acct = await exec(
-          `SELECT "id" FROM "account" WHERE "provider_id"='credential' AND "user_id"=$1 LIMIT 1`,
-          [userId],
+        const acct = await execSql(
+          sql`SELECT "id" FROM "account" WHERE "provider_id"='credential' AND "user_id"=${userId} LIMIT 1`,
         )
         const existingAccountId = acct[0] ? ((acct[0] as Record<string, unknown>).id as string) : null
 
         if (existingAccountId) {
-          await exec(`UPDATE "account" SET "password"=$1,"updated_at"=NOW() WHERE "id"=$2`, [argon2Hash, existingAccountId])
+          await execSql(
+            sql`UPDATE "account" SET "password"=${argon2Hash},"updated_at"=NOW() WHERE "id"=${existingAccountId}`,
+          )
           console.log(`  ✅ BetterAuth credential updated for: ${username}`)
         } else {
           const accountId = randomUUID()
-          await exec(
-            `INSERT INTO "account" ("id","account_id","provider_id","user_id","password","created_at","updated_at")
-             VALUES ($1,$2,'credential',$3,$4,NOW(),NOW())`,
-            [accountId, userId, userId, argon2Hash],
-          )
+          await execSql(sql`
+            INSERT INTO "account" ("id","account_id","provider_id","user_id","password","created_at","updated_at")
+            VALUES (${accountId},${String(userId)},'credential',${userId},${argon2Hash},NOW(),NOW())`)
           console.log(`  ✅ BetterAuth credential account linked for: ${username}`)
         }
       } else {

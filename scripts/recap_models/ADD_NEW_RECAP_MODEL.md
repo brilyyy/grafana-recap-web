@@ -1,6 +1,6 @@
 # Adding a new custom daily recap model
 
-PostgreSQL only. MySQL artifacts in this repo are deprecated.
+PostgreSQL only.
 
 ## 1. Decide grain and output table
 
@@ -27,7 +27,7 @@ scripts/recap_models/{modelKey}/
 
 Add an entry to [scripts/recap_models/registry.ts](scripts/recap_models/registry.ts):
 
-- `modelKey`, `functionName`, `scheduleEnvVar` (cron env var for pg_cron / node-cron).
+- `modelKey`, `functionName`, `scheduleEnvVar` (cron env var for the app-level node-cron scheduler).
 
 Migration runs [scripts/recap_models/runProcedures.ts](scripts/recap_models/runProcedures.ts) via Phase 5b in `migrate.ts`.
 
@@ -39,9 +39,8 @@ Extend [src/domain/recap/catalog.ts](src/domain/recap/catalog.ts) `customRecapEn
 
 ## 5. Scheduler
 
-- **App-level:** [src/lib/scheduler.ts](src/lib/scheduler.ts) — add `execute*` + `node-cron` task using `getCronSchedule('<YOUR_ENV_VAR>')`.
+- **App-level:** [src/lib/scheduler.ts](src/lib/scheduler.ts) — add one entry to the `RECAP_JOBS` table (`name`, `envVar`, `procedure`).
 - **Env:** add default in [src/env.ts](src/env.ts) and document in `.env.example` if present.
-- **pg_cron:** [src/db/migrate.ts](src/db/migrate.ts) Phase 6 merges `RECAP_MODEL_REGISTRY` into cron jobs automatically.
 
 ## 6. Verify
 

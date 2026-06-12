@@ -10,6 +10,7 @@ import { processingLogsRouter } from './routers/processingLogs'
 import { recapRouter } from './routers/recap'
 import { systemRouter } from './routers/system'
 import { unmappedRcRouter } from './routers/unmappedRc'
+import { uploadsRouter } from './routers/uploads'
 import { usersRouter } from './routers/users'
 
 export const appRouter = router({
@@ -25,6 +26,7 @@ export const appRouter = router({
   system: systemRouter,
   fdw: fdwRouter,
   housekeeping: housekeepingRouter,
+  uploads: uploadsRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -2,25 +2,28 @@
  * Runs stored procedures for success rate processing.
  * Loads procedure SQL from scripts/success_rate/{appKey}/procedure.postgres.sql
  */
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { type SQL, sql } from 'drizzle-orm'
+import { PROCEDURE_APPS } from './registry'
 
-export type ExecFn = (sql: string, params?: unknown[]) => Promise<unknown[]>
+/** Minimal drizzle database surface — satisfied by NodePgDatabase. */
+export interface SqlExecutor {
+  execute(query: SQL): Promise<unknown>
+}
 
-export async function runStoredProcedures(exec: ExecFn): Promise<void> {
-  const { PROCEDURE_APPS } = await import('./registry')
+export async function runStoredProcedures(db: SqlExecutor): Promise<void> {
   const baseDir = path.join(process.cwd(), 'scripts', 'success_rate')
 
   for (const { appKey, procedureName } of PROCEDURE_APPS) {
-    const fileName = 'procedure.postgres.sql'
-    const filePath = path.join(baseDir, appKey, fileName)
+    const filePath = path.join(baseDir, appKey, 'procedure.postgres.sql')
 
     if (!fs.existsSync(filePath)) {
       throw new Error(`Procedure file not found: ${filePath}`)
     }
 
-    const sql = fs.readFileSync(filePath, 'utf-8').trim()
-    await exec(sql)
+    const content = fs.readFileSync(filePath, 'utf-8').trim()
+    await db.execute(sql.raw(content))
     console.log(`  ✅ ${procedureName} created/replaced`)
   }
 }

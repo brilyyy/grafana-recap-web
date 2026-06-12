@@ -39,7 +39,7 @@ const serverSchema = z.object({
   BALE_KORPORA_CORP_RECAP_SCHEDULE: z.string().default('1 0 * * *'),
   HOUSEKEEPING_SCHEDULE: z.string().default('0 2 * * *'),
 
-  /** Optional: allows POST /api/processing/process-manual without session when header matches */
+  /** Optional: allows tRPC `recap.triggerExternal` without session when x-recap-api-key matches */
   RECAP_TRIGGER_API_KEY: z.string().optional(),
 
   // Migrations / seeds

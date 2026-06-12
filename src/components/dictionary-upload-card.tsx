@@ -42,6 +42,7 @@ interface SkippedRowsState {
 export default function DictionaryUploadCard() {
   const { applications } = useApplications()
   const utils = trpc.useUtils()
+  const uploadMutation = trpc.uploads.dictionary.useMutation()
   const [skipped, setSkipped] = useState<SkippedRowsState | null>(null)
 
   const form = useForm<FormValues>({
@@ -55,8 +56,7 @@ export default function DictionaryUploadCard() {
       formData.append('dictionaryFile', values.file)
       formData.append('selectedApplicationId', values.appId)
 
-      const response = await fetch('/api/upload-dictionary', { method: 'POST', body: formData })
-      const result = await response.json()
+      const result = await uploadMutation.mutateAsync(formData)
 
       if (result.success) {
         toast.success(result.message || 'Dictionary uploaded')
