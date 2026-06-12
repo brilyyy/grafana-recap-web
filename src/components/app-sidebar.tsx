@@ -3,6 +3,7 @@ import {
   BookOpen,
   Cog,
   Database,
+  FileText,
   Gauge,
   LayoutDashboard,
   LayoutGrid,
@@ -37,6 +38,7 @@ const workspaceNav = [
   { title: 'Uploads', to: '/uploads', icon: Upload },
   { title: 'Unmapped RC', to: '/unmapped-rc', icon: Unlink },
   { title: 'Transactions', to: '/transactions', icon: ReceiptText },
+  { title: 'Docs', to: '/docs', icon: FileText },
 ] as const
 
 const superadminNav = [
@@ -77,7 +79,14 @@ export function AppSidebar({ user }: { user: SessionUser }) {
             <SidebarMenu>
               {workspaceNav.map((item) => (
                 <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton asChild isActive={pathname === item.to} tooltip={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={
+                      pathname === item.to ||
+                      (item.to !== '/' && pathname.startsWith(`${item.to}/`))
+                    }
+                    tooltip={item.title}
+                  >
                     <Link to={item.to}>
                       <item.icon />
                       <span>{item.title}</span>

@@ -16,9 +16,11 @@ import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
 import { Route as DashboardUploadsRouteImport } from './routes/_dashboard/uploads'
 import { Route as DashboardUnmappedRcRouteImport } from './routes/_dashboard/unmapped-rc'
 import { Route as DashboardTransactionsRouteImport } from './routes/_dashboard/transactions'
+import { Route as DashboardDocsRouteImport } from './routes/_dashboard/docs'
 import { Route as DashboardDictionaryRouteImport } from './routes/_dashboard/dictionary'
 import { Route as DashboardApplicationRouteImport } from './routes/_dashboard/application'
 import { Route as DashboardSuperadminIndexRouteImport } from './routes/_dashboard/superadmin/index'
+import { Route as DashboardDocsIndexRouteImport } from './routes/_dashboard/docs/index'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as DashboardSuperadminUsersRouteImport } from './routes/_dashboard/superadmin/users'
@@ -27,6 +29,7 @@ import { Route as DashboardSuperadminJobsRouteImport } from './routes/_dashboard
 import { Route as DashboardSuperadminHousekeepingRouteImport } from './routes/_dashboard/superadmin/housekeeping'
 import { Route as DashboardSuperadminConfigRouteImport } from './routes/_dashboard/superadmin/config'
 import { Route as DashboardSuperadminAuditLogsRouteImport } from './routes/_dashboard/superadmin/audit-logs'
+import { Route as DashboardDocsSplatRouteImport } from './routes/_dashboard/docs/$'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -62,6 +65,11 @@ const DashboardTransactionsRoute = DashboardTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardDocsRoute = DashboardDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDictionaryRoute = DashboardDictionaryRouteImport.update({
   id: '/dictionary',
   path: '/dictionary',
@@ -78,6 +86,11 @@ const DashboardSuperadminIndexRoute =
     path: '/superadmin/',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardDocsIndexRoute = DashboardDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardDocsRoute,
+} as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
@@ -123,6 +136,11 @@ const DashboardSuperadminAuditLogsRoute =
     path: '/superadmin/audit-logs',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardDocsSplatRoute = DashboardDocsSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => DashboardDocsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
@@ -130,9 +148,11 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/application': typeof DashboardApplicationRoute
   '/dictionary': typeof DashboardDictionaryRoute
+  '/docs': typeof DashboardDocsRouteWithChildren
   '/transactions': typeof DashboardTransactionsRoute
   '/unmapped-rc': typeof DashboardUnmappedRcRoute
   '/uploads': typeof DashboardUploadsRoute
+  '/docs/$': typeof DashboardDocsSplatRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
@@ -141,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/docs/': typeof DashboardDocsIndexRoute
   '/superadmin/': typeof DashboardSuperadminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -152,6 +173,7 @@ export interface FileRoutesByTo {
   '/unmapped-rc': typeof DashboardUnmappedRcRoute
   '/uploads': typeof DashboardUploadsRoute
   '/': typeof DashboardIndexRoute
+  '/docs/$': typeof DashboardDocsSplatRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
@@ -160,6 +182,7 @@ export interface FileRoutesByTo {
   '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/docs': typeof DashboardDocsIndexRoute
   '/superadmin': typeof DashboardSuperadminIndexRoute
 }
 export interface FileRoutesById {
@@ -169,10 +192,12 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/_dashboard/application': typeof DashboardApplicationRoute
   '/_dashboard/dictionary': typeof DashboardDictionaryRoute
+  '/_dashboard/docs': typeof DashboardDocsRouteWithChildren
   '/_dashboard/transactions': typeof DashboardTransactionsRoute
   '/_dashboard/unmapped-rc': typeof DashboardUnmappedRcRoute
   '/_dashboard/uploads': typeof DashboardUploadsRoute
   '/_dashboard/': typeof DashboardIndexRoute
+  '/_dashboard/docs/$': typeof DashboardDocsSplatRoute
   '/_dashboard/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/_dashboard/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/_dashboard/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
@@ -181,6 +206,7 @@ export interface FileRoutesById {
   '/_dashboard/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/_dashboard/docs/': typeof DashboardDocsIndexRoute
   '/_dashboard/superadmin/': typeof DashboardSuperadminIndexRoute
 }
 export interface FileRouteTypes {
@@ -191,9 +217,11 @@ export interface FileRouteTypes {
     | '/register'
     | '/application'
     | '/dictionary'
+    | '/docs'
     | '/transactions'
     | '/unmapped-rc'
     | '/uploads'
+    | '/docs/$'
     | '/superadmin/audit-logs'
     | '/superadmin/config'
     | '/superadmin/housekeeping'
@@ -202,6 +230,7 @@ export interface FileRouteTypes {
     | '/superadmin/users'
     | '/api/auth/$'
     | '/api/trpc/$'
+    | '/docs/'
     | '/superadmin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -213,6 +242,7 @@ export interface FileRouteTypes {
     | '/unmapped-rc'
     | '/uploads'
     | '/'
+    | '/docs/$'
     | '/superadmin/audit-logs'
     | '/superadmin/config'
     | '/superadmin/housekeeping'
@@ -221,6 +251,7 @@ export interface FileRouteTypes {
     | '/superadmin/users'
     | '/api/auth/$'
     | '/api/trpc/$'
+    | '/docs'
     | '/superadmin'
   id:
     | '__root__'
@@ -229,10 +260,12 @@ export interface FileRouteTypes {
     | '/register'
     | '/_dashboard/application'
     | '/_dashboard/dictionary'
+    | '/_dashboard/docs'
     | '/_dashboard/transactions'
     | '/_dashboard/unmapped-rc'
     | '/_dashboard/uploads'
     | '/_dashboard/'
+    | '/_dashboard/docs/$'
     | '/_dashboard/superadmin/audit-logs'
     | '/_dashboard/superadmin/config'
     | '/_dashboard/superadmin/housekeeping'
@@ -241,6 +274,7 @@ export interface FileRouteTypes {
     | '/_dashboard/superadmin/users'
     | '/api/auth/$'
     | '/api/trpc/$'
+    | '/_dashboard/docs/'
     | '/_dashboard/superadmin/'
   fileRoutesById: FileRoutesById
 }
@@ -303,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTransactionsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/docs': {
+      id: '/_dashboard/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DashboardDocsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/_dashboard/dictionary': {
       id: '/_dashboard/dictionary'
       path: '/dictionary'
@@ -323,6 +364,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/superadmin/'
       preLoaderRoute: typeof DashboardSuperadminIndexRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/docs/': {
+      id: '/_dashboard/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DashboardDocsIndexRouteImport
+      parentRoute: typeof DashboardDocsRoute
     }
     '/api/trpc/$': {
       id: '/api/trpc/$'
@@ -380,12 +428,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSuperadminAuditLogsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/docs/$': {
+      id: '/_dashboard/docs/$'
+      path: '/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DashboardDocsSplatRouteImport
+      parentRoute: typeof DashboardDocsRoute
+    }
   }
 }
+
+interface DashboardDocsRouteChildren {
+  DashboardDocsSplatRoute: typeof DashboardDocsSplatRoute
+  DashboardDocsIndexRoute: typeof DashboardDocsIndexRoute
+}
+
+const DashboardDocsRouteChildren: DashboardDocsRouteChildren = {
+  DashboardDocsSplatRoute: DashboardDocsSplatRoute,
+  DashboardDocsIndexRoute: DashboardDocsIndexRoute,
+}
+
+const DashboardDocsRouteWithChildren = DashboardDocsRoute._addFileChildren(
+  DashboardDocsRouteChildren,
+)
 
 interface DashboardRouteChildren {
   DashboardApplicationRoute: typeof DashboardApplicationRoute
   DashboardDictionaryRoute: typeof DashboardDictionaryRoute
+  DashboardDocsRoute: typeof DashboardDocsRouteWithChildren
   DashboardTransactionsRoute: typeof DashboardTransactionsRoute
   DashboardUnmappedRcRoute: typeof DashboardUnmappedRcRoute
   DashboardUploadsRoute: typeof DashboardUploadsRoute
@@ -402,6 +472,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardApplicationRoute: DashboardApplicationRoute,
   DashboardDictionaryRoute: DashboardDictionaryRoute,
+  DashboardDocsRoute: DashboardDocsRouteWithChildren,
   DashboardTransactionsRoute: DashboardTransactionsRoute,
   DashboardUnmappedRcRoute: DashboardUnmappedRcRoute,
   DashboardUploadsRoute: DashboardUploadsRoute,
@@ -429,13 +500,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
