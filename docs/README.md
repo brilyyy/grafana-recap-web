@@ -13,5 +13,4 @@ This folder is the entry point for project documentation below the root README.
 - [Project README](../README.md)
 - [Feature Docs Index](features/README.md)
 - [Technical Docs Index](technical/README.md)
-- [Migration Kit README](../migration-kit/README.md)
 - [Success Rate SQL README](../scripts/success_rate/README.md)

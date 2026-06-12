@@ -4,12 +4,12 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { appIdentifier, appSuccessRate, responseCodeDictionary } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
-import { protectedProcedure, publicProcedure, router } from '../init'
+import { protectedProcedure, router } from '../init'
 
 const errorTypeEnum = z.enum(['S', 'N', 'Sukses'])
 
 export const dictionaryRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z
         .object({
@@ -79,6 +79,21 @@ export const dictionaryRouter = router({
         .where(where)
 
       return { success: true, data: { entries, total: countResult[0].total, page, limit } }
+    }),
+
+  jenisOptions: protectedProcedure
+    .input(z.object({ app_ids: z.array(z.number().int().positive()).optional() }).optional())
+    .query(async ({ input }) => {
+      const where = input?.app_ids?.length
+        ? inArray(responseCodeDictionary.idAppIdentifier, input.app_ids)
+        : undefined
+      const rows = await db
+        .selectDistinct({ jenis_transaksi: responseCodeDictionary.jenisTransaksi })
+        .from(responseCodeDictionary)
+        .where(where)
+        .orderBy(asc(responseCodeDictionary.jenisTransaksi))
+      const options = rows.map((r) => r.jenis_transaksi).filter((j): j is string => !!j)
+      return { success: true, data: { options } }
     }),
 
   updateErrorType: protectedProcedure

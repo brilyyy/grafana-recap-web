@@ -1,10 +1,14 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { AlertCircle, Loader2, Lock, User } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { AlertCircle, Gauge, Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { authClient } from '@/lib/auth-client'
 import { trpc } from '@/router'
 
@@ -13,13 +17,16 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 })
 
+const schema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+type FormValues = z.infer<typeof schema>
+
 function LoginPage() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
+  const utils = trpc.useUtils()
   const { data: authCheck } = trpc.auth.check.useQuery(undefined, { retry: false })
 
   useEffect(() => {
@@ -28,134 +35,88 @@ function LoginPage() {
     }
   }, [authCheck, navigate])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { username: '', password: '' },
+  })
 
+  const onSubmit = async (values: FormValues) => {
     try {
-      const { data, error: signInError } = await authClient.signIn.username({
-        username,
-        password,
-      })
-
-      if (signInError) {
-        setError(signInError.message || 'Invalid username or password')
+      const { data, error } = await authClient.signIn.username(values)
+      if (error) {
+        form.setError('root', { message: error.message || 'Invalid username or password' })
       } else if (data) {
+        await utils.auth.check.invalidate()
         navigate({ to: '/' })
       }
     } catch {
-      setError('An error occurred. Please try again.')
-    } finally {
-      setLoading(false)
+      form.setError('root', { message: 'An error occurred. Please try again.' })
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '1s' }}
-        />
-        <div
-          className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '2s' }}
-        />
-      </div>
-
-      <div className="w-full max-w-md relative z-10 animate-in fade-in duration-300">
-        <div className="rounded-2xl shadow-2xl p-8 md:p-10 space-y-6 border border-white/10 bg-black/40 backdrop-blur-xl">
-          {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/20">
-              <Lock className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
-              Welcome Back
-            </h1>
-            <p className="text-white/70 text-sm md:text-base">Sign in to access the dashboard</p>
+    <div className="grid min-h-svh place-items-center bg-muted/40 p-6">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center justify-center gap-2 font-medium">
+          <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Gauge className="size-4" />
           </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-white/90 font-semibold">
-                Username
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  disabled={loading}
-                  placeholder="Enter your username"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-white/90 font-semibold">
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  placeholder="Enter your password"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <Alert
-                variant="destructive"
-                className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300"
-              >
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-6 border-0"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <div className="pt-4 border-t border-white/10 space-y-3">
-            <p className="text-center text-white/50 text-xs">Secure access to your dashboard</p>
-            <Link
-              to="/register"
-              className="block w-full text-center bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-all border border-white/20 hover:border-white/30"
-            >
-              Create Admin Account
-            </Link>
-          </div>
+          Grafana Recap
         </div>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle>Sign in</CardTitle>
+            <CardDescription>Enter your username and password to access the dashboard.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input autoComplete="username" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" autoComplete="current-password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {form.formState.errors.root && (
+                  <Alert variant="destructive">
+                    <AlertCircle />
+                    <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+                  </Alert>
+                )}
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+                  Sign in
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="justify-center text-sm text-muted-foreground">
+            Need an account?
+            <Link to="/register" className="ml-1 text-foreground underline-offset-4 hover:underline">
+              Create admin account
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   )

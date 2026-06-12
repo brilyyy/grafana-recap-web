@@ -3,10 +3,10 @@ import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { logAuditEvent } from '@/lib/audit'
-import { publicProcedure, router, superAdminProcedure } from '../init'
+import { router, superAdminProcedure } from '../init'
 
 export const fdwRouter = router({
-  list: publicProcedure.query(async () => {
+  list: superAdminProcedure.query(async () => {
     const result = await db.execute(
       sql`SELECT id, source_db_name, table_name, schema_name, created_at FROM fdw_source_table ORDER BY source_db_name, table_name`,
     )

@@ -1,9 +1,9 @@
 # Unmapped RC Technical Notes
 
 ## Code Path Utama
-- List unmapped: `src/app/api/unmapped-rc/route.ts`
-- Submit single: `src/app/api/unmapped-rc/submit/route.ts`
-- Submit batch: `src/app/api/unmapped-rc/submit-batch/route.ts`
+- tRPC router: `src/server/trpc/routers/unmappedRc.ts`
+- Submit single: `unmappedRc.submit`
+- Submit batch: `unmappedRc.submitBatch`
 
 ## Alur Eksekusi Submit Single
 1. Validasi payload `id`, `id_app_identifier`, `rc`, `error_type`.

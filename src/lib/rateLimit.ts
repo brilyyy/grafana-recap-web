@@ -17,7 +17,7 @@ setInterval(
     }
   },
   5 * 60 * 1000,
-)
+).unref?.()
 
 export interface RateLimitConfig {
   maxRequests: number
@@ -25,7 +25,6 @@ export interface RateLimitConfig {
 }
 
 export const RATE_LIMITS = {
-  RESTART_DB: { maxRequests: 1, windowMs: 60 * 60 * 1000 },
   UPLOAD: { maxRequests: 100, windowMs: 60 * 60 * 1000 },
   READ: { maxRequests: 100, windowMs: 60 * 1000 },
   WRITE: { maxRequests: 50, windowMs: 60 * 1000 },

@@ -1,7 +1,7 @@
 # Application Management Technical Notes
 
 ## Code Path Utama
-- API: `src/app/api/applications/route.ts`
+- tRPC router: `src/server/trpc/routers/applications.ts` (`applications.list/create/updateConfig`)
 - Migration schema table: `src/db/migrate.ts` (Phase 1: `app_identifier`)
 
 ## Kolom Penting `app_identifier`

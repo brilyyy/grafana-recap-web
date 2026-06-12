@@ -1,9 +1,9 @@
 # Dictionary Management Technical Notes
 
 ## Code Path Utama
-- Upload dictionary: `src/app/api/upload-dictionary/route.ts`
-- Update error type: `src/app/api/dictionary/update/route.ts`
-- Update description: `src/app/api/dictionary/update-description/route.ts`
+- Upload dictionary: `src/routes/api/upload-dictionary.ts` (batch upsert, transactional)
+- Update error type: tRPC `dictionary.updateErrorType` (`src/server/trpc/routers/dictionary.ts`)
+- Update description: tRPC `dictionary.updateDescription` / `dictionary.updateDescriptionBatch`
 
 ## Alur Eksekusi Upload (Code-Level)
 1. Parse file CSV/Excel (`parseCSV` atau `xlsx` parser).

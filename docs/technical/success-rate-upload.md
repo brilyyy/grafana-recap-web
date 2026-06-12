@@ -1,7 +1,7 @@
 # Success Rate Upload Technical Notes
 
 ## Code Path Utama
-- Endpoint upload: `src/app/api/upload-success-rate/route.ts`
+- Endpoint upload: `src/routes/api/upload-success-rate.ts` (file parsing via `src/lib/file-parser.ts`)
 - Mapping dictionary: tabel `response_code_dictionary`
 - Tujuan final: tabel `app_success_rate`
 - Fallback unresolved: tabel `unmapped_rc`

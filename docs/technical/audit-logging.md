@@ -2,8 +2,8 @@
 
 ## Code Path Utama
 - Helper insert event: `src/lib/audit`
-- API list logs: `src/app/api/audit-logs/route.ts`
-- API statistik: `src/app/api/audit-logs/stats/route.ts`
+- tRPC router: `src/server/trpc/routers/auditLogs.ts` (`auditLogs.list`)
+- Statistik: `auditLogs.stats` (queries paralel via Promise.all)
 - Proteksi role: `requireSuperAdmin` dari `src/lib/auth`
 
 ## Alur Eksekusi

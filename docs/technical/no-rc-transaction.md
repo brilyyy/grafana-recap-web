@@ -1,9 +1,9 @@
 # No RC Transaction Technical Notes
 
 ## Code Path Utama
-- List no-RC: `src/app/api/no-rc-transaction/route.ts`
-- Submit single: `src/app/api/no-rc-transaction/submit/route.ts`
-- Submit batch: `src/app/api/no-rc-transaction/submit-batch/route.ts`
+- tRPC router: `src/server/trpc/routers/noRcTransaction.ts`
+- Submit single: `noRcTransaction.submit`
+- Submit batch: `noRcTransaction.submitBatch`
 
 ## Alur Eksekusi Submit Single (Code-Level)
 1. Validasi `id` dan `rc`.

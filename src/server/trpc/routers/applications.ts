@@ -4,10 +4,10 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { appIdentifier } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
-import { publicProcedure, router, superAdminProcedure } from '../init'
+import { protectedProcedure, router, superAdminProcedure } from '../init'
 
 export const applicationsRouter = router({
-  list: publicProcedure.query(async () => {
+  list: protectedProcedure.query(async () => {
     const apps = await db
       .select({
         id: appIdentifier.id,

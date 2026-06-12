@@ -28,7 +28,8 @@ export const auth = betterAuth({
   }),
 
   advanced: {
-    useSecureCookies: true,
+    // Secure cookies are dropped by browsers over plain HTTP (local dev)
+    useSecureCookies: env.BETTER_AUTH_URL.startsWith('https'),
     ipAddress: {
       ipAddressHeaders: ['x-forwarded-for', 'x-real-ip'],
       ipv6Subnet: 64,

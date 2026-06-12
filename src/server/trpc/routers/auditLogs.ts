@@ -64,34 +64,32 @@ export const auditLogsRouter = router({
     .query(async ({ input }) => {
       const days = input?.days ?? 30
 
-      const actionCounts = await db.execute(sql`
-        SELECT action, COUNT(*)::int as count FROM audit_logs
-        WHERE created_at >= NOW() - (${days} || ' days')::interval
-        GROUP BY action ORDER BY count DESC LIMIT 10
-      `)
-
-      const resourceTypeCounts = await db.execute(sql`
-        SELECT resource_type, COUNT(*)::int as count FROM audit_logs
-        WHERE created_at >= NOW() - (${days} || ' days')::interval
-        GROUP BY resource_type ORDER BY count DESC
-      `)
-
-      const dailyActivity = await db.execute(sql`
-        SELECT DATE(created_at)::text as date, COUNT(*)::int as count FROM audit_logs
-        WHERE created_at >= NOW() - (${days} || ' days')::interval
-        GROUP BY DATE(created_at) ORDER BY date DESC
-      `)
-
-      const topUsers = await db.execute(sql`
-        SELECT username, COUNT(*)::int as count FROM audit_logs
-        WHERE created_at >= NOW() - (${days} || ' days')::interval AND username IS NOT NULL
-        GROUP BY username ORDER BY count DESC LIMIT 10
-      `)
-
-      const totalResult = await db.execute(sql`
-        SELECT COUNT(*)::int as total FROM audit_logs
-        WHERE created_at >= NOW() - (${days} || ' days')::interval
-      `)
+      const [actionCounts, resourceTypeCounts, dailyActivity, topUsers, totalResult] = await Promise.all([
+        db.execute(sql`
+          SELECT action, COUNT(*)::int as count FROM audit_logs
+          WHERE created_at >= NOW() - (${days} || ' days')::interval
+          GROUP BY action ORDER BY count DESC LIMIT 10
+        `),
+        db.execute(sql`
+          SELECT resource_type, COUNT(*)::int as count FROM audit_logs
+          WHERE created_at >= NOW() - (${days} || ' days')::interval
+          GROUP BY resource_type ORDER BY count DESC
+        `),
+        db.execute(sql`
+          SELECT DATE(created_at)::text as date, COUNT(*)::int as count FROM audit_logs
+          WHERE created_at >= NOW() - (${days} || ' days')::interval
+          GROUP BY DATE(created_at) ORDER BY date DESC
+        `),
+        db.execute(sql`
+          SELECT username, COUNT(*)::int as count FROM audit_logs
+          WHERE created_at >= NOW() - (${days} || ' days')::interval AND username IS NOT NULL
+          GROUP BY username ORDER BY count DESC LIMIT 10
+        `),
+        db.execute(sql`
+          SELECT COUNT(*)::int as total FROM audit_logs
+          WHERE created_at >= NOW() - (${days} || ' days')::interval
+        `),
+      ])
 
       return {
         success: true,

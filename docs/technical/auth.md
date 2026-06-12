@@ -1,44 +1,28 @@
 # Authentication Technical Notes
 
 ## Code Path Utama
-- Login endpoint: `src/app/api/auth/login/route.ts`
-- Session check endpoint: `src/app/api/auth/check/route.ts`
-- Global API middleware + rate limit: `src/middleware.ts`
-- Auth helpers: `src/lib/auth` dan `src/lib/better-auth`
-- Audit logging: `src/lib/audit`
+- BetterAuth config: `src/lib/better-auth.ts` (username plugin, admin plugin, argon2 hashing, rate limits, audit hooks)
+- BetterAuth route handler: `src/routes/api/auth/$.ts` (`/api/auth/*`)
+- Session helpers: `src/lib/auth.ts` (`getSession`, `requireAuth`, `requireRole`, `requireSuperAdmin`)
+- tRPC context + role middleware: `src/server/trpc/init.ts`
+- Auth router (check/register/approval): `src/server/trpc/routers/auth.ts`
+- Client session hook: `src/hooks/use-auth-session.ts` (`trpc.auth.check`)
+- Rate limiting middleware: `src/start.ts` + `src/lib/rateLimit.ts`
+- Audit logging: `src/lib/audit.ts`
 
 ## Alur Eksekusi (Code-Level)
-1. `POST /api/auth/login` memanggil `enforceRateLimit(request, RATE_LIMITS.AUTH)`.
-2. Username dicari dulu ke tabel `users` lalu login dilakukan via `auth.api.signInEmail(...)` (email-based).
-3. Jika password salah / user tidak ditemukan:
-   - response `401`
-   - audit event `LOGIN_FAILED`.
-4. Jika sukses:
-   - BetterAuth membuat session cookie
-   - response user payload
-   - audit event `LOGIN_SUCCESS`.
-5. `GET /api/auth/check` memanggil `getSession(request)`:
-   - jika null => `authenticated: false`
-   - jika ada => return `id`, `username`, `role`.
+1. Login page (`src/routes/login.tsx`) memanggil `authClient.signIn.username({ username, password })`.
+2. BetterAuth memverifikasi credential terhadap tabel `users` (via drizzle adapter) dan `account.password` (argon2).
+3. Gagal → response 401 dan hook `hooks.after` mencatat audit `LOGIN_FAILED`.
+4. Sukses → session cookie dibuat; databaseHook `session.create.after` mencatat `LOGIN_SUCCESS`.
+5. Setelah login/logout, client meng-invalidate cache `trpc.auth.check` sebelum navigasi (hindari redirect bounce).
+6. Server-side guard: tRPC `protectedProcedure` / `superAdminProcedure`; API upload routes pakai `requireAuth(request)`.
 
 ## Titik Rawan Error
-- Username valid tapi email di `users` tidak sinkron -> login gagal walau password benar.
-- Cookie/session tidak terkirim (proxy/https config) -> `auth/check` selalu `Not authenticated`.
-- Rate limit 429 dari middleware terlihat seperti auth failure.
-- `middleware.ts` punya rule limit berdasarkan pathname; pastikan endpoint benar.
-
-## Checklist Troubleshooting
-1. Test login:
-   - `POST /api/auth/login` dengan username/password valid.
-2. Jika gagal, cek:
-   - log server: `Login error:` / `Invalid username or password`
-   - tabel `users` untuk pasangan `username` + `email`.
-3. Jika login sukses tapi langsung logout:
-   - cek response headers cookie
-   - cek env terkait cookie/secure/https
-   - test `GET /api/auth/check`.
-4. Jika sering 429:
-   - lihat headers `X-RateLimit-*` dari middleware.
+- Cookie/session tidak terkirim (proxy/https config) → `auth.check` selalu `authenticated: false`.
+- Secure cookies di-derive dari `BETTER_AUTH_URL` (`https` prefix) — URL salah bikin cookie ditolak browser.
+- Rate limit 429 dari middleware terlihat seperti auth failure (cek headers `X-RateLimit-*`).
+- Login pakai username (bukan email) — pastikan kolom `username` terisi.
 
 ## Query Debug SQL
 ```sql

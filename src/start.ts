@@ -2,9 +2,7 @@ import { createMiddleware, createStart } from '@tanstack/react-start'
 import { checkRateLimit, RATE_LIMITS, type RateLimitConfig } from '@/lib/rateLimit'
 
 function getRateLimitConfig(method: string, pathname: string): RateLimitConfig {
-  if (pathname.includes('/restart-db')) return RATE_LIMITS.RESTART_DB
   if (pathname.includes('/upload-')) return RATE_LIMITS.UPLOAD
-  if (pathname === '/api/auth/check') return RATE_LIMITS.READ
   if (pathname.includes('/auth/')) return RATE_LIMITS.AUTH
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) return RATE_LIMITS.WRITE
   return RATE_LIMITS.READ

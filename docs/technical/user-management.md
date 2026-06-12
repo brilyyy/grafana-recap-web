@@ -1,11 +1,11 @@
 # User Management Technical Notes
 
 ## Code Path Utama
-- Submit request: `src/app/api/auth/submit-user-request/route.ts`
-- List pending request: `src/app/api/auth/pending-user-requests/route.ts`
-- Approve request: `src/app/api/auth/approve-user-request/[id]/route.ts`
-- Reject request: `src/app/api/auth/reject-user-request/[id]/route.ts`
-- Create user/admin langsung: `src/app/api/auth/create-user/route.ts`, `src/app/api/auth/create-admin/route.ts`
+- Submit request: tRPC `auth.submitUserRequest` (`src/server/trpc/routers/auth.ts`)
+- List pending request: tRPC `auth.pendingRequests`
+- Approve request: tRPC `auth.approveRequest`
+- Reject request: tRPC `auth.rejectRequest`
+- Create user/admin langsung: tRPC `users.create` (`src/server/trpc/routers/users.ts`), `auth.createAdmin`
 
 ## Struktur Data Kunci
 - `pending_user_requests`: antrean registrasi.

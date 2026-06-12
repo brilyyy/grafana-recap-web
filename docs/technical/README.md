@@ -17,5 +17,4 @@ Technical docs explain implementation internals, schemas, migration behavior, an
 - [Documentation Hub](../README.md)
 - [Project README](../../README.md)
 - [Feature Docs Index](../features/README.md)
-- [Migration Kit README](../../migration-kit/README.md)
 - [Success Rate SQL README](../../scripts/success_rate/README.md)

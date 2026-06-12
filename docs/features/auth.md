@@ -4,18 +4,19 @@
 Provide secure login and session validation for protected routes.
 
 ## Main Function
-- User login with username and password.
-- Session check for authenticated access.
-- Role-aware access control across API routes.
+- Username/password login via BetterAuth (username plugin, argon2 hashing).
+- Session check for authenticated access (tRPC `auth.check`).
+- Role-aware access control (`user` / `admin` / `superadmin`) enforced in tRPC middleware.
+- First registration creates the initial admin; later registrations queue as pending requests for superadmin approval.
 
 ## Flow Summary
-- Validate credentials.
-- Issue JWT-based session cookie.
-- Enforce middleware checks for protected API routes.
+- Client calls `authClient.signIn.username(...)` → BetterAuth validates against `users` + `account` tables.
+- BetterAuth issues a session cookie (secure cookies auto-enabled when `BETTER_AUTH_URL` is https).
+- Protected pages use the `useAuthSession` hook; server code uses `requireAuth` / `requireRole`.
 
 ## APIs
-- `/api/auth/login`
-- `/api/auth/check`
+- `/api/auth/*` — BetterAuth handler (sign-in, sign-out, session)
+- tRPC `auth.check`, `auth.checkAdmin`, `auth.createAdmin`, `auth.submitUserRequest`, `auth.approveRequest`, `auth.rejectRequest`
 
 ## Related Docs
 - [Feature Index](README.md)

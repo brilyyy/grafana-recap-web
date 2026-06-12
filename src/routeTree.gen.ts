@@ -9,29 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UserApprovalRouteImport } from './routes/user-approval'
-import { Route as SuperadminRouteImport } from './routes/superadmin'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuditLogsRouteImport } from './routes/audit-logs'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteImport } from './routes/_dashboard'
+import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
 import { Route as ApiUploadSuccessRateRouteImport } from './routes/api/upload-success-rate'
 import { Route as ApiUploadDictionaryRouteImport } from './routes/api/upload-dictionary'
+import { Route as DashboardUploadsRouteImport } from './routes/_dashboard/uploads'
+import { Route as DashboardUnmappedRcRouteImport } from './routes/_dashboard/unmapped-rc'
+import { Route as DashboardTransactionsRouteImport } from './routes/_dashboard/transactions'
+import { Route as DashboardDictionaryRouteImport } from './routes/_dashboard/dictionary'
+import { Route as DashboardApplicationRouteImport } from './routes/_dashboard/application'
+import { Route as DashboardSuperadminIndexRouteImport } from './routes/_dashboard/superadmin/index'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 import { Route as ApiProcessingProcessManualRouteImport } from './routes/api/processing/process-manual'
 import { Route as ApiBaleProcessManualRouteImport } from './routes/api/bale/process-manual'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as DashboardSuperadminUsersRouteImport } from './routes/_dashboard/superadmin/users'
+import { Route as DashboardSuperadminProcessingRouteImport } from './routes/_dashboard/superadmin/processing'
+import { Route as DashboardSuperadminJobsRouteImport } from './routes/_dashboard/superadmin/jobs'
+import { Route as DashboardSuperadminHousekeepingRouteImport } from './routes/_dashboard/superadmin/housekeeping'
+import { Route as DashboardSuperadminConfigRouteImport } from './routes/_dashboard/superadmin/config'
+import { Route as DashboardSuperadminAuditLogsRouteImport } from './routes/_dashboard/superadmin/audit-logs'
 
-const UserApprovalRoute = UserApprovalRouteImport.update({
-  id: '/user-approval',
-  path: '/user-approval',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SuperadminRoute = SuperadminRouteImport.update({
-  id: '/superadmin',
-  path: '/superadmin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -42,15 +42,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuditLogsRoute = AuditLogsRouteImport.update({
-  id: '/audit-logs',
-  path: '/audit-logs',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/_dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => DashboardRoute,
 } as any)
 const ApiUploadSuccessRateRoute = ApiUploadSuccessRateRouteImport.update({
   id: '/api/upload-success-rate',
@@ -62,6 +61,37 @@ const ApiUploadDictionaryRoute = ApiUploadDictionaryRouteImport.update({
   path: '/api/upload-dictionary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardUploadsRoute = DashboardUploadsRouteImport.update({
+  id: '/uploads',
+  path: '/uploads',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardUnmappedRcRoute = DashboardUnmappedRcRouteImport.update({
+  id: '/unmapped-rc',
+  path: '/unmapped-rc',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardTransactionsRoute = DashboardTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardDictionaryRoute = DashboardDictionaryRouteImport.update({
+  id: '/dictionary',
+  path: '/dictionary',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardApplicationRoute = DashboardApplicationRouteImport.update({
+  id: '/application',
+  path: '/application',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSuperadminIndexRoute =
+  DashboardSuperadminIndexRouteImport.update({
+    id: '/superadmin/',
+    path: '/superadmin/',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
@@ -83,102 +113,190 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardSuperadminUsersRoute =
+  DashboardSuperadminUsersRouteImport.update({
+    id: '/superadmin/users',
+    path: '/superadmin/users',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardSuperadminProcessingRoute =
+  DashboardSuperadminProcessingRouteImport.update({
+    id: '/superadmin/processing',
+    path: '/superadmin/processing',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardSuperadminJobsRoute = DashboardSuperadminJobsRouteImport.update({
+  id: '/superadmin/jobs',
+  path: '/superadmin/jobs',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSuperadminHousekeepingRoute =
+  DashboardSuperadminHousekeepingRouteImport.update({
+    id: '/superadmin/housekeeping',
+    path: '/superadmin/housekeeping',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardSuperadminConfigRoute =
+  DashboardSuperadminConfigRouteImport.update({
+    id: '/superadmin/config',
+    path: '/superadmin/config',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardSuperadminAuditLogsRoute =
+  DashboardSuperadminAuditLogsRouteImport.update({
+    id: '/superadmin/audit-logs',
+    path: '/superadmin/audit-logs',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/audit-logs': typeof AuditLogsRoute
+  '/': typeof DashboardIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/superadmin': typeof SuperadminRoute
-  '/user-approval': typeof UserApprovalRoute
+  '/application': typeof DashboardApplicationRoute
+  '/dictionary': typeof DashboardDictionaryRoute
+  '/transactions': typeof DashboardTransactionsRoute
+  '/unmapped-rc': typeof DashboardUnmappedRcRoute
+  '/uploads': typeof DashboardUploadsRoute
   '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
   '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
+  '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
+  '/superadmin/config': typeof DashboardSuperadminConfigRoute
+  '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
+  '/superadmin/jobs': typeof DashboardSuperadminJobsRoute
+  '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
+  '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
   '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/superadmin/': typeof DashboardSuperadminIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/audit-logs': typeof AuditLogsRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/superadmin': typeof SuperadminRoute
-  '/user-approval': typeof UserApprovalRoute
+  '/application': typeof DashboardApplicationRoute
+  '/dictionary': typeof DashboardDictionaryRoute
+  '/transactions': typeof DashboardTransactionsRoute
+  '/unmapped-rc': typeof DashboardUnmappedRcRoute
+  '/uploads': typeof DashboardUploadsRoute
   '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
   '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
+  '/': typeof DashboardIndexRoute
+  '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
+  '/superadmin/config': typeof DashboardSuperadminConfigRoute
+  '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
+  '/superadmin/jobs': typeof DashboardSuperadminJobsRoute
+  '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
+  '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
   '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/superadmin': typeof DashboardSuperadminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/audit-logs': typeof AuditLogsRoute
+  '/_dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/superadmin': typeof SuperadminRoute
-  '/user-approval': typeof UserApprovalRoute
+  '/_dashboard/application': typeof DashboardApplicationRoute
+  '/_dashboard/dictionary': typeof DashboardDictionaryRoute
+  '/_dashboard/transactions': typeof DashboardTransactionsRoute
+  '/_dashboard/unmapped-rc': typeof DashboardUnmappedRcRoute
+  '/_dashboard/uploads': typeof DashboardUploadsRoute
   '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
   '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
+  '/_dashboard/': typeof DashboardIndexRoute
+  '/_dashboard/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
+  '/_dashboard/superadmin/config': typeof DashboardSuperadminConfigRoute
+  '/_dashboard/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
+  '/_dashboard/superadmin/jobs': typeof DashboardSuperadminJobsRoute
+  '/_dashboard/superadmin/processing': typeof DashboardSuperadminProcessingRoute
+  '/_dashboard/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
   '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/_dashboard/superadmin/': typeof DashboardSuperadminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/audit-logs'
     | '/login'
     | '/register'
-    | '/superadmin'
-    | '/user-approval'
+    | '/application'
+    | '/dictionary'
+    | '/transactions'
+    | '/unmapped-rc'
+    | '/uploads'
     | '/api/upload-dictionary'
     | '/api/upload-success-rate'
+    | '/superadmin/audit-logs'
+    | '/superadmin/config'
+    | '/superadmin/housekeeping'
+    | '/superadmin/jobs'
+    | '/superadmin/processing'
+    | '/superadmin/users'
     | '/api/auth/$'
     | '/api/bale/process-manual'
     | '/api/processing/process-manual'
     | '/api/trpc/$'
+    | '/superadmin/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/audit-logs'
     | '/login'
     | '/register'
-    | '/superadmin'
-    | '/user-approval'
+    | '/application'
+    | '/dictionary'
+    | '/transactions'
+    | '/unmapped-rc'
+    | '/uploads'
     | '/api/upload-dictionary'
     | '/api/upload-success-rate'
+    | '/'
+    | '/superadmin/audit-logs'
+    | '/superadmin/config'
+    | '/superadmin/housekeeping'
+    | '/superadmin/jobs'
+    | '/superadmin/processing'
+    | '/superadmin/users'
     | '/api/auth/$'
     | '/api/bale/process-manual'
     | '/api/processing/process-manual'
     | '/api/trpc/$'
+    | '/superadmin'
   id:
     | '__root__'
-    | '/'
-    | '/audit-logs'
+    | '/_dashboard'
     | '/login'
     | '/register'
-    | '/superadmin'
-    | '/user-approval'
+    | '/_dashboard/application'
+    | '/_dashboard/dictionary'
+    | '/_dashboard/transactions'
+    | '/_dashboard/unmapped-rc'
+    | '/_dashboard/uploads'
     | '/api/upload-dictionary'
     | '/api/upload-success-rate'
+    | '/_dashboard/'
+    | '/_dashboard/superadmin/audit-logs'
+    | '/_dashboard/superadmin/config'
+    | '/_dashboard/superadmin/housekeeping'
+    | '/_dashboard/superadmin/jobs'
+    | '/_dashboard/superadmin/processing'
+    | '/_dashboard/superadmin/users'
     | '/api/auth/$'
     | '/api/bale/process-manual'
     | '/api/processing/process-manual'
     | '/api/trpc/$'
+    | '/_dashboard/superadmin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AuditLogsRoute: typeof AuditLogsRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
-  SuperadminRoute: typeof SuperadminRoute
-  UserApprovalRoute: typeof UserApprovalRoute
   ApiUploadDictionaryRoute: typeof ApiUploadDictionaryRoute
   ApiUploadSuccessRateRoute: typeof ApiUploadSuccessRateRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -189,20 +307,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/user-approval': {
-      id: '/user-approval'
-      path: '/user-approval'
-      fullPath: '/user-approval'
-      preLoaderRoute: typeof UserApprovalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/superadmin': {
-      id: '/superadmin'
-      path: '/superadmin'
-      fullPath: '/superadmin'
-      preLoaderRoute: typeof SuperadminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -217,19 +321,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/audit-logs': {
-      id: '/audit-logs'
-      path: '/audit-logs'
-      fullPath: '/audit-logs'
-      preLoaderRoute: typeof AuditLogsRouteImport
+    '/_dashboard': {
+      id: '/_dashboard'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_dashboard/': {
+      id: '/_dashboard/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/api/upload-success-rate': {
       id: '/api/upload-success-rate'
@@ -244,6 +348,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/upload-dictionary'
       preLoaderRoute: typeof ApiUploadDictionaryRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_dashboard/uploads': {
+      id: '/_dashboard/uploads'
+      path: '/uploads'
+      fullPath: '/uploads'
+      preLoaderRoute: typeof DashboardUploadsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/unmapped-rc': {
+      id: '/_dashboard/unmapped-rc'
+      path: '/unmapped-rc'
+      fullPath: '/unmapped-rc'
+      preLoaderRoute: typeof DashboardUnmappedRcRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/transactions': {
+      id: '/_dashboard/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof DashboardTransactionsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/dictionary': {
+      id: '/_dashboard/dictionary'
+      path: '/dictionary'
+      fullPath: '/dictionary'
+      preLoaderRoute: typeof DashboardDictionaryRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/application': {
+      id: '/_dashboard/application'
+      path: '/application'
+      fullPath: '/application'
+      preLoaderRoute: typeof DashboardApplicationRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/superadmin/': {
+      id: '/_dashboard/superadmin/'
+      path: '/superadmin'
+      fullPath: '/superadmin/'
+      preLoaderRoute: typeof DashboardSuperadminIndexRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/api/trpc/$': {
       id: '/api/trpc/$'
@@ -273,16 +419,91 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_dashboard/superadmin/users': {
+      id: '/_dashboard/superadmin/users'
+      path: '/superadmin/users'
+      fullPath: '/superadmin/users'
+      preLoaderRoute: typeof DashboardSuperadminUsersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/superadmin/processing': {
+      id: '/_dashboard/superadmin/processing'
+      path: '/superadmin/processing'
+      fullPath: '/superadmin/processing'
+      preLoaderRoute: typeof DashboardSuperadminProcessingRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/superadmin/jobs': {
+      id: '/_dashboard/superadmin/jobs'
+      path: '/superadmin/jobs'
+      fullPath: '/superadmin/jobs'
+      preLoaderRoute: typeof DashboardSuperadminJobsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/superadmin/housekeeping': {
+      id: '/_dashboard/superadmin/housekeeping'
+      path: '/superadmin/housekeeping'
+      fullPath: '/superadmin/housekeeping'
+      preLoaderRoute: typeof DashboardSuperadminHousekeepingRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/superadmin/config': {
+      id: '/_dashboard/superadmin/config'
+      path: '/superadmin/config'
+      fullPath: '/superadmin/config'
+      preLoaderRoute: typeof DashboardSuperadminConfigRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/superadmin/audit-logs': {
+      id: '/_dashboard/superadmin/audit-logs'
+      path: '/superadmin/audit-logs'
+      fullPath: '/superadmin/audit-logs'
+      preLoaderRoute: typeof DashboardSuperadminAuditLogsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardApplicationRoute: typeof DashboardApplicationRoute
+  DashboardDictionaryRoute: typeof DashboardDictionaryRoute
+  DashboardTransactionsRoute: typeof DashboardTransactionsRoute
+  DashboardUnmappedRcRoute: typeof DashboardUnmappedRcRoute
+  DashboardUploadsRoute: typeof DashboardUploadsRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardSuperadminAuditLogsRoute: typeof DashboardSuperadminAuditLogsRoute
+  DashboardSuperadminConfigRoute: typeof DashboardSuperadminConfigRoute
+  DashboardSuperadminHousekeepingRoute: typeof DashboardSuperadminHousekeepingRoute
+  DashboardSuperadminJobsRoute: typeof DashboardSuperadminJobsRoute
+  DashboardSuperadminProcessingRoute: typeof DashboardSuperadminProcessingRoute
+  DashboardSuperadminUsersRoute: typeof DashboardSuperadminUsersRoute
+  DashboardSuperadminIndexRoute: typeof DashboardSuperadminIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardApplicationRoute: DashboardApplicationRoute,
+  DashboardDictionaryRoute: DashboardDictionaryRoute,
+  DashboardTransactionsRoute: DashboardTransactionsRoute,
+  DashboardUnmappedRcRoute: DashboardUnmappedRcRoute,
+  DashboardUploadsRoute: DashboardUploadsRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardSuperadminAuditLogsRoute: DashboardSuperadminAuditLogsRoute,
+  DashboardSuperadminConfigRoute: DashboardSuperadminConfigRoute,
+  DashboardSuperadminHousekeepingRoute: DashboardSuperadminHousekeepingRoute,
+  DashboardSuperadminJobsRoute: DashboardSuperadminJobsRoute,
+  DashboardSuperadminProcessingRoute: DashboardSuperadminProcessingRoute,
+  DashboardSuperadminUsersRoute: DashboardSuperadminUsersRoute,
+  DashboardSuperadminIndexRoute: DashboardSuperadminIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AuditLogsRoute: AuditLogsRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
-  SuperadminRoute: SuperadminRoute,
-  UserApprovalRoute: UserApprovalRoute,
   ApiUploadDictionaryRoute: ApiUploadDictionaryRoute,
   ApiUploadSuccessRateRoute: ApiUploadSuccessRateRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

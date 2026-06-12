@@ -39,3 +39,4 @@ mempalace.yaml
 entities.json
 
 .tanstack/
+.claude/settings.local.json

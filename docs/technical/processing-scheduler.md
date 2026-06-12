@@ -1,59 +1,46 @@
 # Processing Scheduler Technical Notes
 
 ## Code Path Utama
-- Scheduler runtime (app-level): `src/lib/scheduler.ts`
+- Scheduler runtime (app-level): `src/lib/scheduler.ts` (data-driven job table `RECAP_JOBS`)
+- Server entry yang memulai scheduler: `src/server.ts` (`initializeScheduler()`, idempotent)
+- Manual trigger: `src/application/recap/trigger-recap.ts` + tRPC `recap.triggerManual` / `processingLogs.processManual`
+- Recap catalog: `src/domain/recap/catalog.ts`
 - Migration orchestrator: `src/db/migrate.ts`
 - Procedure registry: `scripts/success_rate/registry.ts`
 - Procedure runner: `scripts/success_rate/runProcedures.ts`
 
 ## Arsitektur Eksekusi
-### 1) App-level scheduler
-- Aktif jika `USE_APP_LEVEL_SCHEDULER=true`.
-- `initializeScheduler()` akan membuat task node-cron per app.
-- Tiap task memanggil function DB:
-  - `sp_process_bale_daily`
-  - `sp_process_bale_bisnis_daily`
-  - `sp_process_olob_daily`
-  - `sp_process_cms_daily`
-  - dan recap functions lain.
+Scheduler berjalan di level aplikasi (node-cron) — selalu aktif saat server start
+(pg_cron sudah dihapus; tidak ada mode DB scheduler lagi).
 
-### 2) DB scheduler (pg_cron)
-- Diatur saat `runCronSetup(...)` di `src/db/migrate.ts`.
-- Menggunakan `cron.schedule_in_database(...)`.
-- Job dibentuk dari `PROCEDURE_APPS` (registry-driven).
+- `initializeScheduler()` membuat satu task node-cron per entry di `RECAP_JOBS`.
+- Tiap task memanggil stored procedure DB dengan argumen `NULL::date` (H-1):
+  - `sp_process_bale_daily`, `sp_process_bale_bisnis_daily`
+  - `sp_process_olob_daily`, `sp_process_cms_daily`
+  - `sp_process_bale_korpora_daily`
+  - `sp_recap_cms_corp_daily`, `sp_recap_bale_korpora_corp_daily`
+- Cron expression divalidasi pakai `cron.validate()`; invalid → fallback default `1 0 * * *`.
 
 ## Environment Variables Penting
-- `USE_APP_LEVEL_SCHEDULER`
-- `SCHEDULER_TIMEZONE`
-- `BALE_PROCESSING_SCHEDULE`
-- `BALE_BISNIS_PROCESSING_SCHEDULE`
-- `OLOB_PROCESSING_SCHEDULE`
-- `CMS_PROCESSING_SCHEDULE`
+- `SCHEDULER_TIMEZONE` (default `Asia/Jakarta`)
+- `BALE_PROCESSING_SCHEDULE`, `BALE_BISNIS_PROCESSING_SCHEDULE`
+- `OLOB_PROCESSING_SCHEDULE`, `CMS_PROCESSING_SCHEDULE`
+- `BALE_KORPORA_PROCESSING_SCHEDULE`
+- `CMS_CORP_RECAP_SCHEDULE`, `BALE_KORPORA_CORP_RECAP_SCHEDULE`
 
 ## Titik Rawan Error
-- Scheduler tidak jalan karena env `USE_APP_LEVEL_SCHEDULER` bukan `true`.
-- Cron expression invalid -> fallback default `1 0 * * *`.
-- `pg_cron` extension tidak tersedia di database cron.
-- Job ada tapi gagal execute karena koneksi host/port salah.
+- Cron expression invalid → fallback default `1 0 * * *` (lihat warning di log startup).
+- Stored procedure belum ter-deploy (jalankan `pnpm db:migrate:procedures`).
+- Job gagal execute karena koneksi DB salah — error tertangkap dan dicatat per job, scheduler tetap hidup.
 
 ## Checklist Troubleshooting
-1. App-level mode:
-   - cek log startup: `Initializing application-level scheduler`.
-   - cek log per task: success/fail.
-2. pg_cron mode:
-   - pastikan migration dijalankan juga pada DB yang punya `pg_cron`.
-   - cek `cron.job` dan `cron.job_run_details`.
-3. Stored procedure:
-   - test manual `SELECT public.sp_process_bale_daily(NULL);`.
-4. Hasil proses:
-   - cek `app_processing_log`.
+1. Cek log startup: `Initializing scheduler...` lalu satu baris `✅ <job> scheduler configured` per job.
+2. Cek log per task: `🔄 Starting scheduled ...` / `✅ ... completed` / `❌ ... failed`.
+3. Stored procedure: test manual `SELECT public.sp_process_bale_daily(NULL);`.
+4. Hasil proses: cek `app_processing_log` (juga tampil di halaman Summary dan Superadmin → Processing).
 
 ## Query Debug SQL
 ```sql
-SELECT jobid, jobname, schedule, database, active
-FROM cron.job
-ORDER BY jobid DESC;
-
 SELECT *
 FROM app_processing_log
 ORDER BY created_at DESC
@@ -63,6 +50,5 @@ LIMIT 30;
 ## Related Docs
 - [Technical Index](README.md)
 - [Feature: Processing Scheduler](../features/processing-scheduler.md)
-- [Migration Kit README](../../migration-kit/README.md)
 - [Success Rate SQL README](../../scripts/success_rate/README.md)
 - [Project README](../../README.md)

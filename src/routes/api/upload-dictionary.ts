@@ -1,53 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { sql } from 'drizzle-orm'
-import * as XLSX from 'xlsx'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '@/db'
+import { appIdentifier, responseCodeDictionary } from '@/db/schema'
 import { getClientIp, getUserAgent, logAuditEvent } from '@/lib/audit'
 import { requireAuth } from '@/lib/auth'
-
-function parseCSV(text: string): string[][] {
-  const lines: string[] = []
-  let currentLine = ''
-  let inQuotes = false
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i]
-    const nextChar = text[i + 1]
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentLine += '"'
-        i++
-      } else inQuotes = !inQuotes
-    } else if (char === '\n' || char === '\r') {
-      if (!inQuotes) {
-        if (currentLine.trim()) {
-          lines.push(currentLine)
-          currentLine = ''
-        }
-        if (char === '\r' && nextChar === '\n') i++
-      } else currentLine += char
-    } else currentLine += char
-  }
-  if (currentLine.trim()) lines.push(currentLine)
-  return lines.map((line) => {
-    const fields: string[] = []
-    let currentField = ''
-    let inFieldQuotes = false
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-      if (char === '"') {
-        if (inFieldQuotes && line[i + 1] === '"') {
-          currentField += '"'
-          i++
-        } else inFieldQuotes = !inFieldQuotes
-      } else if (char === ',' && !inFieldQuotes) {
-        fields.push(currentField.trim())
-        currentField = ''
-      } else currentField += char
-    }
-    fields.push(currentField.trim())
-    return fields
-  })
-}
+import { buildColumnIndex, parseFile, validateHeaders } from '@/lib/file-parser'
 
 export const Route = createFileRoute('/api/upload-dictionary')({
   server: {
@@ -60,14 +17,24 @@ export const Route = createFileRoute('/api/upload-dictionary')({
           const selectedApplicationId = formData.get('selectedApplicationId') as string
 
           if (!file) return Response.json({ success: false, message: 'No file uploaded' }, { status: 400 })
+          if (!/\.(xlsx|csv)$/i.test(file.name))
+            return Response.json({ success: false, message: 'Only .xlsx or .csv files are supported' }, { status: 400 })
           if (!selectedApplicationId || Number.isNaN(parseInt(selectedApplicationId, 10)))
-            return Response.json(
-              { success: false, message: 'Valid application selection is required' },
-              { status: 400 },
-            )
+            return Response.json({ success: false, message: 'Valid application selection is required' }, { status: 400 })
 
-          const applicationId = selectedApplicationId
-          const isCSV = file.name.toLowerCase().endsWith('.csv')
+          const applicationId = parseInt(selectedApplicationId, 10)
+          const { headers, rows } = await parseFile(file)
+
+          if (headers.length === 0)
+            return Response.json({ success: false, message: 'File is empty' }, { status: 400 })
+
+          const required = ['Jenis Transaksi', 'RC', 'S/N']
+          const optional = ['RC Description']
+          const validation = validateHeaders(headers, required, optional)
+          if (!validation.valid)
+            return Response.json({ success: false, message: validation.error }, { status: 400 })
+
+          const colIdx = buildColumnIndex(headers, [...required, ...optional])
           const dictionaryData: Array<{
             jenis_transaksi: string
             rc: string
@@ -76,80 +43,25 @@ export const Route = createFileRoute('/api/upload-dictionary')({
           }> = []
           const skippedRows: Array<{ rowNumber: number; reason: string }> = []
 
-          if (isCSV) {
-            const text = await file.text()
-            const rows = parseCSV(text)
-            if (rows.length === 0)
-              return Response.json({ success: false, message: 'CSV file is empty' }, { status: 400 })
-            const headers = rows[0].map((h) => h.trim().toLowerCase())
-            const jtIdx = headers.indexOf('jenis transaksi')
-            const rcIdx = headers.indexOf('rc')
-            const snIdx = headers.indexOf('s/n')
-            const descIdx = headers.indexOf('rc description')
-            if (jtIdx < 0 || rcIdx < 0 || snIdx < 0)
-              return Response.json({ success: false, message: 'Missing required columns' }, { status: 400 })
-            for (let i = 1; i < rows.length; i++) {
-              const row = rows[i]
-              const jt = (row[jtIdx] || '').trim()
-              const rc = (row[rcIdx] || '').trim()
-              const sn = (row[snIdx] || '').trim().toUpperCase()
-              const desc = descIdx >= 0 ? (row[descIdx] || '').trim() : null
-              if (!jt && !rc) continue
-              let et: 'S' | 'N' | 'Sukses' | null = null
-              if (sn === 'S') et = 'S'
-              else if (sn === 'N') et = 'N'
-              else if (sn === 'SUKSES' || sn === 'SUCCESS' || sn === 'BERHASIL') et = 'Sukses'
-              if (!et) {
-                skippedRows.push({ rowNumber: i + 1, reason: `Invalid S/N: "${sn}"` })
-                continue
-              }
-              dictionaryData.push({ jenis_transaksi: jt, rc, rc_description: desc || null, error_type: et })
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i]
+            const jt = row[headers[colIdx['Jenis Transaksi']]] ?? ''
+            const rc = row[headers[colIdx['RC']]] ?? ''
+            const sn = (row[headers[colIdx['S/N']]] ?? '').toUpperCase()
+            const desc = colIdx['RC Description'] !== undefined ? (row[headers[colIdx['RC Description']]] ?? '') : null
+
+            if (!jt && !rc) continue
+
+            let et: 'S' | 'N' | 'Sukses' | null = null
+            if (sn === 'S') et = 'S'
+            else if (sn === 'N') et = 'N'
+            else if (sn === 'SUKSES' || sn === 'SUCCESS' || sn === 'BERHASIL') et = 'Sukses'
+
+            if (!et) {
+              skippedRows.push({ rowNumber: i + 2, reason: `Invalid S/N: "${sn}"` })
+              continue
             }
-          } else {
-            const bytes = await file.arrayBuffer()
-            const workbook = XLSX.read(Buffer.from(bytes), { type: 'buffer' })
-            if (workbook.SheetNames.length === 0)
-              return Response.json({ success: false, message: 'No worksheets' }, { status: 400 })
-            const ws = workbook.Sheets[workbook.SheetNames[0]]
-            const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-            const headers: string[] = []
-            for (let c = range.s.c; c <= range.e.c; c++) {
-              const cell = ws[XLSX.utils.encode_cell({ r: 0, c })]
-              if (cell?.v) headers.push(String(cell.v).trim().toLowerCase())
-            }
-            const jtIdx = headers.indexOf('jenis transaksi')
-            const rcIdx = headers.indexOf('rc')
-            const snIdx = headers.indexOf('s/n')
-            const descIdx = headers.indexOf('rc description')
-            if (jtIdx < 0 || rcIdx < 0 || snIdx < 0)
-              return Response.json({ success: false, message: 'Missing required columns' }, { status: 400 })
-            for (let r = 1; r <= range.e.r; r++) {
-              const jt = ws[XLSX.utils.encode_cell({ r, c: jtIdx })]?.v
-                ? String(ws[XLSX.utils.encode_cell({ r, c: jtIdx })].v).trim()
-                : ''
-              const rc = ws[XLSX.utils.encode_cell({ r, c: rcIdx })]?.v
-                ? String(ws[XLSX.utils.encode_cell({ r, c: rcIdx })].v).trim()
-                : ''
-              const sn = ws[XLSX.utils.encode_cell({ r, c: snIdx })]?.v
-                ? String(ws[XLSX.utils.encode_cell({ r, c: snIdx })].v)
-                    .trim()
-                    .toUpperCase()
-                : ''
-              const desc =
-                descIdx >= 0 && ws[XLSX.utils.encode_cell({ r, c: descIdx })]?.v
-                  ? String(ws[XLSX.utils.encode_cell({ r, c: descIdx })].v).trim()
-                  : null
-              if (!jt && !rc) continue
-              let et: 'S' | 'N' | 'Sukses' | null = null
-              if (sn === 'S') et = 'S'
-              else if (sn === 'N') et = 'N'
-              else if (sn === 'SUKSES' || sn === 'SUCCESS' || sn === 'BERHASIL') et = 'Sukses'
-              if (!et) {
-                skippedRows.push({ rowNumber: r + 1, reason: `Invalid S/N: "${sn}"` })
-                continue
-              }
-              dictionaryData.push({ jenis_transaksi: jt, rc, rc_description: desc || null, error_type: et })
-            }
+            dictionaryData.push({ jenis_transaksi: jt, rc, rc_description: desc || null, error_type: et })
           }
 
           if (skippedRows.length > 0)
@@ -160,19 +72,46 @@ export const Route = createFileRoute('/api/upload-dictionary')({
           if (dictionaryData.length === 0)
             return Response.json({ success: false, message: 'No valid data' }, { status: 400 })
 
-          const appResult = await db.execute(sql`SELECT app_name FROM app_identifier WHERE id = ${applicationId}`)
-          if (appResult.rows.length === 0)
-            return Response.json({ success: false, message: 'Application not found' }, { status: 400 })
-          const appName = (appResult.rows[0] as any).app_name
+          const [app] = await db
+            .select({ appName: appIdentifier.appName })
+            .from(appIdentifier)
+            .where(eq(appIdentifier.id, applicationId))
+          if (!app) return Response.json({ success: false, message: 'Application not found' }, { status: 400 })
+          const appName = app.appName
 
-          for (const entry of dictionaryData) {
-            await db.execute(sql`
-              INSERT INTO response_code_dictionary (id_app_identifier, jenis_transaksi, rc, rc_description, error_type)
-              VALUES (${applicationId}, ${entry.jenis_transaksi}, ${entry.rc}, ${entry.rc_description}, ${entry.error_type})
-              ON CONFLICT (id_app_identifier, jenis_transaksi, rc)
-              DO UPDATE SET error_type = EXCLUDED.error_type, rc_description = COALESCE(EXCLUDED.rc_description, response_code_dictionary.rc_description)
-            `)
-          }
+          // Dedupe on the conflict key (last row wins) — a multi-row upsert
+          // cannot touch the same (jenis, rc) twice in one statement
+          const deduped = new Map<string, (typeof dictionaryData)[number]>()
+          for (const entry of dictionaryData) deduped.set(`${entry.jenis_transaksi}\u0000${entry.rc}`, entry)
+          const upsertRows = [...deduped.values()]
+
+          await db.transaction(async (tx) => {
+            const CHUNK_SIZE = 500
+            for (let i = 0; i < upsertRows.length; i += CHUNK_SIZE) {
+              await tx
+                .insert(responseCodeDictionary)
+                .values(
+                  upsertRows.slice(i, i + CHUNK_SIZE).map((entry) => ({
+                    idAppIdentifier: applicationId,
+                    jenisTransaksi: entry.jenis_transaksi,
+                    rc: entry.rc,
+                    rcDescription: entry.rc_description,
+                    errorType: entry.error_type,
+                  })),
+                )
+                .onConflictDoUpdate({
+                  target: [
+                    responseCodeDictionary.idAppIdentifier,
+                    responseCodeDictionary.jenisTransaksi,
+                    responseCodeDictionary.rc,
+                  ],
+                  set: {
+                    errorType: sql`excluded.error_type`,
+                    rcDescription: sql`COALESCE(excluded.rc_description, ${responseCodeDictionary.rcDescription})`,
+                  },
+                })
+            }
+          })
 
           await logAuditEvent(
             session.userId,
@@ -192,6 +131,8 @@ export const Route = createFileRoute('/api/upload-dictionary')({
           })
         } catch (error: any) {
           if (error.message?.includes('Unauthorized'))
+            return Response.json({ success: false, message: error.message }, { status: 401 })
+          if (error.message?.includes('Forbidden'))
             return Response.json({ success: false, message: error.message }, { status: 403 })
           console.error('Error uploading dictionary:', error)
           return Response.json({ success: false, message: `Error: ${error.message}` }, { status: 500 })

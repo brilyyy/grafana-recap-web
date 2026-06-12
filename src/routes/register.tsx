@@ -1,10 +1,15 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { AlertCircle, CheckCircle, Info, Loader2, Lock, Mail, User, UserPlus } from 'lucide-react'
+import { AlertCircle, CircleCheck, Gauge, Info, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/register')({
@@ -12,15 +17,23 @@ export const Route = createFileRoute('/register')({
   component: RegisterPage,
 })
 
+const schema = z
+  .object({
+    username: z.string().min(1, 'Username is required'),
+    email: z.string().email('Enter a valid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters long'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+
+type FormValues = z.infer<typeof schema>
+
 function RegisterPage() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
 
   const { data: authCheck } = trpc.auth.check.useQuery(undefined, { retry: false })
   const { data: adminCheck, isLoading: checking } = trpc.auth.checkAdmin.useQuery()
@@ -34,221 +47,157 @@ function RegisterPage() {
     }
   }, [authCheck, navigate])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { username: '', email: '', password: '', confirmPassword: '' },
+  })
+
+  const onSubmit = async (values: FormValues) => {
     setSuccess('')
-    setLoading(true)
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
-      return
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long')
-      setLoading(false)
-      return
-    }
-
     try {
-      const data = await createAdmin.mutateAsync({ username, email, password })
-
+      const data = await createAdmin.mutateAsync({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+      })
       if (data.success) {
-        if (data.data && (data.data as any).status === 'pending') {
+        if ((data.data as { status?: string } | undefined)?.status === 'pending') {
           setSuccess(
             'Registration request submitted successfully! Please wait for superadmin approval before you can login.',
           )
+          form.reset()
         } else {
           setSuccess('Admin user created successfully! Redirecting to login...')
           setTimeout(() => navigate({ to: '/login' }), 2000)
         }
       } else {
-        setError((data as any).message || 'Registration failed')
+        form.setError('root', { message: (data as { message?: string }).message || 'Registration failed' })
       }
-    } catch (error: any) {
-      setError(error?.message || 'An error occurred. Please try again.')
-      console.error('Registration error:', error)
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      form.setError('root', {
+        message: error instanceof Error ? error.message : 'An error occurred. Please try again.',
+      })
     }
   }
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-4" />
-          <p className="text-white">Loading...</p>
+      <div className="grid min-h-svh place-items-center bg-muted/40 p-6">
+        <div className="flex w-full max-w-sm flex-col gap-4">
+          <Skeleton className="h-8 w-40 self-center" />
+          <Skeleton className="h-96 w-full" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-        <div
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '1s' }}
-        />
-        <div
-          className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '2s' }}
-        />
-      </div>
-
-      <div className="w-full max-w-md relative z-10 animate-in fade-in duration-300">
-        <div className="rounded-2xl shadow-2xl p-8 md:p-10 space-y-6 border border-white/10 bg-black/40 backdrop-blur-xl">
-          {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500/20 to-red-500/20 backdrop-blur-sm mb-2 border border-white/20">
-              <UserPlus className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-white via-blue-200 to-red-200 drop-shadow-lg">
-              {adminExists ? 'Request Admin Account' : 'Create First Admin Account'}
-            </h1>
-            <p className="text-white/70 text-sm md:text-base">
-              {adminExists
-                ? 'Submit a request for admin account. Superadmin approval required.'
-                : 'Set up your first admin account to access the dashboard'}
-            </p>
-            {adminExists && (
-              <div className="bg-blue-500/20 border border-blue-400/30 text-white px-4 py-3 rounded-xl text-sm">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 shrink-0" />
-                  <span>Your request will be reviewed by a superadmin before you can login.</span>
-                </div>
-              </div>
-            )}
+    <div className="grid min-h-svh place-items-center bg-muted/40 p-6">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center justify-center gap-2 font-medium">
+          <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Gauge className="size-4" />
           </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-white/90 font-semibold">
-                Username
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  disabled={loading}
-                  placeholder="Enter your username"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/90 font-semibold">
-                Email
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                  placeholder="Enter your email"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-white/90 font-semibold">
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  placeholder="Enter your password (min 8 characters)"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-white/90 font-semibold">
-                Confirm Password
-              </Label>
-              <div className="relative">
-                <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  placeholder="Confirm your password"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-white/30 focus-visible:border-white/40"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <Alert
-                variant="destructive"
-                className="bg-red-500/20 border-red-400/30 text-white animate-in slide-in-from-bottom-5 duration-300"
-              >
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+          Grafana Recap
+        </div>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle>{adminExists ? 'Request admin account' : 'Create first admin account'}</CardTitle>
+            <CardDescription>
+              {adminExists
+                ? 'Submit a request for an admin account. Superadmin approval required.'
+                : 'Set up your first admin account to access the dashboard.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {adminExists && (
+              <Alert>
+                <Info />
+                <AlertDescription>
+                  Your request will be reviewed by a superadmin before you can login.
+                </AlertDescription>
               </Alert>
             )}
-
-            {success && (
-              <Alert className="bg-green-500/20 border-green-400/30 text-white animate-in slide-in-from-bottom-5 duration-300">
-                <CheckCircle className="h-4 w-4 text-green-400" />
-                <AlertDescription className="text-green-200">{success}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-red-600 hover:from-blue-500 hover:to-red-500 text-white font-bold py-6 border-0"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {adminExists ? 'Submitting request...' : 'Creating account...'}
-                </>
-              ) : adminExists ? (
-                'Submit Admin Request'
-              ) : (
-                'Create Admin Account'
-              )}
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <div className="pt-4 border-t border-white/10">
-            <p className="text-center text-white/50 text-xs mb-3">Already have an account?</p>
-            <Link
-              to="/login"
-              className="block w-full text-center text-white/70 hover:text-white font-medium py-2 rounded-xl hover:bg-white/10 transition-all"
-            >
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input autoComplete="username" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" autoComplete="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" autoComplete="new-password" placeholder="Min. 8 characters" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm password</FormLabel>
+                      <FormControl>
+                        <Input type="password" autoComplete="new-password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {form.formState.errors.root && (
+                  <Alert variant="destructive">
+                    <AlertCircle />
+                    <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+                  </Alert>
+                )}
+                {success && (
+                  <Alert>
+                    <CircleCheck />
+                    <AlertDescription>{success}</AlertDescription>
+                  </Alert>
+                )}
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+                  {adminExists ? 'Submit admin request' : 'Create admin account'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="justify-center text-sm text-muted-foreground">
+            Already have an account?
+            <Link to="/login" className="ml-1 text-foreground underline-offset-4 hover:underline">
               Sign in
             </Link>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   )
