@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Fragment, useEffect, useState } from 'react'
-import LogoutButton from '@/components/LogoutButton'
+import LogoutButton from '@/components/logout-button'
 import { Button } from '@/components/ui/button'
 import { trpc } from '@/router'
 
@@ -1941,8 +1941,8 @@ function SuperadminPage() {
                   </code>
                 </p>
                 <p className="text-indigo-300/80 text-xs">
-                  Housekeeping runs via node-cron on the app server. To change the
-                  schedule, set <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in{' '}
+                  Housekeeping runs via node-cron on the app server. To change the schedule, set{' '}
+                  <code className="bg-indigo-500/20 px-1 rounded">HOUSEKEEPING_SCHEDULE</code> in{' '}
                   <code className="bg-indigo-500/20 px-1 rounded">.env</code> and restart the app.
                 </p>
               </div>

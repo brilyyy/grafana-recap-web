@@ -65,7 +65,7 @@ export const unmappedRcRouter = router({
         .object({
           page: z.number().int().min(1).default(1),
           limit: z.number().int().min(1).max(500).default(50),
-          app_id: z.number().int().optional(),
+          app_id: z.number().int().positive().optional(),
           fetch_all: z.boolean().default(false),
         })
         .optional(),
@@ -109,8 +109,8 @@ export const unmappedRcRouter = router({
   submit: protectedProcedure
     .input(
       z.object({
-        id: z.number().int(),
-        id_app_identifier: z.number().int(),
+        id: z.number().int().positive(),
+        id_app_identifier: z.number().int().positive(),
         jenis_transaksi: z.string().nullable(),
         rc: z.string().min(1),
         error_type: errorTypeEnum,
@@ -135,8 +135,8 @@ export const unmappedRcRouter = router({
       z.object({
         items: z.array(
           z.object({
-            id: z.number().int(),
-            id_app_identifier: z.number().int(),
+            id: z.number().int().positive(),
+            id_app_identifier: z.number().int().positive(),
             jenis_transaksi: z.string().nullable(),
             rc: z.string().min(1),
             error_type: errorTypeEnum,

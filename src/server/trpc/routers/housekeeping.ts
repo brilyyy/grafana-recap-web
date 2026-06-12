@@ -55,7 +55,7 @@ export const housekeepingRouter = router({
     .input(
       z
         .object({
-          id: z.number().int(),
+          id: z.number().int().positive(),
           retention_days: z.number().int().min(1).nullable().optional(),
           date_column: z
             .union([sqlIdentifierSchema, z.literal('')])
@@ -119,7 +119,7 @@ export const housekeepingRouter = router({
   updateRetention: superAdminProcedure
     .input(
       z.object({
-        id: z.number().int(),
+        id: z.number().int().positive(),
         retention_days: z.number().int().min(1).nullable(),
       }),
     )
@@ -191,7 +191,7 @@ export const housekeepingRouter = router({
       return { success: true, message: 'Housekeeping row saved', id }
     }),
 
-  deleteRow: superAdminProcedure.input(z.object({ id: z.number().int() })).mutation(async ({ input, ctx }) => {
+  deleteRow: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     const checkResult = await db.execute(sql`
         SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
       `)
@@ -210,7 +210,7 @@ export const housekeepingRouter = router({
     return { success: true, message: 'Housekeeping row removed' }
   }),
 
-  run: superAdminProcedure.input(z.object({ id: z.number().int() })).mutation(async ({ input, ctx }) => {
+  run: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     const checkResult = await db.execute(sql`
         SELECT db_name, table_name, date_column, date_column_type, retention_days
         FROM raw_table_housekeeping WHERE id = ${input.id}

@@ -12,7 +12,7 @@ export const auditLogsRouter = router({
           page: z.number().int().min(1).default(1),
           limit: z.number().int().min(1).max(200).default(50),
           action: z.string().optional(),
-          userId: z.number().int().optional(),
+          userId: z.number().int().positive().optional(),
           resourceType: z.string().optional(),
           username: z.string().optional(),
           startDate: z.string().optional(),

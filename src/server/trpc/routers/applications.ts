@@ -40,7 +40,7 @@ export const applicationsRouter = router({
       .insert(appIdentifier)
       .values({ appName: input.app_name, dbName, rawTableName })
       .returning({ id: appIdentifier.id })
-    const id = inserted[0]?.id ?? 0
+    const id = inserted[0]?.id ?? ''
     await logAuditEvent(
       ctx.session.userId,
       ctx.session.username,
@@ -55,7 +55,7 @@ export const applicationsRouter = router({
   updateConfig: superAdminProcedure
     .input(
       z.object({
-        id: z.number().int(),
+        id: z.number().int().positive(),
         db_name: z.string().min(1),
         raw_table_name: z.string().min(1),
       }),

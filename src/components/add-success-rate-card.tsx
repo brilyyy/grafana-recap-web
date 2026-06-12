@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApplications } from '@/hooks/useApplications'
-import ErrorPopup from './ErrorPopup'
+import ErrorPopup from './error-popup'
 
 interface SkippedRow {
   rowNumber: number

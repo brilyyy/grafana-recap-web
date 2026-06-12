@@ -6,7 +6,7 @@ import type { SuccessRateEntry } from '@/types'
 export default function NoRcTransactionCard() {
   const [transactions, setTransactions] = useState<SuccessRateEntry[]>([])
   const { applications } = useApplications()
-  const [selectedAppId, setSelectedAppId] = useState<string>('')
+  const [selectedAppId, setSelectedAppId] = useState<number | ''>('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -37,7 +37,7 @@ export default function NoRcTransactionCard() {
           {
             page,
             limit,
-            ...(selectedAppId ? { app_id: parseInt(selectedAppId, 10) } : {}),
+            ...(selectedAppId ? { app_id: selectedAppId } : {}),
           },
           { staleTime: 0 },
         )
@@ -260,7 +260,7 @@ export default function NoRcTransactionCard() {
             <label className="block text-xs font-medium text-gray-600 mb-0.5">Application</label>
             <select
               value={selectedAppId}
-              onChange={(e) => setSelectedAppId(e.target.value)}
+              onChange={(e) => setSelectedAppId(e.target.value ? Number(e.target.value) : '')}
               className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all bg-white"
             >
               <option value="">All Applications</option>

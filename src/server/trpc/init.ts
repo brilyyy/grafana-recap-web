@@ -3,10 +3,6 @@ import { db } from '@/db'
 import type { SessionPayload } from '@/lib/auth'
 import { auth } from '@/lib/better-auth'
 
-/**
- * tRPC context – created per request.
- * Headers MUST be passed in (no more next/headers auto-read).
- */
 export async function createTRPCContext(opts: { headers: Headers }) {
   const betterSession = await auth.api.getSession({ headers: opts.headers }).catch(() => null)
 

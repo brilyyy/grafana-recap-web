@@ -1,13 +1,5 @@
-/**
- * Auth helpers – BetterAuth edition (TanStack Start)
- *
- * Uses BetterAuth for session management.
- * hashPassword / verifyPassword kept for pending-user-request flow.
- */
-
+import argon2 from '@node-rs/argon2'
 import { auth } from './better-auth'
-
-// ─── Public types ────────────────────────────────────────────────────────────
 
 export type UserRole = 'superadmin' | 'admin' | 'user'
 
@@ -25,8 +17,6 @@ export interface User {
   created_at: Date
 }
 
-// ─── Role hierarchy ──────────────────────────────────────────────────────────
-
 const roleHierarchy: Record<UserRole, number> = {
   user: 1,
   admin: 2,
@@ -41,12 +31,6 @@ export function isSuperAdmin(userRole: UserRole): boolean {
   return userRole === 'superadmin'
 }
 
-// ─── Session helpers (server-side) ───────────────────────────────────────────
-
-/**
- * Get BetterAuth session from an incoming Request (reads cookie header).
- * Returns SessionPayload or null.
- */
 export async function getSession(request: Request): Promise<SessionPayload | null> {
   const session = await auth.api.getSession({
     headers: request.headers,
@@ -60,8 +44,6 @@ export async function getSession(request: Request): Promise<SessionPayload | nul
     role: ((session.user as any).role as UserRole) ?? 'user',
   }
 }
-
-// ─── Route guards (async) ────────────────────────────────────────────────────
 
 export async function requireAuth(request: Request): Promise<SessionPayload> {
   const session = await getSession(request)
@@ -81,14 +63,10 @@ export async function requireSuperAdmin(request: Request): Promise<SessionPayloa
   return requireRole(request, 'superadmin')
 }
 
-// ─── Password utilities (kept for pending-user-request flow) ─────────────────
-
-import bcrypt from 'bcryptjs'
-
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12)
+  return argon2.hash(password)
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash)
+  return argon2.verify(hash, password)
 }

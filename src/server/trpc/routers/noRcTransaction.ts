@@ -75,7 +75,7 @@ export const noRcTransactionRouter = router({
         .object({
           page: z.number().int().min(1).default(1),
           limit: z.number().int().min(1).max(500).default(50),
-          app_id: z.number().int().optional(),
+          app_id: z.number().int().positive().optional(),
         })
         .optional(),
     )
@@ -122,7 +122,7 @@ export const noRcTransactionRouter = router({
     }),
 
   submit: protectedProcedure
-    .input(z.object({ id: z.number().int(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }))
+    .input(z.object({ id: z.number().int().positive(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }))
     .mutation(async ({ input, ctx }) => {
       await db.transaction(async (tx) => {
         await assignRc(tx, input.id, input.rc, input.rc_description)
@@ -143,7 +143,7 @@ export const noRcTransactionRouter = router({
       z.object({
         items: z
           .array(
-            z.object({ id: z.number().int(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }),
+            z.object({ id: z.number().int().positive(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }),
           )
           .min(1),
       }),

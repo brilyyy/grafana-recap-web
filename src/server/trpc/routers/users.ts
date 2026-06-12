@@ -1,8 +1,9 @@
+import { randomUUID } from 'node:crypto'
 import { TRPCError } from '@trpc/server'
 import { and, count, desc, eq, ilike, or, type SQL, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { users } from '@/db/schema'
+import { accounts, users } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
 import { hashPassword } from '@/lib/auth'
 import { router, superAdminProcedure } from '../init'
@@ -55,7 +56,7 @@ export const usersRouter = router({
       return { success: true, data: { users: rows, total, page, limit, totalPages: Math.ceil(total / limit) } }
     }),
 
-  get: superAdminProcedure.input(z.object({ id: z.number().int() })).query(async ({ input }) => {
+  get: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).query(async ({ input }) => {
     const rows = await db
       .select({
         id: users.id,
@@ -74,7 +75,7 @@ export const usersRouter = router({
   update: superAdminProcedure
     .input(
       z.object({
-        id: z.number().int(),
+        id: z.number().int().positive(),
         role: z.enum(['superadmin', 'admin', 'user']).optional(),
         email: z.string().email().optional(),
       }),
@@ -105,7 +106,7 @@ export const usersRouter = router({
       return { success: true, message: 'User updated successfully' }
     }),
 
-  delete: superAdminProcedure.input(z.object({ id: z.number().int() })).mutation(async ({ input, ctx }) => {
+  delete: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     const rows = await db.select({ id: users.id, username: users.username }).from(users).where(eq(users.id, input.id))
     if (rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' })
     if (rows[0].id === ctx.session.userId)
@@ -144,6 +145,15 @@ export const usersRouter = router({
         .values({ username, email, passwordHash, role })
         .returning({ id: users.id })
       const userId = inserted[0]?.id ?? 0
+      if (userId) {
+        await db.insert(accounts).values({
+          id: randomUUID(),
+          accountId: String(userId),
+          providerId: 'credential',
+          userId,
+          password: passwordHash,
+        })
+      }
       await logAuditEvent(
         ctx.session.userId,
         ctx.session.username,

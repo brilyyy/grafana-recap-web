@@ -16,8 +16,8 @@ export const dictionaryRouter = router({
           page: z.number().int().min(1).default(1),
           limit: z.number().int().min(1).max(500).default(50),
           search: z.string().optional(),
-          app_id: z.number().int().optional(),
-          app_ids: z.array(z.number().int()).optional(),
+          app_id: z.number().int().positive().optional(),
+          app_ids: z.array(z.number().int().positive()).optional(),
           error_types: z.array(errorTypeEnum).optional(),
           jenis_transaksi: z.array(z.string()).optional(),
           fetch_all: z.boolean().default(false),
@@ -82,7 +82,7 @@ export const dictionaryRouter = router({
     }),
 
   updateErrorType: protectedProcedure
-    .input(z.object({ id: z.number().int(), error_type: errorTypeEnum }))
+    .input(z.object({ id: z.number().int().positive(), error_type: errorTypeEnum }))
     .mutation(async ({ input, ctx }) => {
       const [existing] = await db
         .select({
@@ -132,7 +132,7 @@ export const dictionaryRouter = router({
     }),
 
   updateDescription: protectedProcedure
-    .input(z.object({ id: z.number().int(), rc_description: z.string() }))
+    .input(z.object({ id: z.number().int().positive(), rc_description: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const [existing] = await db
         .select({ id: responseCodeDictionary.id })
@@ -156,7 +156,7 @@ export const dictionaryRouter = router({
     }),
 
   updateDescriptionBatch: protectedProcedure
-    .input(z.object({ updates: z.array(z.object({ id: z.number().int(), rc_description: z.string() })) }))
+    .input(z.object({ updates: z.array(z.object({ id: z.number().int().positive(), rc_description: z.string() })) }))
     .mutation(async ({ input, ctx }) => {
       await db.transaction(async (tx) => {
         for (const { id, rc_description } of input.updates) {

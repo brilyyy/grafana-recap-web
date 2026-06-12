@@ -1,5 +1,5 @@
 {
-  "id": "4ff56511-d6c7-409b-a339-f9f3231d10fe",
+  "id": "23bd7e47-c1a1-4ba3-90fa-eaf492d0b192",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -29,6 +29,12 @@
         "raw_table_name": {
           "name": "raw_table_name",
           "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "retention_days": {
+          "name": "retention_days",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },

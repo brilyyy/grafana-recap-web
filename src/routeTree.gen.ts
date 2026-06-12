@@ -20,7 +20,6 @@ import { Route as ApiUploadDictionaryRouteImport } from './routes/api/upload-dic
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 import { Route as ApiProcessingProcessManualRouteImport } from './routes/api/processing/process-manual'
 import { Route as ApiBaleProcessManualRouteImport } from './routes/api/bale/process-manual'
-import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const UserApprovalRoute = UserApprovalRouteImport.update({
@@ -79,11 +78,6 @@ const ApiBaleProcessManualRoute = ApiBaleProcessManualRouteImport.update({
   path: '/api/bale/process-manual',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
-  id: '/api/auth/login',
-  path: '/api/auth/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -100,7 +94,6 @@ export interface FileRoutesByFullPath {
   '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
   '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
   '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -115,7 +108,6 @@ export interface FileRoutesByTo {
   '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
   '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
   '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -131,7 +123,6 @@ export interface FileRoutesById {
   '/api/upload-dictionary': typeof ApiUploadDictionaryRoute
   '/api/upload-success-rate': typeof ApiUploadSuccessRateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/bale/process-manual': typeof ApiBaleProcessManualRoute
   '/api/processing/process-manual': typeof ApiProcessingProcessManualRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -148,7 +139,6 @@ export interface FileRouteTypes {
     | '/api/upload-dictionary'
     | '/api/upload-success-rate'
     | '/api/auth/$'
-    | '/api/auth/login'
     | '/api/bale/process-manual'
     | '/api/processing/process-manual'
     | '/api/trpc/$'
@@ -163,7 +153,6 @@ export interface FileRouteTypes {
     | '/api/upload-dictionary'
     | '/api/upload-success-rate'
     | '/api/auth/$'
-    | '/api/auth/login'
     | '/api/bale/process-manual'
     | '/api/processing/process-manual'
     | '/api/trpc/$'
@@ -178,7 +167,6 @@ export interface FileRouteTypes {
     | '/api/upload-dictionary'
     | '/api/upload-success-rate'
     | '/api/auth/$'
-    | '/api/auth/login'
     | '/api/bale/process-manual'
     | '/api/processing/process-manual'
     | '/api/trpc/$'
@@ -194,7 +182,6 @@ export interface RootRouteChildren {
   ApiUploadDictionaryRoute: typeof ApiUploadDictionaryRoute
   ApiUploadSuccessRateRoute: typeof ApiUploadSuccessRateRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiAuthLoginRoute: typeof ApiAuthLoginRoute
   ApiBaleProcessManualRoute: typeof ApiBaleProcessManualRoute
   ApiProcessingProcessManualRoute: typeof ApiProcessingProcessManualRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
@@ -279,13 +266,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBaleProcessManualRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/auth/login': {
-      id: '/api/auth/login'
-      path: '/api/auth/login'
-      fullPath: '/api/auth/login'
-      preLoaderRoute: typeof ApiAuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -306,7 +286,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadDictionaryRoute: ApiUploadDictionaryRoute,
   ApiUploadSuccessRateRoute: ApiUploadSuccessRateRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiBaleProcessManualRoute: ApiBaleProcessManualRoute,
   ApiProcessingProcessManualRoute: ApiProcessingProcessManualRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,

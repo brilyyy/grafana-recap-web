@@ -37,3 +37,5 @@ public/uploads/
 # MemPalace per-project files
 mempalace.yaml
 entities.json
+
+.tanstack/

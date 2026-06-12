@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { CheckCircle, Home, Loader2, XCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import LogoutButton from '@/components/LogoutButton'
+import LogoutButton from '@/components/logout-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'

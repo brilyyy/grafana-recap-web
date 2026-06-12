@@ -6,7 +6,7 @@ import type { UnmappedRC } from '@/types'
 export default function UnmappedRcCard() {
   const [unmappedRcs, setUnmappedRcs] = useState<UnmappedRC[]>([])
   const { applications } = useApplications()
-  const [selectedAppId, setSelectedAppId] = useState<string>('')
+  const [selectedAppId, setSelectedAppId] = useState<number | ''>('')
   const [selectedErrorTypes, setSelectedErrorTypes] = useState<Record<number, 'S' | 'N' | 'Sukses'>>({})
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -27,7 +27,7 @@ export default function UnmappedRcCard() {
       const result = await utils.unmappedRc.list.fetch(
         {
           fetch_all: true,
-          ...(selectedAppId ? { app_id: parseInt(selectedAppId, 10) } : {}),
+          ...(selectedAppId ? { app_id: selectedAppId } : {}),
         },
         { staleTime: 0 },
       )
@@ -234,7 +234,7 @@ export default function UnmappedRcCard() {
       <div className="mb-1.5">
         <select
           value={selectedAppId}
-          onChange={(e) => setSelectedAppId(e.target.value)}
+          onChange={(e) => setSelectedAppId(e.target.value ? Number(e.target.value) : '')}
           className="w-full px-2.5 py-1.5 border-2 border-gray-200 rounded-md text-sm focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all bg-white/80 backdrop-blur-sm"
         >
           <option value="">All Applications</option>

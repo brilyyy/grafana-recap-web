@@ -1,16 +1,25 @@
+import { randomUUID } from 'node:crypto'
 import { TRPCError } from '@trpc/server'
 import { and, count, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
-import { pendingUserRequests, users } from '@/db/schema'
+import { accounts, pendingUserRequests, users } from '@/db/schema'
 import { logAuditEvent } from '@/lib/audit'
 import { hashPassword } from '@/lib/auth'
-import { auth } from '@/lib/better-auth'
 import type { ApiResponse } from '@/types'
 import { protectedProcedure, publicProcedure, router, superAdminProcedure } from '../init'
 
+async function createCredentialAccount(userId: number, passwordHash: string): Promise<void> {
+  await db.insert(accounts).values({
+    id: randomUUID(),
+    accountId: String(userId),
+    providerId: 'credential',
+    userId,
+    password: passwordHash,
+  })
+}
+
 export const authRouter = router({
-  /** Check current session */
   check: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.session) {
       return { success: true, data: { authenticated: false } } as ApiResponse
@@ -28,7 +37,6 @@ export const authRouter = router({
     } as ApiResponse
   }),
 
-  /** Check if any admin exists */
   checkAdmin: publicProcedure.query(async () => {
     const [result] = await db
       .select({ count: count() })
@@ -40,7 +48,6 @@ export const authRouter = router({
     } as ApiResponse
   }),
 
-  /** Get pending user requests (superadmin only) */
   pendingRequests: superAdminProcedure.query(async () => {
     const requests = await db
       .select({
@@ -60,7 +67,6 @@ export const authRouter = router({
     return { success: true, data: { requests } } as ApiResponse
   }),
 
-  /** Create first admin OR submit pending request */
   createAdmin: publicProcedure
     .input(z.object({ username: z.string().min(1), email: z.string().email(), password: z.string().min(8) }))
     .mutation(async ({ input }) => {
@@ -73,7 +79,6 @@ export const authRouter = router({
       const passwordHash = await hashPassword(password)
 
       if (adminCount.count > 0) {
-        // Check duplicates
         const existingUser = await db
           .select({ id: users.id })
           .from(users)
@@ -102,17 +107,17 @@ export const authRouter = router({
         } as ApiResponse
       }
 
-      // First-time setup
-      await db.insert(users).values({
-        username,
-        email,
-        passwordHash,
-        role: 'admin',
-      })
+      const inserted = await db
+        .insert(users)
+        .values({ username, email, passwordHash, role: 'admin' })
+        .returning({ id: users.id })
+      const userId = inserted[0]?.id
+      if (userId) {
+        await createCredentialAccount(userId, passwordHash)
+      }
       return { success: true, message: 'Admin user created successfully (first-time setup)' } as ApiResponse
     }),
 
-  /** Submit a user registration request */
   submitUserRequest: publicProcedure
     .input(
       z.object({
@@ -151,9 +156,8 @@ export const authRouter = router({
       return { success: true, message: 'Registration request submitted. Awaiting approval.' } as ApiResponse
     }),
 
-  /** Approve a pending user request (superadmin only) */
   approveRequest: superAdminProcedure
-    .input(z.object({ id: z.number().int(), approvedRole: z.enum(['superadmin', 'admin', 'user']) }))
+    .input(z.object({ id: z.number().int().positive(), approvedRole: z.enum(['superadmin', 'admin', 'user']) }))
     .mutation(async ({ input, ctx }) => {
       const { id, approvedRole } = input
 
@@ -163,26 +167,26 @@ export const authRouter = router({
         .where(and(eq(pendingUserRequests.id, id), eq(pendingUserRequests.status, 'pending')))
       if (!pending) throw new TRPCError({ code: 'NOT_FOUND', message: 'Pending request not found' })
 
-      // Try BetterAuth admin plugin first (fallback to direct insert)
-      const betterAuthRole: 'admin' | 'user' = approvedRole === 'superadmin' ? 'admin' : approvedRole
-      await auth.api
-        .createUser({
-          body: {
-            name: pending.username,
-            email: pending.email,
-            password: undefined as any,
-            role: betterAuthRole,
-          },
-        })
-        .catch(() => null)
-
       await db.transaction(async (tx) => {
-        await tx.insert(users).values({
-          username: pending.username,
-          email: pending.email,
-          passwordHash: pending.passwordHash,
-          role: approvedRole,
-        })
+        const inserted = await tx
+          .insert(users)
+          .values({
+            username: pending.username,
+            email: pending.email,
+            passwordHash: pending.passwordHash,
+            role: approvedRole,
+          })
+          .returning({ id: users.id })
+        const userId = inserted[0]?.id
+        if (userId) {
+          await tx.insert(accounts).values({
+            id: randomUUID(),
+            accountId: String(userId),
+            providerId: 'credential',
+            userId,
+            password: pending.passwordHash,
+          })
+        }
         await tx
           .update(pendingUserRequests)
           .set({
@@ -205,9 +209,8 @@ export const authRouter = router({
       return { success: true, message: `User "${pending.username}" created with role "${approvedRole}"` } as ApiResponse
     }),
 
-  /** Reject a pending user request (superadmin only) */
   rejectRequest: superAdminProcedure
-    .input(z.object({ id: z.number().int(), rejectionReason: z.string().optional() }))
+    .input(z.object({ id: z.number().int().positive(), rejectionReason: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
       const { id, rejectionReason } = input
 
@@ -238,7 +241,6 @@ export const authRouter = router({
       return { success: true, message: 'User request rejected' } as ApiResponse
     }),
 
-  /** Get current user session info */
   me: protectedProcedure.query(({ ctx }) => ({
     success: true,
     data: { user: { id: ctx.session.userId, username: ctx.session.username, role: ctx.session.role } },

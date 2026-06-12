@@ -15,7 +15,7 @@ export const processingLogsRouter = router({
         .object({
           page: z.number().int().min(1).default(1),
           limit: z.number().int().min(1).max(200).default(50),
-          app_id: z.number().int().optional(),
+          app_id: z.number().int().positive().optional(),
           status: z.string().optional(),
           recap_kind: z.string().optional(),
         })
@@ -106,7 +106,7 @@ export const processingLogsRouter = router({
     }),
 
   processManual: superAdminProcedure
-    .input(z.object({ app_id: z.number().int(), date: z.string().optional() }))
+    .input(z.object({ app_id: z.number().int().positive(), date: z.string().optional() }))
     .mutation(async ({ input }) => {
       const [app] = await db
         .select({ appName: appIdentifier.appName })

@@ -44,7 +44,7 @@ export const fdwRouter = router({
       }
     }),
 
-  remove: superAdminProcedure.input(z.object({ id: z.number().int() })).mutation(async ({ input, ctx }) => {
+  remove: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     const result = await db.execute(sql`
         SELECT source_db_name, table_name FROM fdw_source_table WHERE id = ${input.id}
       `)

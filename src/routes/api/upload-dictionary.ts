@@ -66,7 +66,7 @@ export const Route = createFileRoute('/api/upload-dictionary')({
               { status: 400 },
             )
 
-          const applicationId = parseInt(selectedApplicationId, 10)
+          const applicationId = selectedApplicationId
           const isCSV = file.name.toLowerCase().endsWith('.csv')
           const dictionaryData: Array<{
             jenis_transaksi: string
