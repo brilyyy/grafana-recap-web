@@ -66,5 +66,5 @@ LIMIT 30;
 ## Related Docs
 - [Technical Index](README.md)
 - [Feature: Processing Scheduler](../features/processing-scheduler.md)
-- [Success Rate SQL README](../../scripts/success_rate/README.md)
+- [Success Rate SQL README](../operations/success-rate-sql.md)
 - [Project README](../../README.md)

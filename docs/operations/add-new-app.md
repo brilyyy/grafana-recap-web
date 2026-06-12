@@ -35,7 +35,7 @@ scripts/success_rate/
     └── procedure.postgres.sql
 ```
 
-Lihat `scripts/success_rate/README.md` untuk detail struktur query dan stored procedure.
+Lihat [success-rate-sql.md](success-rate-sql.md) untuk detail struktur query dan stored procedure.
 
 ### 2.2 Raw Table Creation
 

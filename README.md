@@ -69,4 +69,4 @@ pnpm format     # biome format --write .
 - [Server Configuration](docs/technical/server-config.md)
 - [Feature Docs](docs/features/README.md)
 - [Technical Docs](docs/technical/README.md)
-- [Success Rate SQL README](scripts/success_rate/README.md)
+- [Success Rate SQL README](docs/operations/success-rate-sql.md)

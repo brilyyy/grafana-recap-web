@@ -64,5 +64,5 @@ LIMIT 100;
 ## Related Docs
 - [Technical Index](README.md)
 - [Feature: Success Rate Upload](../features/success-rate-upload.md)
-- [Success Rate SQL README](../../scripts/success_rate/README.md)
+- [Success Rate SQL README](../operations/success-rate-sql.md)
 - [Project README](../../README.md)

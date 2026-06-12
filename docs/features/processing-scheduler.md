@@ -19,5 +19,5 @@ Schedule and run recurring success-rate processing jobs.
 ## Related Docs
 - [Feature Index](README.md)
 - [Technical Scheduler Notes](../technical/processing-scheduler.md)
-- [Success Rate SQL README](../../scripts/success_rate/README.md)
+- [Success Rate SQL README](../operations/success-rate-sql.md)
 - [Project README](../../README.md)

@@ -4,12 +4,12 @@ PostgreSQL only.
 
 ## 1. Decide grain and output table
 
-- If the result is not `app_success_rate`, add a **new table** in [src/db/migrate.ts](src/db/migrate.ts) (e.g. Phase 3b) with the columns you need and indexes.
+- If the result is not `app_success_rate`, add a **new table** in [src/db/migrate.ts](../../src/db/migrate.ts) (e.g. Phase 3b) with the columns you need and indexes.
 - Use a clear name: `recap_{app}_{model}_daily` or similar.
 
 ## 2. SQL assets
 
-Create a folder under [scripts/recap_models/](scripts/recap_models/):
+Create a folder under [scripts/recap_models/](../../scripts/recap_models/):
 
 ```
 scripts/recap_models/{modelKey}/
@@ -25,22 +25,22 @@ scripts/recap_models/{modelKey}/
 
 ## 3. Registry (migration)
 
-Add an entry to [scripts/recap_models/registry.ts](scripts/recap_models/registry.ts):
+Add an entry to [scripts/recap_models/registry.ts](../../scripts/recap_models/registry.ts):
 
 - `modelKey`, `functionName`, `scheduleEnvVar` (cron env var for the app-level node-cron scheduler).
 
-Migration runs [scripts/recap_models/runProcedures.ts](scripts/recap_models/runProcedures.ts) via Phase 5b in `migrate.ts`.
+Migration runs [scripts/recap_models/runProcedures.ts](../../scripts/recap_models/runProcedures.ts) via Phase 5b in `migrate.ts`.
 
 ## 4. Catalog (UI + API)
 
-Extend [src/domain/recap/catalog.ts](src/domain/recap/catalog.ts) `customRecapEntries()`:
+Extend [src/domain/recap/catalog.ts](../../src/domain/recap/catalog.ts) `customRecapEntries()`:
 
 - `id`, `recapKind`, `title`, `description`, `briefProcessSummary`, `briefQuery`, `outputTable`, `functionName`, `scheduleEnvVar`, `rawSqlRepoPath`, `scope`.
 
 ## 5. Scheduler
 
-- **App-level:** [src/lib/scheduler.ts](src/lib/scheduler.ts) — add one entry to the `RECAP_JOBS` table (`name`, `envVar`, `procedure`).
-- **Env:** add default in [src/env.ts](src/env.ts) and document in `.env.example` if present.
+- **App-level:** [src/lib/scheduler.ts](../../src/lib/scheduler.ts) — add one entry to the `RECAP_JOBS` table (`name`, `envVar`, `procedure`).
+- **Env:** add default in [src/env.ts](../../src/env.ts) and document in `.env.example` if present.
 
 ## 6. Verify
 

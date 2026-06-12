@@ -19,5 +19,5 @@ Ingest transaction recap files and classify each record into success/error group
 ## Related Docs
 - [Feature Index](README.md)
 - [Technical Success Rate Notes](../technical/success-rate-upload.md)
-- [Success Rate SQL README](../../scripts/success_rate/README.md)
+- [Success Rate SQL README](../operations/success-rate-sql.md)
 - [Project README](../../README.md)
