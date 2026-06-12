@@ -11,7 +11,6 @@ import {
   ReceiptText,
   ScrollText,
   Trash2,
-  Unlink,
   Upload,
   Users,
 } from 'lucide-react'
@@ -36,7 +35,6 @@ const workspaceNav = [
   { title: 'Applications', to: '/application', icon: LayoutGrid },
   { title: 'Dictionary', to: '/dictionary', icon: BookOpen },
   { title: 'Uploads', to: '/uploads', icon: Upload },
-  { title: 'Unmapped RC', to: '/unmapped-rc', icon: Unlink },
   { title: 'Transactions', to: '/transactions', icon: ReceiptText },
   { title: 'Docs', to: '/docs', icon: FileText },
 ] as const
