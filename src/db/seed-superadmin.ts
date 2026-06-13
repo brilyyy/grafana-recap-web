@@ -15,6 +15,7 @@
  */
 
 import * as dotenv from 'dotenv'
+
 dotenv.config()
 
 import { eq } from 'drizzle-orm'
@@ -93,10 +94,7 @@ async function main() {
         console.log(`  ✅ Superadmin "${username}" created (id=${userId})`)
       }
 
-      const existingAccount = await db
-        .select({ id: accounts.id })
-        .from(accounts)
-        .where(eq(accounts.userId, userId))
+      const existingAccount = await db.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, userId))
 
       if (existingAccount.length > 0) {
         await db

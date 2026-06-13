@@ -1,13 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { AnimatedBackground } from '@/components/animated-background'
 import { AppSidebar } from '@/components/app-sidebar'
 import { ThemeToggle } from '@/components/theme-toggle'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from '@/components/ui/breadcrumb'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,6 +25,7 @@ const pageTitles: Record<string, string> = {
   '/superadmin/audit-logs': 'Audit logs',
   '/superadmin/processing': 'Processing',
   '/superadmin/jobs': 'Jobs',
+  '/superadmin/scheduler': 'Scheduler',
   '/superadmin/config': 'App config',
   '/superadmin/housekeeping': 'Housekeeping',
 }
@@ -67,8 +64,9 @@ function DashboardLayout() {
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+      <SidebarInset className="relative overflow-hidden">
+        <AnimatedBackground variant="subtle" />
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           <Breadcrumb>

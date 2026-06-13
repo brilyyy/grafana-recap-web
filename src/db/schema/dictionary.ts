@@ -17,9 +17,7 @@ export const responseCodeDictionary = pgTable(
     rcDescription: varchar('rc_description', { length: 500 }),
     errorType: errorTypeEnum('error_type').notNull(),
   },
-  (t) => [
-    unique('unique_dictionary_entry').on(t.idAppIdentifier, t.jenisTransaksi, t.rc),
-  ],
+  (t) => [unique('unique_dictionary_entry').on(t.idAppIdentifier, t.jenisTransaksi, t.rc)],
 )
 
 export const unmappedRc = pgTable(
@@ -36,9 +34,7 @@ export const unmappedRc = pgTable(
     errorType: errorTypeEnum('error_type'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (t) => [
-    unique('unique_unmapped_rc_entry').on(t.idAppIdentifier, t.jenisTransaksi, t.rc),
-  ],
+  (t) => [unique('unique_unmapped_rc_entry').on(t.idAppIdentifier, t.jenisTransaksi, t.rc)],
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

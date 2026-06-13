@@ -4,6 +4,7 @@ import { AlertCircle, CircleCheck, Gauge, Info, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { AuthLayout } from '@/components/auth-layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -82,123 +83,117 @@ function RegisterPage() {
 
   if (checking) {
     return (
-      <div className="grid min-h-svh place-items-center bg-muted/40 p-6">
-        <div className="flex w-full max-w-sm flex-col gap-4">
-          <Skeleton className="h-8 w-40 self-center" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </div>
+      <AuthLayout>
+        <Skeleton className="h-8 w-40 self-center" />
+        <Skeleton className="h-96 w-full" />
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="grid min-h-svh place-items-center bg-muted/40 p-6">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center justify-center gap-2 font-medium">
-          <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Gauge className="size-4" />
-          </div>
-          Grafana Recap
+    <AuthLayout>
+      <div className="flex items-center justify-center gap-2 font-medium">
+        <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Gauge className="size-4" />
         </div>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle>{adminExists ? 'Request admin account' : 'Create first admin account'}</CardTitle>
-            <CardDescription>
-              {adminExists
-                ? 'Submit a request for an admin account. Superadmin approval required.'
-                : 'Set up your first admin account to access the dashboard.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {adminExists && (
-              <Alert>
-                <Info />
-                <AlertDescription>
-                  Your request will be reviewed by a superadmin before you can login.
-                </AlertDescription>
-              </Alert>
-            )}
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input autoComplete="username" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" autoComplete="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" autoComplete="new-password" placeholder="Min. 8 characters" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm password</FormLabel>
-                      <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {form.formState.errors.root && (
-                  <Alert variant="destructive">
-                    <AlertCircle />
-                    <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
-                  </Alert>
-                )}
-                {success && (
-                  <Alert>
-                    <CircleCheck />
-                    <AlertDescription>{success}</AlertDescription>
-                  </Alert>
-                )}
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                  {adminExists ? 'Submit admin request' : 'Create admin account'}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="justify-center text-sm text-muted-foreground">
-            Already have an account?
-            <Link to="/login" className="ml-1 text-foreground underline-offset-4 hover:underline">
-              Sign in
-            </Link>
-          </CardFooter>
-        </Card>
+        Grafana Recap
       </div>
-    </div>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle>{adminExists ? 'Request admin account' : 'Create first admin account'}</CardTitle>
+          <CardDescription>
+            {adminExists
+              ? 'Submit a request for an admin account. Superadmin approval required.'
+              : 'Set up your first admin account to access the dashboard.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {adminExists && (
+            <Alert>
+              <Info />
+              <AlertDescription>Your request will be reviewed by a superadmin before you can login.</AlertDescription>
+            </Alert>
+          )}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl>
+                      <Input autoComplete="username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" autoComplete="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" placeholder="Min. 8 characters" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {form.formState.errors.root && (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert>
+                  <CircleCheck />
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+                {adminExists ? 'Submit admin request' : 'Create admin account'}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+        <CardFooter className="justify-center text-sm text-muted-foreground">
+          Already have an account?
+          <Link to="/login" className="ml-1 text-foreground underline-offset-4 hover:underline">
+            Sign in
+          </Link>
+        </CardFooter>
+      </Card>
+    </AuthLayout>
   )
 }

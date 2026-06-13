@@ -54,7 +54,9 @@ export function FileDropzone({ value, onChange, accept = '.xlsx,.csv', disabled,
           <FileSpreadsheet className="size-6 text-muted-foreground" />
           <div className="flex max-w-full items-center gap-2">
             <span className="truncate text-sm font-medium">{value.name}</span>
-            <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">{formatSize(value.size)}</span>
+            <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+              {formatSize(value.size)}
+            </span>
             <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={clear} title="Remove file">
               <X className="size-3.5" />
               <span className="sr-only">Remove file</span>

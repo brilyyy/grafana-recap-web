@@ -176,7 +176,9 @@ export async function processSuccessRateUpload({
           ),
         )
       const pairKey = (jenis: string, rc: string) => `${jenis}\u0000${rc}`
-      const dictionary = new Map(dictRows.map((row) => [pairKey(row.jenisTransaksi ?? '', row.rc ?? ''), row.errorType]))
+      const dictionary = new Map(
+        dictRows.map((row) => [pairKey(row.jenisTransaksi ?? '', row.rc ?? ''), row.errorType]),
+      )
 
       const unmapped = new Map<string, (typeof needsLookup)[number]>()
       for (const entry of needsLookup) {

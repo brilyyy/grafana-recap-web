@@ -1,11 +1,11 @@
 import { TRPCError } from '@trpc/server'
 import { and, count, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
-import { RecapValidationError, triggerRecap } from '@/application/recap/trigger-recap'
+import { RecapValidationError, triggerRecap } from '@/lib/application/recap/trigger-recap'
 import { db } from '@/db'
 import { appIdentifier, appProcessingLog } from '@/db/schema'
-import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
-import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
+import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
 import { router, superAdminProcedure } from '../init'
 
 export const processingLogsRouter = router({

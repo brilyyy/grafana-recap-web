@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute } from '@tanstack/react-router'
-import { Database, Loader2, Plus, Trash2 } from 'lucide-react'
+import { Database, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -60,15 +60,30 @@ function ConfigPage() {
     onError: (error) => toast.error(error.message || 'Failed to remove FDW source'),
   })
 
+  const applyMutation = trpc.fdw.applyFdw.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || 'FDW re-applied')
+      fdwQuery.refetch()
+    },
+    onError: (error) => toast.error(error.message || 'Failed to re-apply FDW'),
+  })
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">FDW configuration</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage Foreign Data Wrapper source tables imported from external databases (e.g. itm_db) used by apps like
-          EDC Agen and EDC Merchant. After changes, run migration to apply:{' '}
-          <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">DB_NAME=platform_db npm run db:migrate</code>
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">FDW configuration</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage Foreign Data Wrapper source tables imported from external databases (e.g. itm_db) used by apps like
+              EDC Agen and EDC Merchant. FDW changes are applied automatically.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" disabled={applyMutation.isPending} onClick={() => applyMutation.mutate()}>
+            {applyMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+            Re-apply FDW
+          </Button>
+        </div>
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">

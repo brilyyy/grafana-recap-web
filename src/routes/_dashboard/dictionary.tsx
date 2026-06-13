@@ -22,8 +22,7 @@ function DictionaryPage() {
           <div>
             <h2 className="text-sm font-semibold tracking-tight">Unmapped RC</h2>
             <p className="text-xs text-muted-foreground">
-              Classify response codes that have no error-type mapping yet. Submitted codes move
-              into the dictionary.
+              Classify response codes that have no error-type mapping yet. Submitted codes move into the dictionary.
             </p>
           </div>
           <UnmappedRcCard />

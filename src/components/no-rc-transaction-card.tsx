@@ -254,7 +254,9 @@ export default function NoRcTransactionCard() {
                           aria-label="Select transaction"
                         />
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">{String(transaction.tanggal_transaksi ?? '—')}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {String(transaction.tanggal_transaksi ?? '—')}
+                      </TableCell>
                       <TableCell className="max-w-48 truncate text-sm">{transaction.jenis_transaksi}</TableCell>
                       <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                         {transaction.status_transaksi || '—'}

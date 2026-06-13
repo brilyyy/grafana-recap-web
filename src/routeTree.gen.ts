@@ -24,6 +24,7 @@ import { Route as DashboardDocsIndexRouteImport } from './routes/_dashboard/docs
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as DashboardSuperadminUsersRouteImport } from './routes/_dashboard/superadmin/users'
+import { Route as DashboardSuperadminSchedulerRouteImport } from './routes/_dashboard/superadmin/scheduler'
 import { Route as DashboardSuperadminProcessingRouteImport } from './routes/_dashboard/superadmin/processing'
 import { Route as DashboardSuperadminJobsRouteImport } from './routes/_dashboard/superadmin/jobs'
 import { Route as DashboardSuperadminHousekeepingRouteImport } from './routes/_dashboard/superadmin/housekeeping'
@@ -107,6 +108,12 @@ const DashboardSuperadminUsersRoute =
     path: '/superadmin/users',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardSuperadminSchedulerRoute =
+  DashboardSuperadminSchedulerRouteImport.update({
+    id: '/superadmin/scheduler',
+    path: '/superadmin/scheduler',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardSuperadminProcessingRoute =
   DashboardSuperadminProcessingRouteImport.update({
     id: '/superadmin/processing',
@@ -158,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/superadmin/jobs': typeof DashboardSuperadminJobsRoute
   '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
+  '/superadmin/scheduler': typeof DashboardSuperadminSchedulerRoute
   '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -179,6 +187,7 @@ export interface FileRoutesByTo {
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/superadmin/jobs': typeof DashboardSuperadminJobsRoute
   '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
+  '/superadmin/scheduler': typeof DashboardSuperadminSchedulerRoute
   '/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -203,6 +212,7 @@ export interface FileRoutesById {
   '/_dashboard/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/_dashboard/superadmin/jobs': typeof DashboardSuperadminJobsRoute
   '/_dashboard/superadmin/processing': typeof DashboardSuperadminProcessingRoute
+  '/_dashboard/superadmin/scheduler': typeof DashboardSuperadminSchedulerRoute
   '/_dashboard/superadmin/users': typeof DashboardSuperadminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/superadmin/housekeeping'
     | '/superadmin/jobs'
     | '/superadmin/processing'
+    | '/superadmin/scheduler'
     | '/superadmin/users'
     | '/api/auth/$'
     | '/api/trpc/$'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/superadmin/housekeeping'
     | '/superadmin/jobs'
     | '/superadmin/processing'
+    | '/superadmin/scheduler'
     | '/superadmin/users'
     | '/api/auth/$'
     | '/api/trpc/$'
@@ -271,6 +283,7 @@ export interface FileRouteTypes {
     | '/_dashboard/superadmin/housekeeping'
     | '/_dashboard/superadmin/jobs'
     | '/_dashboard/superadmin/processing'
+    | '/_dashboard/superadmin/scheduler'
     | '/_dashboard/superadmin/users'
     | '/api/auth/$'
     | '/api/trpc/$'
@@ -393,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSuperadminUsersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/superadmin/scheduler': {
+      id: '/_dashboard/superadmin/scheduler'
+      path: '/superadmin/scheduler'
+      fullPath: '/superadmin/scheduler'
+      preLoaderRoute: typeof DashboardSuperadminSchedulerRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/_dashboard/superadmin/processing': {
       id: '/_dashboard/superadmin/processing'
       path: '/superadmin/processing'
@@ -465,6 +485,7 @@ interface DashboardRouteChildren {
   DashboardSuperadminHousekeepingRoute: typeof DashboardSuperadminHousekeepingRoute
   DashboardSuperadminJobsRoute: typeof DashboardSuperadminJobsRoute
   DashboardSuperadminProcessingRoute: typeof DashboardSuperadminProcessingRoute
+  DashboardSuperadminSchedulerRoute: typeof DashboardSuperadminSchedulerRoute
   DashboardSuperadminUsersRoute: typeof DashboardSuperadminUsersRoute
   DashboardSuperadminIndexRoute: typeof DashboardSuperadminIndexRoute
 }
@@ -482,6 +503,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSuperadminHousekeepingRoute: DashboardSuperadminHousekeepingRoute,
   DashboardSuperadminJobsRoute: DashboardSuperadminJobsRoute,
   DashboardSuperadminProcessingRoute: DashboardSuperadminProcessingRoute,
+  DashboardSuperadminSchedulerRoute: DashboardSuperadminSchedulerRoute,
   DashboardSuperadminUsersRoute: DashboardSuperadminUsersRoute,
   DashboardSuperadminIndexRoute: DashboardSuperadminIndexRoute,
 }

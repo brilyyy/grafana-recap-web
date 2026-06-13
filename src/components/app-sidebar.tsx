@@ -10,6 +10,7 @@ import {
   ListChecks,
   ReceiptText,
   ScrollText,
+  Timer,
   Trash2,
   Upload,
   Users,
@@ -44,6 +45,7 @@ const superadminNav = [
   { title: 'Audit logs', to: '/superadmin/audit-logs', icon: ScrollText },
   { title: 'Processing', to: '/superadmin/processing', icon: Cog },
   { title: 'Jobs', to: '/superadmin/jobs', icon: ListChecks },
+  { title: 'Scheduler', to: '/superadmin/scheduler', icon: Timer },
   { title: 'App config', to: '/superadmin/config', icon: Database },
   { title: 'Housekeeping', to: '/superadmin/housekeeping', icon: Trash2 },
 ] as const
@@ -79,10 +81,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton
                     asChild
-                    isActive={
-                      pathname === item.to ||
-                      (item.to !== '/' && pathname.startsWith(`${item.to}/`))
-                    }
+                    isActive={pathname === item.to || (item.to !== '/' && pathname.startsWith(`${item.to}/`))}
                     tooltip={item.title}
                   >
                     <Link to={item.to}>

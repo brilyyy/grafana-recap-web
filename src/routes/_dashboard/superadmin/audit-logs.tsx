@@ -234,14 +234,18 @@ function AuditLogsPage() {
               <TableBody>
                 {logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(log.created_at)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {formatDate(log.created_at)}
+                    </TableCell>
                     <TableCell className="font-medium">{log.username || 'System'}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{log.action}</Badge>
                     </TableCell>
                     <TableCell>
                       {log.resource_type}
-                      {log.resource_id && <span className="font-mono text-xs text-muted-foreground"> #{log.resource_id}</span>}
+                      {log.resource_id && (
+                        <span className="font-mono text-xs text-muted-foreground"> #{log.resource_id}</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden max-w-md truncate text-muted-foreground lg:table-cell">
                       {log.details || '—'}

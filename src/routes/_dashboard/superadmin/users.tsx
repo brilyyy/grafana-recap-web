@@ -297,12 +297,16 @@ function UsersPage() {
         </div>
       )}
 
-      <Dialog open={dialogMode === 'approve' && !!selectedRequest} onOpenChange={(open) => !open && closeRequestDialog()}>
+      <Dialog
+        open={dialogMode === 'approve' && !!selectedRequest}
+        onOpenChange={(open) => !open && closeRequestDialog()}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Approve user request</DialogTitle>
             <DialogDescription>
-              Approve registration request for <span className="font-medium text-foreground">{selectedRequest?.username}</span>?
+              Approve registration request for{' '}
+              <span className="font-medium text-foreground">{selectedRequest?.username}</span>?
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
@@ -332,12 +336,16 @@ function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dialogMode === 'reject' && !!selectedRequest} onOpenChange={(open) => !open && closeRequestDialog()}>
+      <Dialog
+        open={dialogMode === 'reject' && !!selectedRequest}
+        onOpenChange={(open) => !open && closeRequestDialog()}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Reject user request</DialogTitle>
             <DialogDescription>
-              Reject registration request for <span className="font-medium text-foreground">{selectedRequest?.username}</span>?
+              Reject registration request for{' '}
+              <span className="font-medium text-foreground">{selectedRequest?.username}</span>?
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">

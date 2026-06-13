@@ -16,16 +16,12 @@ export const appProcessingLog = pgTable(
     processingDate: date('processing_date').notNull(),
     startTime: timestamp('start_time').notNull(),
     endTime: timestamp('end_time'),
-    status: varchar('status', { length: 20 })
-      .notNull()
-      .$type<'running' | 'success' | 'failed'>(),
+    status: varchar('status', { length: 20 }).notNull().$type<'running' | 'success' | 'failed'>(),
     recordsProcessed: integer('records_processed').default(0),
     recordsInserted: integer('records_inserted').default(0),
     recordsSkipped: integer('records_skipped').default(0),
     errorMessage: text('error_message'),
-    recapKind: varchar('recap_kind', { length: 64 })
-      .notNull()
-      .default('success_rate_daily'),
+    recapKind: varchar('recap_kind', { length: 64 }).notNull().default('success_rate_daily'),
     catalogEntryId: varchar('catalog_entry_id', { length: 128 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
@@ -69,10 +65,7 @@ export const rateLimitLogs = pgTable(
     endpoint: varchar('endpoint', { length: 255 }).notNull(),
     blockedAt: timestamp('blocked_at').defaultNow().notNull(),
   },
-  (t) => [
-    index('idx_ip_endpoint').on(t.ipAddress, t.endpoint),
-    index('idx_blocked_at').on(t.blockedAt),
-  ],
+  (t) => [index('idx_ip_endpoint').on(t.ipAddress, t.endpoint), index('idx_blocked_at').on(t.blockedAt)],
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

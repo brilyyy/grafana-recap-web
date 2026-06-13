@@ -134,8 +134,7 @@ function HousekeepingPage() {
       <Alert>
         <Clock />
         <AlertTitle>
-          Schedule:{' '}
-          <code className="font-mono text-xs">{scheduleQuery.data?.data?.schedule ?? '0 2 * * *'}</code>
+          Schedule: <code className="font-mono text-xs">{scheduleQuery.data?.data?.schedule ?? '0 2 * * *'}</code>
         </AlertTitle>
         <AlertDescription>
           Housekeeping runs via node-cron on the app server. To change the schedule, set{' '}
@@ -328,7 +327,11 @@ function HousekeepingPage() {
                                   const col = editingDateConfig.date_column.trim()
                                   if (!col) return
                                   updateConfigMutation.mutate(
-                                    { id: row.id, date_column: col, date_column_type: editingDateConfig.date_column_type },
+                                    {
+                                      id: row.id,
+                                      date_column: col,
+                                      date_column_type: editingDateConfig.date_column_type,
+                                    },
                                     { onSuccess: () => setEditingDateConfig(null) },
                                   )
                                 }}
@@ -336,7 +339,12 @@ function HousekeepingPage() {
                                 <Check className="size-3.5" />
                                 Save
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-7" onClick={() => setEditingDateConfig(null)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7"
+                                onClick={() => setEditingDateConfig(null)}
+                              >
                                 <X className="size-3.5" />
                                 Cancel
                               </Button>
@@ -357,7 +365,8 @@ function HousekeepingPage() {
                                 setEditingDateConfig({
                                   id: row.id,
                                   date_column: row.date_column ?? '',
-                                  date_column_type: row.date_column_type === 'int_1yymmdd' ? 'int_1yymmdd' : 'timestamp',
+                                  date_column_type:
+                                    row.date_column_type === 'int_1yymmdd' ? 'int_1yymmdd' : 'timestamp',
                                 })
                               }
                             >
@@ -437,7 +446,11 @@ function HousekeepingPage() {
                           </div>
                         ) : row.date_column || !isRefNoDate ? (
                           <div className="flex items-center gap-1">
-                            <span className={row.retention_days ? 'text-sm tabular-nums' : 'text-sm text-muted-foreground italic'}>
+                            <span
+                              className={
+                                row.retention_days ? 'text-sm tabular-nums' : 'text-sm text-muted-foreground italic'
+                              }
+                            >
                               {row.retention_days ? `${row.retention_days} days` : 'Not set'}
                             </span>
                             <Button
@@ -446,7 +459,9 @@ function HousekeepingPage() {
                               className="size-6"
                               title="Edit retention"
                               disabled={isRefNoDate}
-                              onClick={() => setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })}
+                              onClick={() =>
+                                setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })
+                              }
                             >
                               <Pencil className="size-3" />
                             </Button>
