@@ -5,7 +5,8 @@
   "description": "Grafana Recap CMS Dashboard",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && pnpm run build:worker",
+    "build:worker": "esbuild src/workers/scheduler-worker.ts --bundle --platform=node --format=esm --outfile=dist/server/workers/scheduler-worker.mjs --external:dotenv --external:pg --external:drizzle-orm --external:drizzle-orm/node-postgres --external:node-cron",
     "start": "node .output/server/index.mjs",
     "type-check": "tsc --noEmit",
     "lint": "biome check .",

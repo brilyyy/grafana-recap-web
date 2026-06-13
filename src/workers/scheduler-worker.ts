@@ -11,7 +11,7 @@ import 'dotenv/config'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
-import { schedulerJobs } from '../src/db/schema/scheduler'
+import { schedulerJobs } from '../db/schema/scheduler'
 
 const DB_HOST = process.env.DB_HOST ?? 'localhost'
 const DB_PORT = parseInt(process.env.DB_PORT ?? '5432', 10)
