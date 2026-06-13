@@ -48,7 +48,7 @@ vi.mock('@/db', () => ({ db: mockDb }))
 vi.mock('@/env', () => ({ env: mockEnv }))
 vi.mock('@/lib/better-auth', () => ({ auth: { api: { getSession: vi.fn().mockResolvedValue(null) } } }))
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('@/application/recap/trigger-recap', () => ({
+vi.mock('@/lib/application/recap/trigger-recap', () => ({
   triggerRecap: mockTriggerRecap,
   RecapValidationError: class RecapValidationError extends Error {
     code: string
@@ -67,7 +67,7 @@ function makeExternalCaller(apiKey?: string) {
   const headers = new Headers()
   if (apiKey !== undefined) headers.set('x-recap-api-key', apiKey)
   headers.set('x-forwarded-for', '1.2.3.4')
-  return recapRouter.createCaller({ session: null, db: mockDb, headers })
+  return recapRouter.createCaller({ session: null, db: mockDb as any, headers })
 }
 
 describe('recap.triggerExternal', () => {

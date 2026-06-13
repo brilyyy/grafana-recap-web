@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecapCatalog, catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
+import { buildRecapCatalog, catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
 
 /** Expected sr: app keys from PROCEDURE_APPS */
 const SR_KEYS = ['bale', 'bale_bisnis', 'olob', 'edc_agen', 'edc_merchant', 'edc_merchant_ancol', 'cms', 'bale_korpora', 'debit_online']

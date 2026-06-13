@@ -28,7 +28,7 @@ const { fdwRouter } = await import('@/server/trpc/routers/fdw')
 function makeSuperadminCaller() {
   return fdwRouter.createCaller({
     session: { userId: 1, username: 'admin', role: 'superadmin' },
-    db: mockDb,
+    db: mockDb as any,
     headers: new Headers(),
   })
 }

@@ -30,7 +30,7 @@ type SessionRole = 'superadmin' | 'admin' | 'user' | null
 
 function makeCaller(role: SessionRole) {
   const session = role ? { userId: 1, username: 'tester', role } : null
-  const ctx = { session, db: mockDb, headers: new Headers() }
+  const ctx = { session, db: mockDb as any, headers: new Headers() }
   return {
     scheduler: schedulerRouter.createCaller(ctx),
     fdw: fdwRouter.createCaller(ctx),

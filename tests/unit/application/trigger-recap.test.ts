@@ -17,7 +17,7 @@ const mockDb = vi.hoisted(() => ({
 
 vi.mock('@/db', () => ({ db: mockDb }))
 
-const { triggerRecap, RecapValidationError } = await import('@/application/recap/trigger-recap')
+const { triggerRecap, RecapValidationError } = await import('@/lib/application/recap/trigger-recap')
 
 describe('triggerRecap', () => {
   beforeEach(() => {

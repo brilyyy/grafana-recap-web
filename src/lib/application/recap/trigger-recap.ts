@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { db } from '@/db'
-import { catalogEntryToLogFilter, getCatalogEntryById } from '@/domain/recap/catalog'
-import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
-import type { TriggerRecapParams, TriggerRecapResult } from '@/domain/recap/types'
+import { catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
+import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
+import type { TriggerRecapParams, TriggerRecapResult } from '@/lib/domain/recap/types'
 
 export class RecapValidationError extends Error {
   constructor(

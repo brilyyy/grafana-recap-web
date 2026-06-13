@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeAppNameToKey } from '@/domain/recap/resolve-app'
+import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
 
 describe('normalizeAppNameToKey', () => {
   it('lowercases and trims input', () => {

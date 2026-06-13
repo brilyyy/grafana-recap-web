@@ -26,7 +26,7 @@ const { schedulerRouter } = await import('@/server/trpc/routers/scheduler')
 function makeSuperadminCaller() {
   return schedulerRouter.createCaller({
     session: { userId: 1, username: 'admin', role: 'superadmin' },
-    db: mockDb,
+    db: mockDb as any,
     headers: new Headers(),
   })
 }
