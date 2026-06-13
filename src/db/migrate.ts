@@ -21,13 +21,13 @@ import * as dotenv from 'dotenv'
 
 dotenv.config()
 
-import { createHash, randomUUID } from 'node:crypto'
-import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
-import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
+import { randomUUID } from 'node:crypto'
 import argon2 from '@node-rs/argon2'
+import { runRecapModelStoredProcedures } from '@scripts/recap_models/runProcedures'
 import { type SQL, sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { runStoredProcedures as runProcedures } from '../../scripts/success_rate/runProcedures'
+import { applyFdwConfig } from '../lib/fdw-setup'
 
 // ─── Argument parsing ───────────────────────────────────────────────────────
 
@@ -48,34 +48,11 @@ const DB_PORT = parseInt(process.env.DB_PORT ?? '5432', 10)
 const DB_USER = process.env.DB_USER ?? 'root'
 const DB_PASSWORD = process.env.DB_PASSWORD ?? ''
 const DB_NAME = process.env.DB_NAME ?? 'platform_db'
-const DB_USER_TARGET = process.env.DB_USER_TARGET?.trim() || null
-
-// ─── Cron / scheduling ──────────────────────────────────────────────────────
-
-function getTargetDatabases(): string[] {
-  const raw = process.env.TARGET_DATABASES?.trim()
-  if (!raw) return ['platform_db', 'platform_db_dev']
-  return raw
-    .split(',')
-    .map((d) => d.trim())
-    .filter(Boolean)
-}
-
-/**
- * Build the local PostgreSQL identifier for a prefixed foreign table: `{sourceDb}_{tableName}`.
- * When the raw concatenation would exceed PostgreSQL's 63-byte identifier limit the name is
- * truncated to 55 chars and a 7-hex-char deterministic suffix is appended.
- */
-function fdwLocalRelationName(sourceDb: string, tableName: string): string {
-  const raw = `${sourceDb}_${tableName}`
-  if (raw.length <= 63) return raw
-  const suffix = createHash('md5').update(`${sourceDb}:${tableName}`).digest('hex').slice(0, 7)
-  return `${raw.slice(0, 55)}_${suffix}`
-}
 
 // ─── Low-level query executor (drizzle) ──────────────────────────────────────
 
 let migrationDb!: NodePgDatabase
+let migrationPool!: import('pg').Pool
 let closeDb!: () => Promise<void>
 
 async function initConnection() {
@@ -88,6 +65,7 @@ async function initConnection() {
     password: DB_PASSWORD,
     database: DB_NAME,
   })
+  migrationPool = pool
   migrationDb = drizzle(pool)
   closeDb = () => pool.end()
 }
@@ -775,135 +753,11 @@ async function runPerformanceIndexes() {
 
 async function runFdwSetup() {
   console.log('\n🔗 Phase 4b: postgres_fdw setup')
-
-  try {
-    await exec('CREATE EXTENSION IF NOT EXISTS postgres_fdw')
-    console.log('  ✅ postgres_fdw extension ready')
-  } catch (e: unknown) {
-    console.warn('  ⚠️  Could not create postgres_fdw extension:', (e as Error).message)
-    console.warn('     Ensure superuser or CREATE privilege. FDW setup skipped.')
-    return
+  const result = await applyFdwConfig(migrationPool)
+  for (const err of result.errors) {
+    console.warn(`  ⚠️  ${err}`)
   }
-
-  // All FDW connections are driven by rows in fdw_source_table (maintain via app / Superadmin).
-  // Stable ORDER BY ensures that when two source DBs share the same table_name the
-  // first one alphabetically by source_db_name wins the compatibility view.
-  const pairs = new Map<string, Set<string>>()
-
-  if (await tableExists('fdw_source_table')) {
-    const fdwRows = (await exec(
-      `SELECT source_db_name, table_name FROM "fdw_source_table" ORDER BY source_db_name, table_name`,
-    )) as { source_db_name: string; table_name: string }[]
-    for (const r of fdwRows) {
-      if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
-      pairs.get(r.source_db_name)!.add(r.table_name)
-    }
-  }
-
-  // Tracks short table names that already have a compatibility view across all servers.
-  const claimedViewNames = new Set<string>()
-
-  const esc = (s: string) => s.replace(/'/g, "''")
-  for (const [dbName, tables] of pairs) {
-    const serverName = `${dbName}_server`
-    try {
-      // CASCADE removes all dependent foreign tables (and any views over them) from prior runs.
-      await exec(`DROP SERVER IF EXISTS "${serverName}" CASCADE`)
-      await exec(`
-        CREATE SERVER "${serverName}"
-        FOREIGN DATA WRAPPER postgres_fdw
-        OPTIONS (host '${esc(DB_HOST)}', dbname '${esc(dbName)}', port '${DB_PORT}')
-      `)
-      await exec(`
-        CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
-        SERVER "${serverName}"
-        OPTIONS (user '${esc(DB_USER)}', password '${esc(DB_PASSWORD)}')
-      `)
-      if (DB_USER_TARGET) {
-        const targetEsc = DB_USER_TARGET.replace(/"/g, '""')
-        try {
-          await exec(`
-            CREATE USER MAPPING IF NOT EXISTS FOR "${targetEsc}"
-            SERVER "${serverName}"
-            OPTIONS (user '${esc(DB_USER)}', password '${esc(DB_PASSWORD)}')
-          `)
-          await exec(`
-            ALTER USER MAPPING FOR "${targetEsc}" SERVER "${serverName}"
-            OPTIONS (SET user '${esc(DB_USER)}', SET password '${esc(DB_PASSWORD)}')
-          `)
-          console.log(`  ✅ FDW user mapping: ${serverName} -> ${DB_USER_TARGET}`)
-        } catch (e: unknown) {
-          console.warn(`  ⚠️  User mapping for ${DB_USER_TARGET} on ${serverName} failed:`, (e as Error).message)
-        }
-        try {
-          await exec(`GRANT USAGE ON FOREIGN SERVER "${serverName}" TO "${targetEsc}"`)
-          console.log(`  ✅ FDW grant: ${serverName} -> ${DB_USER_TARGET}`)
-        } catch (e: unknown) {
-          console.warn(`  ⚠️  GRANT USAGE on ${serverName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
-        }
-      }
-      for (const tableName of tables) {
-        // Local foreign-table name is prefixed: {sourceDb}_{tableName}
-        const localFtName = fdwLocalRelationName(dbName, tableName)
-        try {
-          // Import via a temporary schema so that any pre-existing compatibility view in
-          // public with the same short name does not block the IMPORT statement.
-          await exec(`DROP SCHEMA IF EXISTS _fdw_import_tmp CASCADE`)
-          await exec(`CREATE SCHEMA _fdw_import_tmp`)
-          await exec(`
-            IMPORT FOREIGN SCHEMA public
-            LIMIT TO ("${tableName}")
-            FROM SERVER "${serverName}"
-            INTO _fdw_import_tmp
-          `)
-          await exec(`ALTER FOREIGN TABLE _fdw_import_tmp."${tableName}" RENAME TO "${localFtName}"`)
-          await exec(`ALTER FOREIGN TABLE _fdw_import_tmp."${localFtName}" SET SCHEMA public`)
-          await exec(`DROP SCHEMA _fdw_import_tmp`)
-          console.log(`  ✅ FDW FT: ${localFtName} <- ${dbName}.${tableName}`)
-          if (DB_USER_TARGET) {
-            try {
-              await exec(`GRANT SELECT ON "${localFtName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
-              console.log(`  ✅ FDW grant SELECT (FT): ${localFtName} -> ${DB_USER_TARGET}`)
-            } catch (e: unknown) {
-              console.warn(`  ⚠️  GRANT SELECT on ${localFtName} to ${DB_USER_TARGET} failed:`, (e as Error).message)
-            }
-          }
-          // Compatibility view: short remote name → prefixed FT.
-          // Only the first source_db to register a given table_name gets the short view.
-          // Consumers of subsequent sources must query the prefixed FT directly.
-          if (claimedViewNames.has(tableName)) {
-            console.warn(
-              `  ⚠️  FDW view "${tableName}" already claimed by another source; ${dbName} consumers must use "${localFtName}" directly.`,
-            )
-          } else {
-            claimedViewNames.add(tableName)
-            await exec(`CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${localFtName}"`)
-            console.log(`  ✅ FDW view: "${tableName}" -> "${localFtName}"`)
-            if (DB_USER_TARGET) {
-              try {
-                await exec(`GRANT SELECT ON "${tableName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
-                console.log(`  ✅ FDW grant SELECT (view): ${tableName} -> ${DB_USER_TARGET}`)
-              } catch (e: unknown) {
-                console.warn(
-                  `  ⚠️  GRANT SELECT on view ${tableName} to ${DB_USER_TARGET} failed:`,
-                  (e as Error).message,
-                )
-              }
-            }
-          }
-        } catch (e: unknown) {
-          try {
-            await exec(`DROP SCHEMA IF EXISTS _fdw_import_tmp CASCADE`)
-          } catch {
-            /* ignore */
-          }
-          console.warn(`  ⚠️  FDW for ${dbName}.${tableName} failed:`, (e as Error).message)
-        }
-      }
-    } catch (e: unknown) {
-      console.warn(`  ⚠️  FDW server ${serverName} failed:`, (e as Error).message)
-    }
-  }
+  console.log(`  ✅ FDW: ${result.serversProcessed} servers, ${result.tablesProcessed} tables processed`)
   console.log('  ✅ Phase 4b done')
 }
 
@@ -1133,11 +987,117 @@ async function runSeeds() {
   console.log('  ✅ Phase 7 done')
 }
 
-// ─── Cron setup (stub) ──────────────────────────────────────────────────────
+// ─── Phase 8: Scheduler jobs table + seed ────────────────────────────────────
+
+const SEED_JOBS: { name: string; procedure: string; envVar: string; defaultSchedule: string }[] = [
+  {
+    name: 'BALE processing',
+    procedure: 'sp_process_bale_daily',
+    envVar: 'BALE_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'Bale Bisnis processing',
+    procedure: 'sp_process_bale_bisnis_daily',
+    envVar: 'BALE_BISNIS_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'OLOB processing',
+    procedure: 'sp_process_olob_daily',
+    envVar: 'OLOB_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'CMS processing',
+    procedure: 'sp_process_cms_daily',
+    envVar: 'CMS_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'CMS CORP recap',
+    procedure: 'sp_recap_cms_corp_daily',
+    envVar: 'CMS_CORP_RECAP_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'Bale Korpora CORP recap',
+    procedure: 'sp_recap_bale_korpora_corp_daily',
+    envVar: 'BALE_KORPORA_CORP_RECAP_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'Bale Korpora processing',
+    procedure: 'sp_process_bale_korpora_daily',
+    envVar: 'BALE_KORPORA_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'EDC Agen processing',
+    procedure: 'sp_process_edc_agen_daily',
+    envVar: 'EDC_AGEN_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'EDC Merchant processing',
+    procedure: 'sp_process_edc_merchant_daily',
+    envVar: 'EDC_MERCHANT_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'EDC Merchant Ancol processing',
+    procedure: 'sp_process_edc_merchant_ancol_daily',
+    envVar: 'EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'Debit Online processing',
+    procedure: 'sp_process_debit_online_daily',
+    envVar: 'DEBIT_ONLINE_PROCESSING_SCHEDULE',
+    defaultSchedule: '1 0 * * *',
+  },
+  {
+    name: 'Housekeeping',
+    procedure: 'sp_run_raw_housekeeping',
+    envVar: 'HOUSEKEEPING_SCHEDULE',
+    defaultSchedule: '0 2 * * *',
+  },
+]
 
 async function runCronSetup() {
-  console.log('\n⏰ Phase 8: Cron setup')
-  console.log('  ℹ️  Cron setup phase — implement in scripts/cron.ts')
+  console.log('\n⏰ Phase 8: Scheduler jobs table')
+
+  if (!(await tableExists('scheduler_jobs'))) {
+    await exec(`
+      CREATE TABLE "scheduler_jobs" (
+        "id"            SERIAL PRIMARY KEY,
+        "name"          VARCHAR(255) NOT NULL,
+        "procedure"     VARCHAR(255) NOT NULL UNIQUE,
+        "schedule"      VARCHAR(100) NOT NULL DEFAULT '1 0 * * *',
+        "timezone"      VARCHAR(100) DEFAULT 'Asia/Jakarta',
+        "enabled"       BOOLEAN DEFAULT true NOT NULL,
+        "last_run_at"   TIMESTAMP,
+        "last_status"   VARCHAR(50),
+        "last_error"    TEXT,
+        "created_at"    TIMESTAMP DEFAULT NOW() NOT NULL,
+        "updated_at"    TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `)
+    console.log('  ✅ scheduler_jobs created')
+  } else {
+    console.log('  ⏭  scheduler_jobs exists')
+  }
+
+  for (const job of SEED_JOBS) {
+    const schedule = (process.env[job.envVar] ?? job.defaultSchedule).trim()
+    await exec(`
+      INSERT INTO "scheduler_jobs" ("name", "procedure", "schedule")
+      VALUES ('${job.name.replace(/'/g, "''")}', '${job.procedure}', '${schedule.replace(/'/g, "''")}')
+      ON CONFLICT ("procedure") DO NOTHING
+    `)
+  }
+  console.log(`  ✅ ${SEED_JOBS.length} scheduler jobs seeded (ON CONFLICT DO NOTHING)`)
+
   console.log('  ✅ Phase 8 done')
 }
 

@@ -2,12 +2,7 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from '@tanstack/
 import { useEffect } from 'react'
 import { AppSidebar } from '@/components/app-sidebar'
 import { ThemeToggle } from '@/components/theme-toggle'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from '@/components/ui/breadcrumb'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/superadmin/audit-logs': 'Audit logs',
   '/superadmin/processing': 'Processing',
   '/superadmin/jobs': 'Jobs',
+  '/superadmin/scheduler': 'Scheduler',
   '/superadmin/config': 'App config',
   '/superadmin/housekeeping': 'Housekeeping',
 }

@@ -8,6 +8,7 @@ import { housekeepingRouter } from './routers/housekeeping'
 import { noRcTransactionRouter } from './routers/noRcTransaction'
 import { processingLogsRouter } from './routers/processingLogs'
 import { recapRouter } from './routers/recap'
+import { schedulerRouter } from './routers/scheduler'
 import { systemRouter } from './routers/system'
 import { unmappedRcRouter } from './routers/unmappedRc'
 import { uploadsRouter } from './routers/uploads'
@@ -27,6 +28,7 @@ export const appRouter = router({
   fdw: fdwRouter,
   housekeeping: housekeepingRouter,
   uploads: uploadsRouter,
+  scheduler: schedulerRouter,
 })
 
 export type AppRouter = typeof appRouter
