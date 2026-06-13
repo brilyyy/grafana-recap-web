@@ -8,13 +8,7 @@ import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -82,10 +76,7 @@ function RegisterFdwDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((values) => addMutation.mutate(values))}
-            className="flex flex-col gap-4"
-          >
+          <form onSubmit={form.handleSubmit((values) => addMutation.mutate(values))} className="flex flex-col gap-4">
             <FormField
               control={form.control}
               name="source_db_name"
@@ -204,7 +195,9 @@ function DatabasesPage() {
                           <Database className="size-3" />
                           FDW-ed
                           {row.sourceTableCount > 0 && (
-                            <span className="opacity-75">· {row.sourceTableCount} table{row.sourceTableCount !== 1 ? 's' : ''}</span>
+                            <span className="opacity-75">
+                              · {row.sourceTableCount} table{row.sourceTableCount !== 1 ? 's' : ''}
+                            </span>
                           )}
                         </Badge>
                       ) : (
@@ -235,7 +228,9 @@ function DatabasesPage() {
       {dialogDb !== null && (
         <RegisterFdwDialog
           open={dialogDb !== null}
-          onOpenChange={(open) => { if (!open) setDialogDb(null) }}
+          onOpenChange={(open) => {
+            if (!open) setDialogDb(null)
+          }}
           initialDbName={dialogDb}
         />
       )}

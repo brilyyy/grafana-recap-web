@@ -74,7 +74,12 @@ describe('scheduler.createJob', () => {
     mockDb.returning.mockRejectedValueOnce(pgError)
 
     await expect(
-      makeSuperadminCaller().createJob({ name: 'X', procedure: 'sp_process_bale_daily', schedule: '1 0 * * *', timezone: 'Asia/Jakarta' }),
+      makeSuperadminCaller().createJob({
+        name: 'X',
+        procedure: 'sp_process_bale_daily',
+        schedule: '1 0 * * *',
+        timezone: 'Asia/Jakarta',
+      }),
     ).rejects.toMatchObject({ message: expect.stringContaining('already exists') })
   })
 
@@ -83,7 +88,12 @@ describe('scheduler.createJob', () => {
     mockDb.values.mockReturnThis()
     mockDb.returning.mockResolvedValueOnce([sampleJob])
 
-    await makeSuperadminCaller().createJob({ name: 'Test', procedure: 'sp_test', schedule: '1 0 * * *', timezone: 'Asia/Jakarta' })
+    await makeSuperadminCaller().createJob({
+      name: 'Test',
+      procedure: 'sp_test',
+      schedule: '1 0 * * *',
+      timezone: 'Asia/Jakarta',
+    })
     expect((globalThis as any).__restartScheduler).toHaveBeenCalledOnce()
   })
 })
@@ -95,9 +105,10 @@ describe('scheduler.updateJob', () => {
   })
 
   it('J10 — throws BAD_REQUEST when only id is provided (no fields to update)', async () => {
-    await expect(
-      makeSuperadminCaller().updateJob({ id: 1 }),
-    ).rejects.toMatchObject({ code: 'BAD_REQUEST', message: expect.stringContaining('No fields') })
+    await expect(makeSuperadminCaller().updateJob({ id: 1 })).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      message: expect.stringContaining('No fields'),
+    })
   })
 
   it('throws NOT_FOUND when job does not exist', async () => {
@@ -106,9 +117,9 @@ describe('scheduler.updateJob', () => {
     mockDb.where.mockReturnThis()
     mockDb.returning.mockResolvedValueOnce([])
 
-    await expect(
-      makeSuperadminCaller().updateJob({ id: 9999, enabled: false }),
-    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(makeSuperadminCaller().updateJob({ id: 9999, enabled: false })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
   })
 
   it('triggers worker restart after successful update', async () => {
@@ -133,9 +144,7 @@ describe('scheduler.deleteJob', () => {
     mockDb.where.mockReturnThis()
     mockDb.returning.mockResolvedValueOnce([])
 
-    await expect(
-      makeSuperadminCaller().deleteJob({ id: 9999 }),
-    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(makeSuperadminCaller().deleteJob({ id: 9999 })).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
   it('triggers worker restart after successful delete', async () => {

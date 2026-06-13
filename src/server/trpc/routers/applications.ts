@@ -52,23 +52,21 @@ export const applicationsRouter = router({
     return { success: true, message: `Application "${input.app_name}" created`, data: { id, app_name: input.app_name } }
   }),
 
-  get: superAdminProcedure
-    .input(z.object({ id: z.number().int().positive() }))
-    .query(async ({ input }) => {
-      const rows = await db
-        .select({
-          id: appIdentifier.id,
-          app_name: appIdentifier.appName,
-          db_name: appIdentifier.dbName,
-          raw_table_name: appIdentifier.rawTableName,
-          created_at: appIdentifier.createdAt,
-          updated_at: appIdentifier.updatedAt,
-        })
-        .from(appIdentifier)
-        .where(eq(appIdentifier.id, input.id))
-      if (rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Application not found' })
-      return { success: true, data: { application: rows[0] } }
-    }),
+  get: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).query(async ({ input }) => {
+    const rows = await db
+      .select({
+        id: appIdentifier.id,
+        app_name: appIdentifier.appName,
+        db_name: appIdentifier.dbName,
+        raw_table_name: appIdentifier.rawTableName,
+        created_at: appIdentifier.createdAt,
+        updated_at: appIdentifier.updatedAt,
+      })
+      .from(appIdentifier)
+      .where(eq(appIdentifier.id, input.id))
+    if (rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Application not found' })
+    return { success: true, data: { application: rows[0] } }
+  }),
 
   updateConfig: superAdminProcedure
     .input(

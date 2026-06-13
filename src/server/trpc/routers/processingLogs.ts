@@ -6,6 +6,7 @@ import { db } from '@/db'
 import { appIdentifier, appProcessingLog } from '@/db/schema'
 import { catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
 import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
+import { logAuditEvent } from '@/lib/audit'
 import { router, superAdminProcedure } from '../init'
 
 export const processingLogsRouter = router({
@@ -107,7 +108,7 @@ export const processingLogsRouter = router({
 
   processManual: superAdminProcedure
     .input(z.object({ app_id: z.number().int().positive(), date: z.string().optional() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const [app] = await db
         .select({ appName: appIdentifier.appName })
         .from(appIdentifier)
@@ -120,6 +121,14 @@ export const processingLogsRouter = router({
           catalogEntryId: `sr:${appKey}`,
           date: input.date ?? null,
         })
+        await logAuditEvent(
+          ctx.session.userId,
+          ctx.session.username,
+          'PROCESSING_MANUAL_TRIGGER',
+          'app_processing_log',
+          result.logEntry?.id?.toString() ?? 'unknown',
+          `Manually triggered processing for ${app.appName}${input.date ? ` on ${input.date}` : ' (H-1)'}. Status: ${result.logEntry?.status ?? 'unknown'}`,
+        )
         return {
           success: true,
           message: result.message,

@@ -23,9 +23,9 @@ const singleRow = [{ source_db_name: 'bale_db', table_name: 'raw_bale' }]
 
 /** Enqueue responses for the standard happy-path scenario (1 source, 1 table). */
 function enqueueHappyPath(pool: MockPool, rows = singleRow) {
-  pool.enqueue([])                        // [0] CREATE EXTENSION → no result used
-  pool.enqueue([{ exists: true }])        // [1] tableExists → true
-  pool.enqueue(rows)                      // [2] SELECT rows
+  pool.enqueue([]) // [0] CREATE EXTENSION → no result used
+  pool.enqueue([{ exists: true }]) // [1] tableExists → true
+  pool.enqueue(rows) // [2] SELECT rows
   // All subsequent DDL calls return [] (pool falls back to default)
 }
 
@@ -48,8 +48,8 @@ describe('applyFdwConfig', () => {
   })
 
   it('returns empty results when fdw_source_table does not exist', async () => {
-    pool.enqueue([])                    // CREATE EXTENSION
-    pool.enqueue([{ exists: false }])   // tableExists → false
+    pool.enqueue([]) // CREATE EXTENSION
+    pool.enqueue([{ exists: false }]) // tableExists → false
     const result = await applyFdwConfig(pool as any)
     expect(result.serversProcessed).toBe(0)
     expect(result.tablesProcessed).toBe(0)
@@ -107,14 +107,16 @@ describe('applyFdwConfig', () => {
     let callCount = 0
     const failPool = {
       calls: [] as string[],
-      getQueries() { return [...this.calls] },
+      getQueries() {
+        return [...this.calls]
+      },
       async end() {},
       async query(sql: string) {
         callCount++
         this.calls.push(sql.trim())
-        if (callCount === 1) return { rows: [] }             // CREATE EXTENSION
-        if (callCount === 2) return { rows: [{ exists: true }] }  // tableExists
-        if (callCount === 3) return { rows: singleRow }      // SELECT rows
+        if (callCount === 1) return { rows: [] } // CREATE EXTENSION
+        if (callCount === 2) return { rows: [{ exists: true }] } // tableExists
+        if (callCount === 3) return { rows: singleRow } // SELECT rows
         if (callCount === 9) throw new Error('permission denied') // IMPORT FOREIGN SCHEMA
         return { rows: [] }
       },
@@ -129,15 +131,13 @@ describe('applyFdwConfig', () => {
       { source_db_name: 'db_a', table_name: 'transactions' },
       { source_db_name: 'db_b', table_name: 'transactions' },
     ]
-    pool.enqueue([])                    // CREATE EXTENSION
-    pool.enqueue([{ exists: true }])    // tableExists
-    pool.enqueue(twoRows)               // SELECT rows
+    pool.enqueue([]) // CREATE EXTENSION
+    pool.enqueue([{ exists: true }]) // tableExists
+    pool.enqueue(twoRows) // SELECT rows
     // All DDL fall through to default []
     await applyFdwConfig(pool as any)
     const queries = pool.getQueries()
-    const viewCreates = queries.filter(
-      (q) => q.includes('CREATE OR REPLACE VIEW') && q.includes('"transactions"'),
-    )
+    const viewCreates = queries.filter((q) => q.includes('CREATE OR REPLACE VIEW') && q.includes('"transactions"'))
     expect(viewCreates).toHaveLength(1)
   })
 

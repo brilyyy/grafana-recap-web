@@ -8,18 +8,16 @@ import { router, superAdminProcedure } from '../init'
 const FUNCTION_NAME_RE = /^sp_[a-z0-9_]{2,55}$/
 
 export const appProceduresRouter = router({
-  listForApp: superAdminProcedure
-    .input(z.object({ appId: z.number().int().positive() }))
-    .query(async ({ input }) => {
-      const result = await db.execute(sql`
+  listForApp: superAdminProcedure.input(z.object({ appId: z.number().int().positive() })).query(async ({ input }) => {
+    const result = await db.execute(sql`
         SELECT
           id, function_name, recap_kind, output_table, schedule_cron, description, created_at, updated_at
         FROM app_custom_procedure
         WHERE id_app_identifier = ${input.appId}
         ORDER BY created_at
       `)
-      return { success: true, data: { procedures: result.rows as any[] } }
-    }),
+    return { success: true, data: { procedures: result.rows as any[] } }
+  }),
 
   register: superAdminProcedure
     .input(
@@ -95,42 +93,40 @@ export const appProceduresRouter = router({
       return { success: true, message: `Function public.${input.function_name} installed and registered.` }
     }),
 
-  remove: superAdminProcedure
-    .input(z.object({ id: z.number().int().positive() }))
-    .mutation(async ({ input, ctx }) => {
-      const row = (
-        await db.execute(sql`
+  remove: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+    const row = (
+      await db.execute(sql`
           SELECT function_name FROM app_custom_procedure WHERE id = ${input.id}
         `)
-      ).rows[0] as { function_name: string } | undefined
+    ).rows[0] as { function_name: string } | undefined
 
-      if (!row) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Procedure not found' })
-      }
+    if (!row) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Procedure not found' })
+    }
 
-      const { function_name } = row
+    const { function_name } = row
 
-      // Drop the Postgres function (DATE param assumed by convention)
-      try {
-        await db.execute(sql.raw(`DROP FUNCTION IF EXISTS public.${function_name}(date)`))
-      } catch (e: any) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Failed to drop function: ${e?.message ?? String(e)}`,
-        })
-      }
+    // Drop the Postgres function (DATE param assumed by convention)
+    try {
+      await db.execute(sql.raw(`DROP FUNCTION IF EXISTS public.${function_name}(date)`))
+    } catch (e: any) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to drop function: ${e?.message ?? String(e)}`,
+      })
+    }
 
-      await db.execute(sql`DELETE FROM app_custom_procedure WHERE id = ${input.id}`)
+    await db.execute(sql`DELETE FROM app_custom_procedure WHERE id = ${input.id}`)
 
-      await logAuditEvent(
-        ctx.session.userId,
-        ctx.session.username,
-        'APP_PROCEDURE_REMOVED',
-        'app_custom_procedure',
-        String(input.id),
-        `function=${function_name}`,
-      )
+    await logAuditEvent(
+      ctx.session.userId,
+      ctx.session.username,
+      'APP_PROCEDURE_REMOVED',
+      'app_custom_procedure',
+      String(input.id),
+      `function=${function_name}`,
+    )
 
-      return { success: true, message: `Function public.${function_name} dropped and removed.` }
-    }),
+    return { success: true, message: `Function public.${function_name} dropped and removed.` }
+  }),
 })

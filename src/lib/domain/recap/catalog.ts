@@ -132,9 +132,7 @@ async function getDbProcedureEntries(): Promise<RecapCatalogEntry[]> {
     return (result.rows as any[]).map((row) => ({
       id: `cp:${row.function_name}` as string,
       recapKind: String(row.recap_kind ?? 'success_rate_daily'),
-      title: row.description
-        ? String(row.description)
-        : `${row.app_name} — ${row.function_name} (custom)`,
+      title: row.description ? String(row.description) : `${row.app_name} — ${row.function_name} (custom)`,
       description: `Custom stored procedure for ${row.app_name}: ${row.function_name}. Output → ${row.output_table}.`,
       briefProcessSummary: `Custom stored procedure registered via UI. See sql_text in app_custom_procedure.`,
       briefQuery: `SELECT public.${row.function_name}(p_processing_date::date)`,
@@ -142,7 +140,10 @@ async function getDbProcedureEntries(): Promise<RecapCatalogEntry[]> {
       functionName: String(row.function_name),
       scheduleEnvVar: null,
       rawSqlRepoPath: '',
-      scope: { type: 'per_app' as const, appKey: normalizeAppNameToKey(String(row.app_name)) },
+      scope: {
+        type: 'per_app' as const,
+        appKey: normalizeAppNameToKey(String(row.app_name)),
+      },
     }))
   } catch {
     // Table not yet created (pre-migration) or query error — degrade gracefully
@@ -155,10 +156,7 @@ async function getDbProcedureEntries(): Promise<RecapCatalogEntry[]> {
  * Use this in server-side tRPC procedures and trigger-recap.
  */
 export async function getAllCatalogEntries(): Promise<RecapCatalogEntry[]> {
-  const [staticEntries, dbEntries] = await Promise.all([
-    Promise.resolve(buildRecapCatalog()),
-    getDbProcedureEntries(),
-  ])
+  const [staticEntries, dbEntries] = await Promise.all([Promise.resolve(buildRecapCatalog()), getDbProcedureEntries()])
   return [...staticEntries, ...dbEntries]
 }
 

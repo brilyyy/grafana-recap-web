@@ -9,12 +9,7 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: [
-        'src/domain/**',
-        'src/application/**',
-        'src/lib/**',
-        'src/server/trpc/**',
-      ],
+      include: ['src/domain/**', 'src/application/**', 'src/lib/**', 'src/server/trpc/**'],
       exclude: ['**/*.tsx', 'src/lib/auth-client.ts', 'src/lib/better-auth.ts'],
     },
   },

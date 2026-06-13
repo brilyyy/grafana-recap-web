@@ -66,10 +66,7 @@ export default function AppListCard() {
                   {isSuperadmin && (
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
-                        <Link
-                          to="/superadmin/application/$appId"
-                          params={{ appId: String(app.id) }}
-                        >
+                        <Link to="/superadmin/application/$appId" params={{ appId: String(app.id) }}>
                           <Settings2 className="size-3" />
                           Config
                         </Link>

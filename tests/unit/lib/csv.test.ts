@@ -7,11 +7,17 @@ describe('parseCsvRows', () => {
   })
 
   it('parses multiple rows', () => {
-    expect(parseCsvRows('h1,h2\nv1,v2')).toEqual([['h1', 'h2'], ['v1', 'v2']])
+    expect(parseCsvRows('h1,h2\nv1,v2')).toEqual([
+      ['h1', 'h2'],
+      ['v1', 'v2'],
+    ])
   })
 
   it('handles CRLF line endings', () => {
-    expect(parseCsvRows('a,b\r\nc,d')).toEqual([['a', 'b'], ['c', 'd']])
+    expect(parseCsvRows('a,b\r\nc,d')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ])
   })
 
   it('handles quoted fields containing commas', () => {
@@ -35,7 +41,10 @@ describe('parseCsvRows', () => {
   })
 
   it('skips blank lines', () => {
-    expect(parseCsvRows('a,b\n\nc,d')).toEqual([['a', 'b'], ['c', 'd']])
+    expect(parseCsvRows('a,b\n\nc,d')).toEqual([
+      ['a', 'b'],
+      ['c', 'd'],
+    ])
   })
 
   it('returns empty array for empty string', () => {

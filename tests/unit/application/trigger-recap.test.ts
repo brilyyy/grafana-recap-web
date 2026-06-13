@@ -69,8 +69,8 @@ describe('triggerRecap', () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     const today = new Date().toISOString().split('T')[0]
     mockDb.execute
-      .mockResolvedValueOnce({ rows: [{ today }] })  // validatePastDate
-      .mockResolvedValueOnce({ rows: [] })            // app_identifier empty
+      .mockResolvedValueOnce({ rows: [{ today }] }) // validatePastDate
+      .mockResolvedValueOnce({ rows: [] }) // app_identifier empty
     await expect(triggerRecap({ catalogEntryId: 'sr:bale', date: yesterday })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
@@ -81,20 +81,23 @@ describe('triggerRecap', () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     const today = new Date().toISOString().split('T')[0]
     mockDb.execute
-      .mockResolvedValueOnce({ rows: [{ today }] })                               // validatePastDate
-      .mockResolvedValueOnce({ rows: [{ id: 1, app_name: 'Bale' }] })            // resolveAppForEntry
-      .mockResolvedValueOnce({ rows: [] })                                        // stored proc call
-      .mockResolvedValueOnce({                                                    // app_processing_log
-        rows: [{
-          id: 42,
-          status: 'success',
-          records_processed: 1000,
-          records_inserted: 1000,
-          start_time: yesterday,
-          end_time: yesterday,
-          error_message: null,
-          recap_kind: 'success_rate_daily',
-        }],
+      .mockResolvedValueOnce({ rows: [{ today }] }) // validatePastDate
+      .mockResolvedValueOnce({ rows: [{ id: 1, app_name: 'Bale' }] }) // resolveAppForEntry
+      .mockResolvedValueOnce({ rows: [] }) // stored proc call
+      .mockResolvedValueOnce({
+        // app_processing_log
+        rows: [
+          {
+            id: 42,
+            status: 'success',
+            records_processed: 1000,
+            records_inserted: 1000,
+            start_time: yesterday,
+            end_time: yesterday,
+            error_message: null,
+            recap_kind: 'success_rate_daily',
+          },
+        ],
       })
     const result = await triggerRecap({ catalogEntryId: 'sr:bale', date: yesterday })
     expect(result.success).toBe(true)
@@ -107,10 +110,10 @@ describe('triggerRecap', () => {
   it('uses "H-1 (yesterday in DB)" label when no date passed', async () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     mockDb.execute
-      .mockResolvedValueOnce({ rows: [{ id: 1, app_name: 'Bale' }] })  // resolveAppForEntry
-      .mockResolvedValueOnce({ rows: [{ d: yesterday }] })              // resolveTargetDate (H-1)
-      .mockResolvedValueOnce({ rows: [] })                              // stored proc
-      .mockResolvedValueOnce({ rows: [] })                              // app_processing_log
+      .mockResolvedValueOnce({ rows: [{ id: 1, app_name: 'Bale' }] }) // resolveAppForEntry
+      .mockResolvedValueOnce({ rows: [{ d: yesterday }] }) // resolveTargetDate (H-1)
+      .mockResolvedValueOnce({ rows: [] }) // stored proc
+      .mockResolvedValueOnce({ rows: [] }) // app_processing_log
     const result = await triggerRecap({ catalogEntryId: 'sr:bale', date: null })
     expect(result.processingDateLabel).toBe('H-1 (yesterday in DB)')
   })

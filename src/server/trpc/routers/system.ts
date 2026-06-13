@@ -1,6 +1,7 @@
 import { and, count, desc, isNull, sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { appIdentifier, appProcessingLog, appSuccessRate, responseCodeDictionary, unmappedRc } from '@/db/schema'
+import { logAuditEvent } from '@/lib/audit'
 import { protectedProcedure, publicProcedure, router, superAdminProcedure } from '../init'
 
 export const systemRouter = router({
@@ -13,9 +14,17 @@ export const systemRouter = router({
     }
   }),
 
-  restartDb: superAdminProcedure.mutation(async () => {
+  restartDb: superAdminProcedure.mutation(async ({ ctx }) => {
     try {
       await db.execute(sql`SELECT 1`)
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'SYSTEM_DB_CHECK',
+        'system',
+        null,
+        'Database connection verified via restartDb',
+      )
       return { success: true, message: 'Database connection verified' }
     } catch (error: any) {
       return { success: false, message: error.message }

@@ -4,7 +4,7 @@ export function normalizeAppNameToKey(name: string): string {
     name
       .toLowerCase()
       .trim()
-      .replace(/[\s\-.]+/g, '_')
-      .replace(/[^a-z0-9_]/g, '') || 'unknown'
-  )
+      .replace(/[\s\-.]+/g, "_")
+      .replace(/[^a-z0-9_]/g, "") || "unknown"
+  );
 }

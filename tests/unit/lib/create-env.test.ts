@@ -244,9 +244,7 @@ describe('createEnv — server-on-client guard', () => {
       parseFrom: { server: validServerSource, client: validClientSource },
     })
 
-    expect(() => (e as unknown as Record<string, unknown>).DB_HOST).toThrow(
-      'Server-only environment variable',
-    )
+    expect(() => (e as unknown as Record<string, unknown>).DB_HOST).toThrow('Server-only environment variable')
   })
 
   it('does not throw for client keys on the client', () => {

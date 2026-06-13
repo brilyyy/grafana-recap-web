@@ -100,6 +100,14 @@ export const authRouter = router({
           requestedById: null,
           status: 'pending',
         })
+        await logAuditEvent(
+          null,
+          username,
+          'ADMIN_REQUEST_SUBMITTED',
+          'pending_user_request',
+          null,
+          `Admin registration request submitted for: ${username}`,
+        )
         return {
           success: true,
           message: 'Admin registration request submitted. Awaiting superadmin approval.',
@@ -115,6 +123,14 @@ export const authRouter = router({
       if (userId) {
         await createCredentialAccount(userId, passwordHash)
       }
+      await logAuditEvent(
+        null,
+        username,
+        'ADMIN_CREATED',
+        'user',
+        userId?.toString() ?? 'unknown',
+        `First admin user created: ${username}`,
+      )
       return { success: true, message: 'Admin user created successfully (first-time setup)' } as ApiResponse
     }),
 
@@ -153,6 +169,14 @@ export const authRouter = router({
         requestedById,
         status: 'pending',
       })
+      await logAuditEvent(
+        requestedById,
+        ctx.session?.username ?? username,
+        'USER_REQUEST_SUBMITTED',
+        'pending_user_request',
+        null,
+        `Registration request submitted for ${username} as ${requestedRole}`,
+      )
       return { success: true, message: 'Registration request submitted. Awaiting approval.' } as ApiResponse
     }),
 

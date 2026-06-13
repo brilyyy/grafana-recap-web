@@ -119,9 +119,7 @@ describe('recap.triggerExternal', () => {
   it('normalizes app_name → sr:<key> when catalogEntryId absent', async () => {
     const caller = makeExternalCaller(VALID_KEY)
     await caller.triggerExternal({ app_name: 'Bale Bisnis' })
-    expect(mockTriggerRecap).toHaveBeenCalledWith(
-      expect.objectContaining({ catalogEntryId: 'sr:bale_bisnis' }),
-    )
+    expect(mockTriggerRecap).toHaveBeenCalledWith(expect.objectContaining({ catalogEntryId: 'sr:bale_bisnis' }))
   })
 
   it('returns BAD_REQUEST when neither app_name nor catalogEntryId provided', async () => {
@@ -132,9 +130,9 @@ describe('recap.triggerExternal', () => {
   // ── Date format validation (Zod) ─────────────────────────────────────────
   it('rejects date not matching YYYY-MM-DD via Zod', async () => {
     const caller = makeExternalCaller(VALID_KEY)
-    await expect(
-      caller.triggerExternal({ catalogEntryId: 'sr:bale', date: '15/06/2025' }),
-    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    await expect(caller.triggerExternal({ catalogEntryId: 'sr:bale', date: '15/06/2025' })).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+    })
   })
 
   it('accepts a valid YYYY-MM-DD date and passes it to triggerRecap', async () => {

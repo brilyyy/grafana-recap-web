@@ -12,10 +12,7 @@ export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBa
   const particleOpacity = variant === 'prominent' ? 1 : 0.65
 
   return (
-    <div
-      aria-hidden="true"
-      className={cn('pointer-events-none absolute inset-0 -z-10 overflow-hidden', className)}
-    >
+    <div aria-hidden="true" className={cn('pointer-events-none absolute inset-0 -z-10 overflow-hidden', className)}>
       {/* dotted grid with radial fade */}
       <div
         className="absolute inset-0"
@@ -76,7 +73,7 @@ export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBa
           height: '24%',
           bottom: '22%',
           left: '22%',
-          opacity: particleOpacity * 0.70,
+          opacity: particleOpacity * 0.7,
         }}
       />
     </div>

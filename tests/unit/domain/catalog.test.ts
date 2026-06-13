@@ -2,13 +2,26 @@ import { describe, expect, it } from 'vitest'
 import { buildRecapCatalog, catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
 
 /** Expected sr: app keys from PROCEDURE_APPS */
-const SR_KEYS = ['bale', 'bale_bisnis', 'olob', 'edc_agen', 'edc_merchant', 'edc_merchant_ancol', 'cms', 'bale_korpora', 'debit_online']
+const SR_KEYS = [
+  'bale',
+  'bale_bisnis',
+  'olob',
+  'edc_agen',
+  'edc_merchant',
+  'edc_merchant_ancol',
+  'cms',
+  'bale_korpora',
+  'debit_online',
+]
 
 describe('buildRecapCatalog', () => {
   it('contains a sr: entry for every PROCEDURE_APPS key', () => {
     const catalog = buildRecapCatalog()
     for (const key of SR_KEYS) {
-      expect(catalog.some((e) => e.id === `sr:${key}`), `missing sr:${key}`).toBe(true)
+      expect(
+        catalog.some((e) => e.id === `sr:${key}`),
+        `missing sr:${key}`,
+      ).toBe(true)
     }
   })
 

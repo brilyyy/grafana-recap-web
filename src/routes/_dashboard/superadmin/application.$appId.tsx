@@ -7,13 +7,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -109,10 +103,7 @@ function AppConfigPage() {
   const utils = trpc.useUtils()
 
   // App data
-  const appQuery = trpc.applications.get.useQuery(
-    { id: appIdNum },
-    { enabled: isSuperadmin && !isNaN(appIdNum) },
-  )
+  const appQuery = trpc.applications.get.useQuery({ id: appIdNum }, { enabled: isSuperadmin && !isNaN(appIdNum) })
   const app = appQuery.data?.data?.application
 
   // Procedures list
@@ -199,9 +190,7 @@ function AppConfigPage() {
       </div>
 
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">
-          {app ? `${app.app_name} — config` : 'App config'}
-        </h1>
+        <h1 className="text-lg font-semibold tracking-tight">{app ? `${app.app_name} — config` : 'App config'}</h1>
         <p className="text-sm text-muted-foreground">
           Raw table mapping and stored-procedure registration for this application.
         </p>
@@ -212,8 +201,8 @@ function AppConfigPage() {
         <CardHeader>
           <CardTitle className="text-base font-medium">Raw table mapping</CardTitle>
           <CardDescription>
-            Maps this application to its source database and raw transaction table. Physical table provisioning is
-            done separately (migration / FDW).
+            Maps this application to its source database and raw transaction table. Physical table provisioning is done
+            separately (migration / FDW).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,9 +214,7 @@ function AppConfigPage() {
           ) : (
             <Form {...rawForm}>
               <form
-                onSubmit={rawForm.handleSubmit((values) =>
-                  updateConfigMutation.mutate({ id: appIdNum, ...values }),
-                )}
+                onSubmit={rawForm.handleSubmit((values) => updateConfigMutation.mutate({ id: appIdNum, ...values }))}
                 className="flex flex-col gap-4"
               >
                 <FormField
@@ -276,8 +263,8 @@ function AppConfigPage() {
           <div>
             <h2 className="text-base font-semibold">Stored procedures</h2>
             <p className="text-sm text-muted-foreground">
-              Custom success-rate recap procedures installed directly into Postgres. Appear in the Processing page
-              once registered.
+              Custom success-rate recap procedures installed directly into Postgres. Appear in the Processing page once
+              registered.
             </p>
           </div>
           {!showProcForm && (
@@ -329,9 +316,7 @@ function AppConfigPage() {
                             {row.recap_kind}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {row.output_table}
-                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{row.output_table}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {row.created_at ? formatDate(row.created_at) : '—'}
                         </TableCell>
@@ -360,8 +345,8 @@ function AppConfigPage() {
               <CardHeader>
                 <CardTitle className="text-base font-medium">Register procedure</CardTitle>
                 <CardDescription>
-                  Paste a <code className="rounded bg-muted px-1 py-0.5 text-xs">CREATE OR REPLACE FUNCTION</code>{' '}
-                  body. The function will be installed immediately.
+                  Paste a <code className="rounded bg-muted px-1 py-0.5 text-xs">CREATE OR REPLACE FUNCTION</code> body.
+                  The function will be installed immediately.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -379,11 +364,7 @@ function AppConfigPage() {
                         <FormItem>
                           <FormLabel>Function name</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="sp_process_myapp_daily"
-                              className="font-mono"
-                              {...field}
-                            />
+                            <Input placeholder="sp_process_myapp_daily" className="font-mono" {...field} />
                           </FormControl>
                           <FormDescription>Format: sp_[a-z0-9_]{'{2,55}'}</FormDescription>
                           <FormMessage />
