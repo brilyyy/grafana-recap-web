@@ -1,15 +1,16 @@
 import { z } from 'zod'
 import 'dotenv/config'
+import { createEnv } from '@/lib/create-env'
 
 /**
- * Custom env validation (replaces @t3-oss/env-core).
+ * Environment validation via createEnv (src/lib/create-env.ts).
  *
- * - `env`      → server-only variables read from `process.env`. Importing it
- *                from code that runs in the browser throws immediately, so
- *                secrets can never leak into the client bundle silently.
- * - `clientEnv` → browser-safe variables read from `import.meta.env`. Vite only
- *                exposes variables prefixed with `VITE_`, so the schema must
- *                use that prefix.
+ * - `env`       → server-only variables read from `process.env`. Accessing
+ *                 it from browser code throws immediately (Proxy guard), so
+ *                 secrets can never leak into the client bundle silently.
+ * - `clientEnv` → browser-safe variables read from `import.meta.env`. Vite
+ *                 only exposes variables prefixed with `VITE_`, so the schema
+ *                 must use that prefix.
  */
 
 const serverSchema = z.object({
@@ -57,37 +58,12 @@ const clientSchema = z.object({})
 export type ServerEnv = z.infer<typeof serverSchema>
 export type ClientEnv = z.infer<typeof clientSchema>
 
-const isServer = typeof window === 'undefined'
-const skipValidation = !!process.env?.SKIP_ENV_VALIDATION
+const _env = createEnv({
+  server: serverSchema,
+  client: clientSchema,
+  clientPrefix: 'VITE_',
+  skipValidation: !!process.env?.SKIP_ENV_VALIDATION,
+})
 
-/** Treat empty strings as missing so `z.string().min(1)` and `.default()` behave. */
-function withoutEmptyStrings(source: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(source)) {
-    out[key] = value === '' ? undefined : value
-  }
-  return out
-}
-
-function parseEnv<S extends z.ZodType>(schema: S, source: Record<string, unknown>, label: string): z.infer<S> {
-  const result = schema.safeParse(withoutEmptyStrings(source))
-  if (!result.success) {
-    const issues = result.error.issues.map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
-    throw new Error(`❌ Invalid ${label} environment variables:\n${issues.join('\n')}`)
-  }
-  return result.data
-}
-
-export const env: ServerEnv = (() => {
-  if (!isServer) {
-    throw new Error('Server env accessed from client code — use `clientEnv` (VITE_*) instead')
-  }
-  if (skipValidation) return process.env as unknown as ServerEnv
-  return parseEnv(serverSchema, process.env, 'server')
-})()
-
-export const clientEnv: ClientEnv = parseEnv(
-  clientSchema,
-  typeof import.meta.env === 'undefined' ? {} : import.meta.env,
-  'client',
-)
+export const env = _env as ServerEnv & ClientEnv
+export const clientEnv = _env as ClientEnv
