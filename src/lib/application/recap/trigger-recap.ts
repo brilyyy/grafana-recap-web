@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { db } from '@/db'
-import { catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
+import { catalogEntryToLogFilter, getCatalogEntryByIdAsync } from '@/lib/domain/recap/catalog'
 import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
 import type { TriggerRecapParams, TriggerRecapResult } from '@/lib/domain/recap/types'
 
@@ -36,8 +36,9 @@ async function validatePastDate(dateStr: string): Promise<void> {
 }
 
 async function resolveAppForEntry(
-  entry: NonNullable<ReturnType<typeof getCatalogEntryById>>,
+  entry: Awaited<ReturnType<typeof getCatalogEntryByIdAsync>>,
 ): Promise<{ id: number; app_name: string }> {
+  if (!entry) throw new RecapValidationError('Invalid catalog entry', 'NOT_FOUND')
   const appKey = entry.scope.type === 'per_app' || entry.scope.type === 'fixed_app' ? entry.scope.appKey : null
   if (!appKey) throw new RecapValidationError('Invalid catalog entry scope', 'NOT_FOUND')
 
@@ -51,7 +52,7 @@ async function resolveAppForEntry(
 }
 
 export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapResult> {
-  const entry = getCatalogEntryById(params.catalogEntryId)
+  const entry = await getCatalogEntryByIdAsync(params.catalogEntryId)
   if (!entry) {
     throw new RecapValidationError(`Unknown recap catalog id: ${params.catalogEntryId}`, 'NOT_FOUND')
   }

@@ -10,6 +10,7 @@ import {
   ListChecks,
   ReceiptText,
   ScrollText,
+  Server,
   Timer,
   Trash2,
   Upload,
@@ -46,6 +47,7 @@ const superadminNav = [
   { title: 'Processing', to: '/superadmin/processing', icon: Cog },
   { title: 'Jobs', to: '/superadmin/jobs', icon: ListChecks },
   { title: 'Scheduler', to: '/superadmin/scheduler', icon: Timer },
+  { title: 'Databases', to: '/superadmin/databases', icon: Server },
   { title: 'App config', to: '/superadmin/config', icon: Database },
   { title: 'Housekeeping', to: '/superadmin/housekeeping', icon: Trash2 },
 ] as const

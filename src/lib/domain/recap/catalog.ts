@@ -1,6 +1,9 @@
+import { sql } from 'drizzle-orm'
 import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
 import { PROCEDURE_APPS } from '@scripts/success_rate/registry'
+import { db } from '@/db'
 import type { RecapCatalogEntry } from './types'
+import { normalizeAppNameToKey } from './resolve-app'
 
 const DISPLAY_APP: Record<string, string> = {
   bale: 'Bale',
@@ -104,12 +107,69 @@ function customRecapEntries(): RecapCatalogEntry[] {
   return out
 }
 
+/** Static (file-based) catalog entries — synchronous, no DB access. */
 export function buildRecapCatalog(): RecapCatalogEntry[] {
   return [...successRateEntries(), ...customRecapEntries()]
 }
 
+/**
+ * Fetch DB-registered procedure entries from `app_custom_procedure`.
+ * Returns [] if the table doesn't exist yet (pre-migration).
+ */
+async function getDbProcedureEntries(): Promise<RecapCatalogEntry[]> {
+  try {
+    const result = await db.execute(sql`
+      SELECT
+        acp.function_name,
+        acp.recap_kind,
+        acp.output_table,
+        acp.description,
+        ai.app_name
+      FROM app_custom_procedure acp
+      JOIN app_identifier ai ON ai.id = acp.id_app_identifier
+      ORDER BY acp.created_at
+    `)
+    return (result.rows as any[]).map((row) => ({
+      id: `cp:${row.function_name}` as string,
+      recapKind: String(row.recap_kind ?? 'success_rate_daily'),
+      title: row.description
+        ? String(row.description)
+        : `${row.app_name} — ${row.function_name} (custom)`,
+      description: `Custom stored procedure for ${row.app_name}: ${row.function_name}. Output → ${row.output_table}.`,
+      briefProcessSummary: `Custom stored procedure registered via UI. See sql_text in app_custom_procedure.`,
+      briefQuery: `SELECT public.${row.function_name}(p_processing_date::date)`,
+      outputTable: String(row.output_table ?? 'app_success_rate'),
+      functionName: String(row.function_name),
+      scheduleEnvVar: null,
+      rawSqlRepoPath: '',
+      scope: { type: 'per_app' as const, appKey: normalizeAppNameToKey(String(row.app_name)) },
+    }))
+  } catch {
+    // Table not yet created (pre-migration) or query error — degrade gracefully
+    return []
+  }
+}
+
+/**
+ * Full catalog: static file-based entries + DB-registered custom procedures.
+ * Use this in server-side tRPC procedures and trigger-recap.
+ */
+export async function getAllCatalogEntries(): Promise<RecapCatalogEntry[]> {
+  const [staticEntries, dbEntries] = await Promise.all([
+    Promise.resolve(buildRecapCatalog()),
+    getDbProcedureEntries(),
+  ])
+  return [...staticEntries, ...dbEntries]
+}
+
 export function getCatalogEntryById(id: string): RecapCatalogEntry | undefined {
   return buildRecapCatalog().find((e) => e.id === id)
+}
+
+/** Async version — searches both static and DB-registered entries. */
+export async function getCatalogEntryByIdAsync(id: string): Promise<RecapCatalogEntry | undefined> {
+  const all = await getAllCatalogEntries()
+  return all.find((e) => e.id === id)
 }
 
 export function catalogEntryToLogFilter(entry: RecapCatalogEntry): {

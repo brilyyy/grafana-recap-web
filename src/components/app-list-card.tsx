@@ -1,14 +1,18 @@
-import { PackageOpen, RefreshCw } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { PackageOpen, RefreshCw, Settings2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useAuthSession } from '@/hooks/use-auth-session'
 import { useApplications } from '@/hooks/useApplications'
 
 export default function AppListCard() {
   const { applications, isLoading, error, refreshApplications } = useApplications()
+  const { user } = useAuthSession()
+  const isSuperadmin = user?.role === 'superadmin'
 
   return (
     <Card>
@@ -51,6 +55,7 @@ export default function AppListCard() {
               <TableRow>
                 <TableHead className="w-16">ID</TableHead>
                 <TableHead>Name</TableHead>
+                {isSuperadmin && <TableHead className="w-24 text-right">Config</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -58,6 +63,19 @@ export default function AppListCard() {
                 <TableRow key={app.id}>
                   <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">{app.id}</TableCell>
                   <TableCell className="font-medium">{app.app_name}</TableCell>
+                  {isSuperadmin && (
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                        <Link
+                          to="/superadmin/application/$appId"
+                          params={{ appId: String(app.id) }}
+                        >
+                          <Settings2 className="size-3" />
+                          Config
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

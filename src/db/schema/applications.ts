@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { date, decimal, index, integer, pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { date, decimal, index, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { responseCodeDictionary, unmappedRc } from './dictionary'
 import { errorTypeEnum } from './enums'
 import { appProcessingLog } from './logging'
@@ -40,6 +40,21 @@ export const appSuccessRate = pgTable(
   (t) => [index('idx_tanggal_transaksi').on(t.tanggalTransaksi), index('idx_id_app_identifier').on(t.idAppIdentifier)],
 )
 
+export const appCustomProcedure = pgTable('app_custom_procedure', {
+  id: serial('id').primaryKey(),
+  idAppIdentifier: integer('id_app_identifier')
+    .notNull()
+    .references(() => appIdentifier.id, { onDelete: 'cascade' }),
+  functionName: varchar('function_name', { length: 63 }).notNull().unique(),
+  recapKind: varchar('recap_kind', { length: 64 }).notNull().default('success_rate_daily'),
+  outputTable: varchar('output_table', { length: 255 }).notNull().default('app_success_rate'),
+  scheduleCron: varchar('schedule_cron', { length: 64 }),
+  description: varchar('description', { length: 500 }),
+  sqlText: text('sql_text').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const appIdentifierRelations = relations(appIdentifier, ({ many }) => ({
@@ -47,6 +62,7 @@ export const appIdentifierRelations = relations(appIdentifier, ({ many }) => ({
   dictionary: many(responseCodeDictionary),
   unmappedRcs: many(unmappedRc),
   processingLogs: many(appProcessingLog),
+  customProcedures: many(appCustomProcedure),
 }))
 
 export const appSuccessRateRelations = relations(appSuccessRate, ({ one }) => ({
@@ -56,8 +72,16 @@ export const appSuccessRateRelations = relations(appSuccessRate, ({ one }) => ({
   }),
 }))
 
+export const appCustomProcedureRelations = relations(appCustomProcedure, ({ one }) => ({
+  app: one(appIdentifier, {
+    fields: [appCustomProcedure.idAppIdentifier],
+    references: [appIdentifier.id],
+  }),
+}))
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AppIdentifier = typeof appIdentifier.$inferSelect
 export type AppSuccessRate = typeof appSuccessRate.$inferSelect
 export type NewAppSuccessRate = typeof appSuccessRate.$inferInsert
+export type AppCustomProcedure = typeof appCustomProcedure.$inferSelect

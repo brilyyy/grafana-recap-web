@@ -27,7 +27,16 @@ const pageTitles: Record<string, string> = {
   '/superadmin/jobs': 'Jobs',
   '/superadmin/scheduler': 'Scheduler',
   '/superadmin/config': 'App config',
+  '/superadmin/databases': 'Databases',
   '/superadmin/housekeeping': 'Housekeeping',
+}
+
+function getPageTitle(pathname: string): string {
+  if (pageTitles[pathname]) return pageTitles[pathname]
+  if (pathname.startsWith('/superadmin/application/')) return 'App config'
+  if (pathname.startsWith('/docs/')) return 'Docs'
+  if (pathname.startsWith('/superadmin/')) return 'Superadmin'
+  return 'Dashboard'
 }
 
 function DashboardLayout() {
@@ -72,7 +81,7 @@ function DashboardLayout() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>{pageTitles[pathname] ?? 'Superadmin'}</BreadcrumbPage>
+                <BreadcrumbPage>{getPageTitle(pathname)}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

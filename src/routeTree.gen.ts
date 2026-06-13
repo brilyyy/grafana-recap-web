@@ -28,9 +28,11 @@ import { Route as DashboardSuperadminSchedulerRouteImport } from './routes/_dash
 import { Route as DashboardSuperadminProcessingRouteImport } from './routes/_dashboard/superadmin/processing'
 import { Route as DashboardSuperadminJobsRouteImport } from './routes/_dashboard/superadmin/jobs'
 import { Route as DashboardSuperadminHousekeepingRouteImport } from './routes/_dashboard/superadmin/housekeeping'
+import { Route as DashboardSuperadminDatabasesRouteImport } from './routes/_dashboard/superadmin/databases'
 import { Route as DashboardSuperadminConfigRouteImport } from './routes/_dashboard/superadmin/config'
 import { Route as DashboardSuperadminAuditLogsRouteImport } from './routes/_dashboard/superadmin/audit-logs'
 import { Route as DashboardDocsSplatRouteImport } from './routes/_dashboard/docs/$'
+import { Route as DashboardSuperadminApplicationAppIdRouteImport } from './routes/_dashboard/superadmin/application.$appId'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -131,6 +133,12 @@ const DashboardSuperadminHousekeepingRoute =
     path: '/superadmin/housekeeping',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardSuperadminDatabasesRoute =
+  DashboardSuperadminDatabasesRouteImport.update({
+    id: '/superadmin/databases',
+    path: '/superadmin/databases',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardSuperadminConfigRoute =
   DashboardSuperadminConfigRouteImport.update({
     id: '/superadmin/config',
@@ -148,6 +156,12 @@ const DashboardDocsSplatRoute = DashboardDocsSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => DashboardDocsRoute,
 } as any)
+const DashboardSuperadminApplicationAppIdRoute =
+  DashboardSuperadminApplicationAppIdRouteImport.update({
+    id: '/superadmin/application/$appId',
+    path: '/superadmin/application/$appId',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
@@ -162,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DashboardDocsSplatRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/superadmin/config': typeof DashboardSuperadminConfigRoute
+  '/superadmin/databases': typeof DashboardSuperadminDatabasesRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/superadmin/jobs': typeof DashboardSuperadminJobsRoute
   '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
@@ -171,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/docs/': typeof DashboardDocsIndexRoute
   '/superadmin/': typeof DashboardSuperadminIndexRoute
+  '/superadmin/application/$appId': typeof DashboardSuperadminApplicationAppIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -184,6 +200,7 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DashboardDocsSplatRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/superadmin/config': typeof DashboardSuperadminConfigRoute
+  '/superadmin/databases': typeof DashboardSuperadminDatabasesRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/superadmin/jobs': typeof DashboardSuperadminJobsRoute
   '/superadmin/processing': typeof DashboardSuperadminProcessingRoute
@@ -193,6 +210,7 @@ export interface FileRoutesByTo {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/docs': typeof DashboardDocsIndexRoute
   '/superadmin': typeof DashboardSuperadminIndexRoute
+  '/superadmin/application/$appId': typeof DashboardSuperadminApplicationAppIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -209,6 +227,7 @@ export interface FileRoutesById {
   '/_dashboard/docs/$': typeof DashboardDocsSplatRoute
   '/_dashboard/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
   '/_dashboard/superadmin/config': typeof DashboardSuperadminConfigRoute
+  '/_dashboard/superadmin/databases': typeof DashboardSuperadminDatabasesRoute
   '/_dashboard/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/_dashboard/superadmin/jobs': typeof DashboardSuperadminJobsRoute
   '/_dashboard/superadmin/processing': typeof DashboardSuperadminProcessingRoute
@@ -218,6 +237,7 @@ export interface FileRoutesById {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/_dashboard/docs/': typeof DashboardDocsIndexRoute
   '/_dashboard/superadmin/': typeof DashboardSuperadminIndexRoute
+  '/_dashboard/superadmin/application/$appId': typeof DashboardSuperadminApplicationAppIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -234,6 +254,7 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/superadmin/audit-logs'
     | '/superadmin/config'
+    | '/superadmin/databases'
     | '/superadmin/housekeeping'
     | '/superadmin/jobs'
     | '/superadmin/processing'
@@ -243,6 +264,7 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/docs/'
     | '/superadmin/'
+    | '/superadmin/application/$appId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -256,6 +278,7 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/superadmin/audit-logs'
     | '/superadmin/config'
+    | '/superadmin/databases'
     | '/superadmin/housekeeping'
     | '/superadmin/jobs'
     | '/superadmin/processing'
@@ -265,6 +288,7 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/docs'
     | '/superadmin'
+    | '/superadmin/application/$appId'
   id:
     | '__root__'
     | '/_dashboard'
@@ -280,6 +304,7 @@ export interface FileRouteTypes {
     | '/_dashboard/docs/$'
     | '/_dashboard/superadmin/audit-logs'
     | '/_dashboard/superadmin/config'
+    | '/_dashboard/superadmin/databases'
     | '/_dashboard/superadmin/housekeeping'
     | '/_dashboard/superadmin/jobs'
     | '/_dashboard/superadmin/processing'
@@ -289,6 +314,7 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/_dashboard/docs/'
     | '/_dashboard/superadmin/'
+    | '/_dashboard/superadmin/application/$appId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -434,6 +460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSuperadminHousekeepingRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/superadmin/databases': {
+      id: '/_dashboard/superadmin/databases'
+      path: '/superadmin/databases'
+      fullPath: '/superadmin/databases'
+      preLoaderRoute: typeof DashboardSuperadminDatabasesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/_dashboard/superadmin/config': {
       id: '/_dashboard/superadmin/config'
       path: '/superadmin/config'
@@ -454,6 +487,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/$'
       preLoaderRoute: typeof DashboardDocsSplatRouteImport
       parentRoute: typeof DashboardDocsRoute
+    }
+    '/_dashboard/superadmin/application/$appId': {
+      id: '/_dashboard/superadmin/application/$appId'
+      path: '/superadmin/application/$appId'
+      fullPath: '/superadmin/application/$appId'
+      preLoaderRoute: typeof DashboardSuperadminApplicationAppIdRouteImport
+      parentRoute: typeof DashboardRoute
     }
   }
 }
@@ -482,12 +522,14 @@ interface DashboardRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardSuperadminAuditLogsRoute: typeof DashboardSuperadminAuditLogsRoute
   DashboardSuperadminConfigRoute: typeof DashboardSuperadminConfigRoute
+  DashboardSuperadminDatabasesRoute: typeof DashboardSuperadminDatabasesRoute
   DashboardSuperadminHousekeepingRoute: typeof DashboardSuperadminHousekeepingRoute
   DashboardSuperadminJobsRoute: typeof DashboardSuperadminJobsRoute
   DashboardSuperadminProcessingRoute: typeof DashboardSuperadminProcessingRoute
   DashboardSuperadminSchedulerRoute: typeof DashboardSuperadminSchedulerRoute
   DashboardSuperadminUsersRoute: typeof DashboardSuperadminUsersRoute
   DashboardSuperadminIndexRoute: typeof DashboardSuperadminIndexRoute
+  DashboardSuperadminApplicationAppIdRoute: typeof DashboardSuperadminApplicationAppIdRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
@@ -500,12 +542,15 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardSuperadminAuditLogsRoute: DashboardSuperadminAuditLogsRoute,
   DashboardSuperadminConfigRoute: DashboardSuperadminConfigRoute,
+  DashboardSuperadminDatabasesRoute: DashboardSuperadminDatabasesRoute,
   DashboardSuperadminHousekeepingRoute: DashboardSuperadminHousekeepingRoute,
   DashboardSuperadminJobsRoute: DashboardSuperadminJobsRoute,
   DashboardSuperadminProcessingRoute: DashboardSuperadminProcessingRoute,
   DashboardSuperadminSchedulerRoute: DashboardSuperadminSchedulerRoute,
   DashboardSuperadminUsersRoute: DashboardSuperadminUsersRoute,
   DashboardSuperadminIndexRoute: DashboardSuperadminIndexRoute,
+  DashboardSuperadminApplicationAppIdRoute:
+    DashboardSuperadminApplicationAppIdRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(

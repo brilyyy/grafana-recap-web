@@ -241,6 +241,32 @@ async function runCoreSchema() {
     }
   }
 
+  // ── app_custom_procedure ──────────────────────────────────────────────────
+  if (!(await tableExists('app_custom_procedure'))) {
+    await exec(`
+      CREATE TABLE "app_custom_procedure" (
+        "id"                 SERIAL PRIMARY KEY,
+        "id_app_identifier"  INTEGER NOT NULL REFERENCES "app_identifier"("id") ON DELETE CASCADE,
+        "function_name"      VARCHAR(63) NOT NULL UNIQUE,
+        "recap_kind"         VARCHAR(64) NOT NULL DEFAULT 'success_rate_daily',
+        "output_table"       VARCHAR(255) NOT NULL DEFAULT 'app_success_rate',
+        "schedule_cron"      VARCHAR(64),
+        "description"        VARCHAR(500),
+        "sql_text"           TEXT NOT NULL,
+        "created_at"         TIMESTAMP DEFAULT NOW() NOT NULL,
+        "updated_at"         TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `)
+    await exec(`
+      CREATE TRIGGER "upd_app_custom_procedure_updated_at"
+        BEFORE UPDATE ON "app_custom_procedure"
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `)
+    console.log('  ✅ app_custom_procedure created')
+  } else {
+    console.log('  ⏭  app_custom_procedure exists')
+  }
+
   // ── app_success_rate ──────────────────────────────────────────────────────
   if (!(await tableExists('app_success_rate'))) {
     await exec(`

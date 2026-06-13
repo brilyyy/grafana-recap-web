@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { RecapValidationError, triggerRecap } from '@/lib/application/recap/trigger-recap'
-import { buildRecapCatalog, getCatalogEntryById } from '@/lib/domain/recap/catalog'
+import { getAllCatalogEntries, getCatalogEntryByIdAsync } from '@/lib/domain/recap/catalog'
 import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
 import { env } from '@/env'
 import { logAuditEvent } from '@/lib/audit'
@@ -14,16 +14,16 @@ function resolvedSchedule(envVar: string | null): string | null {
 }
 
 export const recapRouter = router({
-  listCatalog: superAdminProcedure.query(() => {
-    const entries = buildRecapCatalog().map((e) => ({
+  listCatalog: superAdminProcedure.query(async () => {
+    const entries = (await getAllCatalogEntries()).map((e) => ({
       ...e,
       scheduleCronResolved: resolvedSchedule(e.scheduleEnvVar),
     }))
     return { success: true as const, data: entries }
   }),
 
-  getCatalogEntry: superAdminProcedure.input(z.object({ id: z.string() })).query(({ input }) => {
-    const e = getCatalogEntryById(input.id)
+  getCatalogEntry: superAdminProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    const e = await getCatalogEntryByIdAsync(input.id)
     if (!e) throw new TRPCError({ code: 'NOT_FOUND', message: 'Catalog entry not found' })
     return {
       success: true as const,

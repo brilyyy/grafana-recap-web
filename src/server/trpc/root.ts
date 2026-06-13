@@ -1,7 +1,9 @@
 import { router } from './init'
+import { appProceduresRouter } from './routers/appProcedures'
 import { applicationsRouter } from './routers/applications'
 import { auditLogsRouter } from './routers/auditLogs'
 import { authRouter } from './routers/auth'
+import { databasesRouter } from './routers/databases'
 import { dictionaryRouter } from './routers/dictionary'
 import { fdwRouter } from './routers/fdw'
 import { housekeepingRouter } from './routers/housekeeping'
@@ -18,6 +20,8 @@ export const appRouter = router({
   auth: authRouter,
   users: usersRouter,
   applications: applicationsRouter,
+  databases: databasesRouter,
+  appProcedures: appProceduresRouter,
   dictionary: dictionaryRouter,
   unmappedRc: unmappedRcRouter,
   noRcTransaction: noRcTransactionRouter,
