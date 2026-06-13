@@ -91,12 +91,16 @@ export function parseDateValue(value: unknown): Date | null {
     if (!str) return null
     const slash = str.split('/')
     if (slash.length === 3) {
-      const d = parseInt(slash[0], 10), m = parseInt(slash[1], 10), y = parseInt(slash[2], 10)
+      const d = parseInt(slash[0], 10),
+        m = parseInt(slash[1], 10),
+        y = parseInt(slash[2], 10)
       if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return buildValidDate(y, m, d)
     }
     const dash = str.split('-')
     if (dash.length === 3) {
-      const y = parseInt(dash[0], 10), m = parseInt(dash[1], 10), d = parseInt(dash[2], 10)
+      const y = parseInt(dash[0], 10),
+        m = parseInt(dash[1], 10),
+        d = parseInt(dash[2], 10)
       if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return buildValidDate(y, m, d)
     }
     const d = new Date(str)
@@ -111,7 +115,10 @@ export function validateHeaders(
   optional: string[],
 ): { valid: boolean; error?: string } {
   if (headers.length < required.length || headers.length > required.length + optional.length) {
-    return { valid: false, error: `Expected ${required.length}-${required.length + optional.length} columns, got ${headers.length}` }
+    return {
+      valid: false,
+      error: `Expected ${required.length}-${required.length + optional.length} columns, got ${headers.length}`,
+    }
   }
   const normalized = headers.map((h) => h.toLowerCase())
   const missing = required.filter((r) => !normalized.includes(r.toLowerCase()))

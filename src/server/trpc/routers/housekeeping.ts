@@ -191,24 +191,27 @@ export const housekeepingRouter = router({
       return { success: true, message: 'Housekeeping row saved', id }
     }),
 
-  deleteRow: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
-    const checkResult = await db.execute(sql`
+  deleteRow: superAdminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const checkResult = await db.execute(sql`
         SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
       `)
-    if (checkResult.rows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      if (checkResult.rows.length === 0)
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
 
-    await db.execute(sql`DELETE FROM raw_table_housekeeping WHERE id = ${input.id}`)
-    const row = checkResult.rows[0] as any
-    await logAuditEvent(
-      ctx.session.userId,
-      ctx.session.username,
-      'HOUSEKEEPING_ROW_DELETED',
-      'raw_table_housekeeping',
-      input.id.toString(),
-      `db=${row.db_name}, table=${row.table_name}`,
-    )
-    return { success: true, message: 'Housekeeping row removed' }
-  }),
+      await db.execute(sql`DELETE FROM raw_table_housekeeping WHERE id = ${input.id}`)
+      const row = checkResult.rows[0] as any
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'HOUSEKEEPING_ROW_DELETED',
+        'raw_table_housekeeping',
+        input.id.toString(),
+        `db=${row.db_name}, table=${row.table_name}`,
+      )
+      return { success: true, message: 'Housekeeping row removed' }
+    }),
 
   run: superAdminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
     const checkResult = await db.execute(sql`

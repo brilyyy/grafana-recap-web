@@ -43,6 +43,7 @@ Covers two migration layers:
 | S8 | Single-fork guard on HMR / re-import | Trigger HMR / re-import of `server.ts` in dev | `__schedulerStarted` prevents second fork; exactly one worker PID | High |
 | S9 | Worker DB env fallback correctness | Start worker with `DB_PASSWORD` unset | Worker fails loudly rather than silently connecting to wrong DB with empty password | High |
 | S10 | `workerStatus` reflects reality | Open Scheduler page; kill worker | UI badge flips `PID n` → `Disconnected` within 10s `refetchInterval` | Medium |
+| S11 | Worker DB unreachable at boot | Start app with `DB_HOST` pointing at a downed server; watch worker log | Worker logs fatal connection error and exits non-zero; parent backoff (↔ S4) applies; HTTP server still responds; no silent "0 jobs loaded" success | High |
 
 ---
 
@@ -64,6 +65,9 @@ Covers two migration layers:
 | J10 | Empty-update guard | Call `updateJob` with only `{id}` (no other fields) | `BAD_REQUEST` "No fields to update"; no DB write; no worker restart | Low |
 | J11 | Restart storm | Rapidly create/edit/delete several jobs | Worker converges to correct final job set; no zombie tasks; not wedged by overlapping restarts | High |
 | J12 | Seed parity | Fresh `npm run db:migrate` | Seeded `scheduler_jobs` match intended procedure list (`sp_process_*`, `sp_recap_*`, housekeeping); no missing/duplicate entries | Medium |
+| J13 | Non-existent stored procedure — first run | Create a job whose `procedure` column names a proc that does not exist in the DB | Insert succeeds; worker picks it up; first execution captures SQL error → `last_status=error`, `last_error` set; UI surfaces error text; no crash | High |
+| J14 | Blank `name` or `procedure` field | Submit create/update with empty string for `name` or `procedure` | Zod rejects with `BAD_REQUEST` before DB write; no row inserted/updated; no worker restart triggered | Low |
+| J15 | Invalid timezone string | Set `timezone` to `"Not/AZone"` on create or update | Validation rejects or node-cron logs warn and skips the job; existing enabled jobs continue unaffected; no crash; bad value visible in UI | Medium |
 
 ---
 
@@ -81,10 +85,12 @@ Covers two migration layers:
 | F6 | Duplicate view name collision (two DBs, same table name) | Two source DBs exporting identically named `table_name` | First claims the compat view (`claimedViewNames`); second gets only its prefixed foreign table; no error, no silently wrong view | Medium |
 | F7 | Unreachable remote DB | Add a source pointing at a dead host | `applyFdwConfig` collects error in `result.errors`; mutation returns success-with-errors message; bad source doesn't block good ones | High |
 | F8 | `DB_USER_TARGET` grants | Set `DB_USER_TARGET` env var | User mapping + `GRANT USAGE`/`SELECT` created for that role; grant failures non-fatal (pushed to errors array) | Medium |
-| F9 | Manual "Re-apply FDW" button | Config page → click Re-apply | `applyFdw` mutation runs, audit `FDW_MANUAL_APPLY`, server/table counts in toast; list refetches | Medium |
+| F9 | Manual "Re-apply FDW" button — audit + UI feedback (↔ F1 for applyFdwConfig behavior) | Config page → click Re-apply | Audit `FDW_MANUAL_APPLY` written with actor; toast shows "N server(s), M table(s) re-applied"; config list refetches without page reload | Medium |
 | F10 | Add duplicate source | Add an existing `(source_db, table)` pair | `CONFLICT` "already exists"; no second row; no destructive re-apply triggered by failed insert | Medium |
 | F11 | Identifier/DDL safety with special chars | Source name or table containing quotes/special chars | `esc()` escapes single-quotes; identifiers use double-quote escaping; no SQL injection or broken DDL | High |
-| F12 | Migration `--fdw-only` standalone | `npm run db:migrate:fdw` | Phase 4b runs `applyFdwConfig(migrationPool)` alone; idempotent on re-run; same result as UI apply | Medium |
+| F12 | Migration `--fdw-only` parity with UI apply (↔ D3 for flag routing) | Run `npm run db:migrate:fdw` twice consecutively | Phase 4b result is idempotent; re-run produces same server/view set as UI "Re-apply FDW"; no duplicate objects | Medium |
+| F13 | Remove non-existent FDW source | Attempt to remove a `(source_db, table)` pair not in `fdw_source_table` | Returns NOT\_FOUND or clean no-op; no destructive re-apply triggered; existing foreign tables untouched | Medium |
+| F14 | Valid host, wrong remote DB credentials | Add a source with correct hostname but bad user/password | `applyFdwConfig` collects connection error in `result.errors` (like F7); good sources still applied; credential not echoed in toast or logs | High |
 
 ---
 
@@ -106,6 +112,8 @@ Covers two migration layers:
 | P10 | Idempotent re-process | Process same date twice | Stored proc handles re-run (upsert / no duplicate inserts); `records_inserted` reflects truth, not doubled count | High |
 | P11 | Summary tile accuracy | Month with mixed statuses | Success/Failed/Running/Not-processed/Total counts match table rows exactly | Low |
 | P12 | Concurrency guard | Click row's Process while a batch runs | Per-row buttons + checkboxes disabled during `isBatchRunning`; no overlapping triggers for same job | Medium |
+| P13 | Future / today date bypass via direct tRPC call | Use dev tools or direct POST to call `recap.triggerManual` with today's or a future date | Server-side cutoff rejects or proc no-ops; result not counted as success; confirms the guard is not UI-only | High |
+| P14 | Network failure mid-batch | Start a multi-date batch; go offline mid-run (browser DevTools → Offline) | Failed date(s) surface in error count; batch halts or continues per design (document actual behavior); no unhandled JS rejection; remaining counts accurate | Medium |
 
 ---
 
@@ -121,6 +129,7 @@ Covers two migration layers:
 | T4 | Audit log coverage | Create/update/delete across modules | Each mutation writes `logAuditEvent` with correct actor (`ctx.session.userId/username`), entity, and detail string | Medium |
 | T5 | Error-code mapping | Trigger NOT_FOUND / CONFLICT / BAD_REQUEST cases | tRPC codes map to correct HTTP status + user-facing toast text; `RecapValidationError` → NOT_FOUND/BAD_REQUEST | Medium |
 | T6 | SSR-disabled routes on hard navigation | Load `/superadmin/processing` or `/superadmin/scheduler` directly via URL | Client-only render works; no hydration mismatch | Medium |
+| T7 | Malformed tRPC mutation input | Call any mutation with wrong type (string where number expected) or missing required field | Zod input validation returns `BAD_REQUEST` before handler body executes; no partial DB write; no 500 | Low |
 
 ---
 
@@ -131,7 +140,7 @@ Covers two migration layers:
 | ID | Test Scenario | Prerequisites / Setup | Expected Result | Risk |
 |----|---------------|-----------------------|-----------------|------|
 | E1 | Old REST endpoint removed | `curl POST /api/processing/process-manual` | Returns 404 — **check no external cron/integration still calls it; update callers to tRPC endpoint** | High |
-| E2 | Valid API-key trigger | POST with correct `x-recap-api-key` + `app_name` or `catalogEntryId` | Recap triggered; audit `RECAP_EXTERNAL_TRIGGER` with IP/UA; result returned | High |
+| E2 | Valid API-key trigger — audit trail (↔ E5/E7 for param handling) | POST with correct key + valid `catalogEntryId`; capture server/audit logs | Audit row `RECAP_EXTERNAL_TRIGGER` written with caller IP, User-Agent, actor=API\_KEY; result JSON returned; no sensitive env vars in response body | High |
 | E3 | Missing or wrong API key | POST with bad/no key | `UNAUTHORIZED`; nothing runs; error does not leak which part failed | High |
 | E4 | API key unset in env | `RECAP_TRIGGER_API_KEY` empty or absent | All external triggers rejected (fail-closed); never open | High |
 | E5 | `app_name` → key normalization | POST `app_name` only | `normalizeAppNameToKey` resolves to `sr:<key>`; matches catalog; bad name → `BAD_REQUEST` | Medium |
@@ -154,6 +163,7 @@ Covers two migration layers:
 | D6 | Housekeeping targets prefixed foreign table | Run housekeeping delete | `resolvePgHousekeepingRelation` targets the prefixed foreign table, not the compat view (view DELETE on foreign table is unreliable) | High |
 | D7 | `raw_table_housekeeping.date_column_type` column | Migrate onto older DB missing the column | ALTER adds it; downstream housekeeping reads it without error | Medium |
 | D8 | Seed = superadmin only | Run seed phase | Only superadmin user seeded; no app/FDW/housekeeping data injected | Medium |
+| D9 | DB unreachable at migrate start | Run `npm run db:migrate` with DB down | Fails fast with clear connection error before any DDL executes; no partial schema left; non-zero exit code | High |
 
 ---
 
@@ -168,7 +178,9 @@ Covers two migration layers:
 | A3 | Session persistence | Log in, hard-refresh page, navigate | Session survives reload; tRPC ctx has `session.userId/username` | High |
 | A4 | Trusted origins / CSRF | Cross-origin request | `BETTER_AUTH_TRUSTED_ORIGINS` enforced; disallowed origin blocked | High |
 | A5 | Logout | Sign out | Session invalidated; protected routes redirect or deny | Medium |
-| A6 | Role gating in UI | Log in as non-superadmin | `useSuperadminGuard` hides/blocks superadmin pages; server still re-checks (no client-only guard) | High |
+| A6 | Role gating in UI (↔ T1 for server-side enforcement) | Log in as non-superadmin | `useSuperadminGuard` hides superadmin nav items and blocks page render client-side; redirect or blank state, no crash | High |
+| A7 | Tampered / expired session cookie | Modify or expire the session cookie then request a protected route | Treated as unauthenticated; protected tRPC calls return `UNAUTHORIZED`; UI redirects to login; no stale `ctx.session` data leaks | High |
+| A8 | SQL / auth-bypass injection in login fields | Submit `' OR 1=1 --` as username; long payload in password | Drizzle parameterized query; login fails with normal "Invalid credentials"; no SQL error, no auth bypass, no 500 | High |
 
 ---
 
@@ -199,3 +211,5 @@ Covers two migration layers:
 7. **Type/lint gate**: `pnpm type-check && pnpm lint` clean (C7).
 
 Any **High**-risk failure = release blocker.
+
+> **Negative-case release blockers added in v2 (all High):** S11 (worker DB down at boot), F14 (wrong remote DB credentials), P13 (future-date bypass via direct call), A7 (tampered session), A8 (login injection). Verify all before first production deployment.

@@ -1,7 +1,7 @@
 import argon2 from '@node-rs/argon2'
 import { betterAuth } from 'better-auth'
-import { createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { createAuthMiddleware } from 'better-auth/api'
 import { admin, username } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { db } from '@/db'
@@ -13,7 +13,9 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   trustedOrigins: env.BETTER_AUTH_TRUSTED_ORIGINS
-    ? env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    ? env.BETTER_AUTH_TRUSTED_ORIGINS.split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
     : [],
 
   database: drizzleAdapter(db as any, {
@@ -41,8 +43,7 @@ export const auth = betterAuth({
     autoSignIn: false,
     password: {
       hash: async (password: string) => argon2.hash(password),
-      verify: async ({ password, hash }: { password: string; hash: string }) =>
-        argon2.verify(hash, password),
+      verify: async ({ password, hash }: { password: string; hash: string }) => argon2.verify(hash, password),
     },
   },
 
@@ -139,14 +140,7 @@ export const auth = betterAuth({
       },
       delete: {
         before: async (session: any) => {
-          await logAuditEvent(
-            Number(session.userId),
-            null,
-            'LOGOUT',
-            'auth',
-            session.id,
-            null,
-          )
+          await logAuditEvent(Number(session.userId), null, 'LOGOUT', 'auth', session.id, null)
         },
       },
     },

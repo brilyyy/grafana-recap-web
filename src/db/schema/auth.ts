@@ -19,10 +19,7 @@ export const users = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (t) => [
-    index('idx_username').on(t.username),
-    index('idx_email').on(t.email),
-  ],
+  (t) => [index('idx_username').on(t.username), index('idx_email').on(t.email)],
 )
 
 export const sessions = pgTable('session', {
@@ -88,10 +85,7 @@ export const pendingUserRequests = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (t) => [
-    index('idx_pur_status').on(t.status),
-    index('idx_pur_requested_by').on(t.requestedById),
-  ],
+  (t) => [index('idx_pur_status').on(t.status), index('idx_pur_requested_by').on(t.requestedById)],
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

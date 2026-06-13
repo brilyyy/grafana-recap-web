@@ -84,9 +84,7 @@ export const dictionaryRouter = router({
   jenisOptions: protectedProcedure
     .input(z.object({ app_ids: z.array(z.number().int().positive()).optional() }).optional())
     .query(async ({ input }) => {
-      const where = input?.app_ids?.length
-        ? inArray(responseCodeDictionary.idAppIdentifier, input.app_ids)
-        : undefined
+      const where = input?.app_ids?.length ? inArray(responseCodeDictionary.idAppIdentifier, input.app_ids) : undefined
       const rows = await db
         .selectDistinct({ jenis_transaksi: responseCodeDictionary.jenisTransaksi })
         .from(responseCodeDictionary)

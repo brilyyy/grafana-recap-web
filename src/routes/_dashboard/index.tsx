@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { BookOpen, type LucideIcon, LayoutGrid, ReceiptText, Unlink } from 'lucide-react'
+import { BookOpen, LayoutGrid, type LucideIcon, ReceiptText, Unlink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -12,6 +12,24 @@ export const Route = createFileRoute('/_dashboard/')({
   component: SummaryPage,
 })
 
+type ChartColor = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5'
+
+const accentIconClass: Record<ChartColor, string> = {
+  'chart-1': 'text-chart-1',
+  'chart-2': 'text-chart-2',
+  'chart-3': 'text-chart-3',
+  'chart-4': 'text-chart-4',
+  'chart-5': 'text-chart-5',
+}
+
+const accentBgClass: Record<ChartColor, string> = {
+  'chart-1': 'bg-chart-1/10',
+  'chart-2': 'bg-chart-2/10',
+  'chart-3': 'bg-chart-3/10',
+  'chart-4': 'bg-chart-4/10',
+  'chart-5': 'bg-chart-5/10',
+}
+
 interface StatCardProps {
   title: string
   value: number | undefined
@@ -19,15 +37,18 @@ interface StatCardProps {
   to: string
   icon: LucideIcon
   attention?: boolean
+  accent?: ChartColor
 }
 
-function StatCard({ title, value, description, to, icon: Icon, attention }: StatCardProps) {
+function StatCard({ title, value, description, to, icon: Icon, attention, accent = 'chart-1' }: StatCardProps) {
   return (
-    <Link to={to} className="group">
-      <Card className="h-full transition-colors group-hover:border-ring/60">
+    <Link to={to} className="group cursor-pointer">
+      <Card className="h-full group-hover:-translate-y-0.5 group-hover:shadow-md">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Icon className="size-4 text-muted-foreground" />
+          <div className={`flex size-7 items-center justify-center rounded-md ${accentBgClass[accent]}`}>
+            <Icon className={`size-4 ${accentIconClass[accent]}`} />
+          </div>
         </CardHeader>
         <CardContent>
           {value === undefined ? (
@@ -82,6 +103,7 @@ function SummaryPage() {
           description="Registered applications"
           to="/application"
           icon={LayoutGrid}
+          accent="chart-1"
         />
         <StatCard
           title="Dictionary entries"
@@ -89,6 +111,7 @@ function SummaryPage() {
           description="Response-code mappings"
           to="/dictionary"
           icon={BookOpen}
+          accent="chart-2"
         />
         <StatCard
           title="Unmapped RCs"
@@ -96,6 +119,7 @@ function SummaryPage() {
           description="Response codes awaiting classification"
           to="/unmapped-rc"
           icon={Unlink}
+          accent="chart-5"
           attention
         />
         <StatCard
@@ -104,6 +128,7 @@ function SummaryPage() {
           description="Transactions without a response code"
           to="/transactions"
           icon={ReceiptText}
+          accent="chart-4"
           attention
         />
       </div>

@@ -37,10 +37,7 @@ export const appSuccessRate = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (t) => [
-    index('idx_tanggal_transaksi').on(t.tanggalTransaksi),
-    index('idx_id_app_identifier').on(t.idAppIdentifier),
-  ],
+  (t) => [index('idx_tanggal_transaksi').on(t.tanggalTransaksi), index('idx_id_app_identifier').on(t.idAppIdentifier)],
 )
 
 // ─── Relations ────────────────────────────────────────────────────────────────

@@ -122,7 +122,13 @@ export const noRcTransactionRouter = router({
     }),
 
   submit: protectedProcedure
-    .input(z.object({ id: z.number().int().positive(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }))
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        rc: z.string().min(1),
+        rc_description: z.string().nullable().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await db.transaction(async (tx) => {
         await assignRc(tx, input.id, input.rc, input.rc_description)
@@ -143,7 +149,11 @@ export const noRcTransactionRouter = router({
       z.object({
         items: z
           .array(
-            z.object({ id: z.number().int().positive(), rc: z.string().min(1), rc_description: z.string().nullable().optional() }),
+            z.object({
+              id: z.number().int().positive(),
+              rc: z.string().min(1),
+              rc_description: z.string().nullable().optional(),
+            }),
           )
           .min(1),
       }),

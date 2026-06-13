@@ -14,9 +14,7 @@ export default function AppListCard() {
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-medium">Applications</CardTitle>
-        <CardDescription>
-          {isLoading ? 'Loading…' : `${applications.length} registered`}
-        </CardDescription>
+        <CardDescription>{isLoading ? 'Loading…' : `${applications.length} registered`}</CardDescription>
         <CardAction>
           <Button variant="outline" size="sm" onClick={() => refreshApplications()} disabled={isLoading}>
             <RefreshCw />

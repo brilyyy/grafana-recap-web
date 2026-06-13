@@ -4,6 +4,7 @@ import { AlertCircle, Gauge, Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { AuthLayout } from '@/components/auth-layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -55,69 +56,67 @@ function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-svh place-items-center bg-muted/40 p-6">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center justify-center gap-2 font-medium">
-          <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Gauge className="size-4" />
-          </div>
-          Grafana Recap
+    <AuthLayout>
+      <div className="flex items-center justify-center gap-2 font-medium">
+        <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Gauge className="size-4" />
         </div>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle>Sign in</CardTitle>
-            <CardDescription>Enter your username and password to access the dashboard.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input autoComplete="username" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" autoComplete="current-password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {form.formState.errors.root && (
-                  <Alert variant="destructive">
-                    <AlertCircle />
-                    <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
-                  </Alert>
-                )}
-                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                  Sign in
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="justify-center text-sm text-muted-foreground">
-            Need an account?
-            <Link to="/register" className="ml-1 text-foreground underline-offset-4 hover:underline">
-              Create admin account
-            </Link>
-          </CardFooter>
-        </Card>
+        Grafana Recap
       </div>
-    </div>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle>Sign in</CardTitle>
+          <CardDescription>Enter your username and password to access the dashboard.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl>
+                      <Input autoComplete="username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="current-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {form.formState.errors.root && (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+                </Alert>
+              )}
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+                Sign in
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+        <CardFooter className="justify-center text-sm text-muted-foreground">
+          Need an account?
+          <Link to="/register" className="ml-1 text-foreground underline-offset-4 hover:underline">
+            Create admin account
+          </Link>
+        </CardFooter>
+      </Card>
+    </AuthLayout>
   )
 }

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MarkdownDoc } from '@/components/markdown-doc'
-import { indexDoc } from '@/lib/docs-manifest'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { indexDoc } from '@/lib/docs-manifest'
 
 export const Route = createFileRoute('/_dashboard/docs/')({
   ssr: false,

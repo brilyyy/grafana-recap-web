@@ -8,6 +8,13 @@
       "when": 1781262295097,
       "tag": "0000_busy_husk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781334966805,
+      "tag": "0001_careless_norman_osborn",
+      "breakpoints": true
     }
   ]
 }

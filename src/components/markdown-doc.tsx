@@ -2,34 +2,14 @@ import { Link } from '@tanstack/react-router'
 import type { ComponentProps, ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { resolveDocLink } from '@/lib/docs-manifest'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 
-function DocLink({
-  currentSlug,
-  href,
-  children,
-}: {
-  currentSlug: string
-  href?: string
-  children?: ReactNode
-}) {
+function DocLink({ currentSlug, href, children }: { currentSlug: string; href?: string; children?: ReactNode }) {
   if (!href) return <span>{children}</span>
   if (/^https?:/i.test(href)) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className="font-medium text-primary underline underline-offset-4"
-      >
+      <a href={href} target="_blank" rel="noreferrer" className="font-medium text-primary underline underline-offset-4">
         {children}
       </a>
     )
@@ -37,11 +17,7 @@ function DocLink({
   const slug = resolveDocLink(currentSlug, href)
   if (slug !== null) {
     return (
-      <Link
-        to="/docs/$"
-        params={{ _splat: slug }}
-        className="font-medium text-primary underline underline-offset-4"
-      >
+      <Link to="/docs/$" params={{ _splat: slug }} className="font-medium text-primary underline underline-offset-4">
         {children}
       </Link>
     )
@@ -63,15 +39,8 @@ export function MarkdownDoc({ slug, content }: { slug: string; content: string }
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: (props) => (
-            <h1 className="mb-4 mt-2 text-2xl font-semibold tracking-tight" {...props} />
-          ),
-          h2: (props) => (
-            <h2
-              className="mb-3 mt-8 border-b pb-2 text-lg font-semibold tracking-tight"
-              {...props}
-            />
-          ),
+          h1: (props) => <h1 className="mb-4 mt-2 text-2xl font-semibold tracking-tight" {...props} />,
+          h2: (props) => <h2 className="mb-3 mt-8 border-b pb-2 text-lg font-semibold tracking-tight" {...props} />,
           h3: (props) => <h3 className="mb-2 mt-6 text-base font-semibold" {...props} />,
           h4: (props) => <h4 className="mb-2 mt-4 text-sm font-semibold" {...props} />,
           p: (props) => <p className="mb-4 text-foreground/90" {...props} />,
@@ -79,10 +48,7 @@ export function MarkdownDoc({ slug, content }: { slug: string; content: string }
           ol: (props) => <ol className="mb-4 ml-6 list-decimal space-y-1" {...props} />,
           li: (props) => <li className="text-foreground/90" {...props} />,
           blockquote: (props) => (
-            <blockquote
-              className="mb-4 border-l-2 border-border pl-4 text-muted-foreground"
-              {...props}
-            />
+            <blockquote className="mb-4 border-l-2 border-border pl-4 text-muted-foreground" {...props} />
           ),
           hr: () => <hr className="my-6 border-border" />,
           a: ({ href, children }) => (

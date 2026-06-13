@@ -73,9 +73,7 @@ export function resolveDocLink(currentSlug: string, href: string): string | null
   if (/^[a-z]+:/i.test(href) || href.startsWith('#') || href.startsWith('/')) return null
   const [pathPart] = href.split('#')
   if (!pathPart.endsWith('.md')) return null
-  const baseDir = currentSlug.includes('/')
-    ? currentSlug.slice(0, currentSlug.lastIndexOf('/'))
-    : ''
+  const baseDir = currentSlug.includes('/') ? currentSlug.slice(0, currentSlug.lastIndexOf('/')) : ''
   const parts = [...(baseDir ? baseDir.split('/') : []), ...pathPart.split('/')]
   const out: string[] = []
   for (const part of parts) {
