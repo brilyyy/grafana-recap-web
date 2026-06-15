@@ -29,6 +29,12 @@ const serverSchema = z.object({
   // Scheduler
   SCHEDULER_TIMEZONE: z.string().default('Asia/Jakarta'),
 
+  // Logging
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
+  LOG_DIR: z.string().default('log'),
+
   // Migrations / seeds
   TARGET_DATABASES: z.string().optional(),
   DEFAULT_SU_USERNAME: z.string().optional(),

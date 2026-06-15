@@ -8,6 +8,11 @@ export default defineConfig({
   // producing .output/server/index.mjs for `node .output/server/index.mjs`.
   // Override target via NITRO_PRESET env var if deploying to a different runtime.
   plugins: [tanstackStart(), react(), tailwindcss()],
+  // Keep the Node-only file logger and its native deps out of bundling;
+  // they run in the server runtime only (never the client bundle).
+  ssr: {
+    external: ['pino', 'rotating-file-stream', 'pino-pretty'],
+  },
   server: {
     port: 3000,
   },

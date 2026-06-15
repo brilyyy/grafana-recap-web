@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { catalogEntryToLogFilter, getCatalogEntryByIdAsync } from '@/lib/domain/recap/catalog'
 import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
 import type { TriggerRecapParams, TriggerRecapResult } from '@/lib/domain/recap/types'
+import { withLogging } from '@/lib/logger/with-logging'
 
 export class RecapValidationError extends Error {
   constructor(
@@ -51,7 +52,7 @@ async function resolveAppForEntry(
   return row
 }
 
-export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapResult> {
+async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapResult> {
   const entry = await getCatalogEntryByIdAsync(params.catalogEntryId)
   if (!entry) {
     throw new RecapValidationError(`Unknown recap catalog id: ${params.catalogEntryId}`, 'NOT_FOUND')
@@ -110,3 +111,5 @@ export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerR
     logEntry,
   }
 }
+
+export const triggerRecap = withLogging('triggerRecap', _triggerRecap, { module: 'recap' })

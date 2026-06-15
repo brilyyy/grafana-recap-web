@@ -12,6 +12,11 @@ import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { schedulerJobs } from '../db/schema/scheduler'
+import { createFileLogger } from '../lib/logger'
+
+// Separate process → own log files so it never rotates the same files as the
+// main server (concurrent rotation would corrupt them).
+const log = createFileLogger('worker')
 
 const DB_HOST = process.env.DB_HOST ?? 'localhost'
 const DB_PORT = parseInt(process.env.DB_PORT ?? '5432', 10)
@@ -59,7 +64,7 @@ async function startAll() {
   try {
     cron = await import('node-cron')
   } catch (e: any) {
-    console.error('[scheduler-worker] Failed to import node-cron:', e.message)
+    log.error({ err: e.message }, 'Failed to import node-cron')
     return
   }
 
@@ -68,28 +73,35 @@ async function startAll() {
 
     const schedule = job.schedule.trim()
     if (!cron.validate(schedule)) {
-      console.warn(`[scheduler-worker] Invalid cron for ${job.name}: '${schedule}', skipping`)
+      log.warn({ job: job.name, schedule }, 'Invalid cron, skipping')
       continue
     }
 
     const task = cron.schedule(
       schedule,
       async () => {
+        const start = performance.now()
         try {
-          console.log(`[scheduler-worker] Starting ${job.name}...`)
+          log.info({ job: job.name, procedure: job.procedure }, 'Job starting')
           await updateJobStatus(job.id, 'running')
           await runProcedure(job.procedure)
-          console.log(`[scheduler-worker] ✅ ${job.name} completed`)
+          log.info(
+            { job: job.name, durationMs: Math.round(performance.now() - start) },
+            'Job completed',
+          )
           await updateJobStatus(job.id, 'success')
         } catch (error: any) {
-          console.error(`[scheduler-worker] ❌ ${job.name} failed:`, error.message)
+          log.error(
+            { job: job.name, durationMs: Math.round(performance.now() - start), err: error.message },
+            'Job failed',
+          )
           await updateJobStatus(job.id, 'error', error.message)
         }
       },
       { timezone: job.timezone ?? 'Asia/Jakarta' },
     )
     runningTasks.set(job.id, task)
-    console.log(`[scheduler-worker] ✅ ${job.name} scheduled: ${schedule}`)
+    log.info({ job: job.name, schedule }, 'Job scheduled')
   }
 }
 
@@ -101,11 +113,11 @@ async function stopAll() {
 }
 
 async function restart() {
-  console.log('[scheduler-worker] Restarting...')
+  log.info('Restarting')
   await stopAll()
   await loadJobs()
   await startAll()
-  console.log(`[scheduler-worker] Restarted with ${currentJobs.length} jobs`)
+  log.info({ jobCount: currentJobs.length }, 'Restarted')
   process.send?.({ type: 'ready', jobCount: currentJobs.length })
 }
 
@@ -131,14 +143,14 @@ process.on('message', async (msg: string) => {
 })
 
 process.on('SIGTERM', async () => {
-  console.log('[scheduler-worker] SIGTERM received, shutting down...')
+  log.info('SIGTERM received, shutting down')
   await stopAll()
   await client.end()
   process.exit(0)
 })
 
 process.on('SIGINT', async () => {
-  console.log('[scheduler-worker] SIGINT received, shutting down...')
+  log.info('SIGINT received, shutting down')
   await stopAll()
   await client.end()
   process.exit(0)
@@ -148,10 +160,10 @@ process.on('SIGINT', async () => {
 loadJobs()
   .then(startAll)
   .then(() => {
-    console.log(`[scheduler-worker] Ready (pid=${process.pid}, ${currentJobs.length} jobs)`)
+    log.info({ pid: process.pid, jobCount: currentJobs.length }, 'Ready')
     process.send?.({ type: 'ready', jobCount: currentJobs.length })
   })
   .catch((err) => {
-    console.error('[scheduler-worker] Fatal:', err.message)
+    log.error({ err: err.message }, 'Fatal')
     process.exit(1)
   })

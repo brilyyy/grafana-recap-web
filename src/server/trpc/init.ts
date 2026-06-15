@@ -2,6 +2,9 @@ import { initTRPC, TRPCError } from '@trpc/server'
 import { db } from '@/db'
 import type { SessionPayload } from '@/lib/auth'
 import { auth } from '@/lib/better-auth'
+import { getLogger } from '@/lib/logger'
+
+const trpcLog = getLogger('trpc')
 
 export async function createTRPCContext(opts: { headers: Headers }) {
   const betterSession = await auth.api.getSession({ headers: opts.headers }).catch(() => null)
@@ -22,7 +25,32 @@ export type Context = Awaited<ReturnType<typeof createTRPCContext>>
 const t = initTRPC.context<Context>().create()
 
 export const router = t.router
-export const publicProcedure = t.procedure
+
+/**
+ * Operational logging for every procedure: name, type, caller, outcome and
+ * duration. Sits at the base of all procedures so all ~62 are covered in one
+ * place. Does NOT duplicate `audit_logs` (user action trail).
+ */
+const loggingMiddleware = t.middleware(async ({ path, type, ctx, next }) => {
+  const start = performance.now()
+  const result = await next()
+  const durationMs = Math.round((performance.now() - start) * 100) / 100
+  const meta = {
+    path,
+    type,
+    user: ctx.session?.username,
+    durationMs,
+    ok: result.ok,
+  }
+  if (result.ok) {
+    trpcLog.info(meta, `${type} ${path}`)
+  } else {
+    trpcLog.error({ ...meta, err: result.error }, `${type} ${path} failed`)
+  }
+  return result
+})
+
+export const publicProcedure = t.procedure.use(loggingMiddleware)
 
 const enforceAuth = t.middleware(({ ctx, next }) => {
   if (!ctx.session) {
@@ -52,6 +80,6 @@ const enforceSuperAdmin = t.middleware(({ ctx, next }) => {
   return next({ ctx: { ...ctx, session: ctx.session } })
 })
 
-export const protectedProcedure = t.procedure.use(enforceAuth)
-export const adminProcedure = t.procedure.use(enforceAdmin)
-export const superAdminProcedure = t.procedure.use(enforceSuperAdmin)
+export const protectedProcedure = publicProcedure.use(enforceAuth)
+export const adminProcedure = publicProcedure.use(enforceAdmin)
+export const superAdminProcedure = publicProcedure.use(enforceSuperAdmin)

@@ -31,6 +31,10 @@ drizzle/
 # Uploads
 public/uploads/
 
+# Logs (folder tracked via log/.gitkeep, contents ignored)
+log/*.log
+log/*.gz
+
 # Code review graph
 .code-review-graph/
 

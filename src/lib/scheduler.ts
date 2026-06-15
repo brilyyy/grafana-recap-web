@@ -5,6 +5,11 @@
  * Schedules are passed in directly (DB-driven) or fall back to DEFAULT_SCHEDULE.
  */
 
+import { getLogger } from '@/lib/logger'
+import { withLogging } from '@/lib/logger/with-logging'
+
+const log = getLogger('scheduler')
+
 export interface RecapJobInput {
   id?: number
   /** Human-readable name used in log lines */
@@ -48,9 +53,9 @@ async function runStoredProcedure(procedureName: string): Promise<void> {
  *
  * @param jobs - Optional job list. Falls back to hardcoded RECAP_JOBS (env-var driven).
  */
-export async function initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
+async function _initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
   if (typeof window !== 'undefined') {
-    console.warn('⚠️  Scheduler initialization skipped: running in browser')
+    log.warn('Scheduler initialization skipped: running in browser')
     return
   }
 
@@ -58,12 +63,12 @@ export async function initializeScheduler(jobs?: RecapJobInput[]): Promise<void>
   try {
     cron = await import('node-cron')
   } catch (error: any) {
-    console.error('❌ Failed to import node-cron:', error.message)
+    log.error({ err: error.message }, 'Failed to import node-cron')
     return
   }
 
   const jobsToRun = jobs ?? RECAP_JOBS
-  console.log(`ℹ️  Initializing scheduler (${jobsToRun.length} jobs — DB-driven via scheduler_jobs)...`)
+  log.info({ jobCount: jobsToRun.length }, 'Initializing scheduler (DB-driven via scheduler_jobs)')
   const defaultTimezone = process.env.SCHEDULER_TIMEZONE ?? 'Asia/Jakarta'
 
   for (const job of jobsToRun) {
@@ -73,31 +78,46 @@ export async function initializeScheduler(jobs?: RecapJobInput[]): Promise<void>
     const timezone = job.timezone ?? defaultTimezone
     let schedule = (job.schedule ?? DEFAULT_SCHEDULE).trim()
     if (!cron.validate(schedule)) {
-      console.warn(`⚠️  Invalid cron schedule for ${job.name}: '${schedule}'. Using default: '${DEFAULT_SCHEDULE}'`)
+      log.warn(
+        { job: job.name, schedule, fallback: DEFAULT_SCHEDULE },
+        'Invalid cron schedule, using default',
+      )
       schedule = DEFAULT_SCHEDULE
     }
 
     const task = cron.schedule(
       schedule,
       async () => {
+        const start = performance.now()
         try {
-          console.log(`🔄 Starting scheduled ${job.name}...`)
+          log.info({ job: job.name, procedure: job.procedure }, 'Scheduled job starting')
           await runStoredProcedure(job.procedure)
-          console.log(`✅ Scheduled ${job.name} completed successfully`)
+          log.info(
+            { job: job.name, durationMs: Math.round(performance.now() - start) },
+            'Scheduled job completed',
+          )
         } catch (error: any) {
-          console.error(`❌ Scheduled ${job.name} failed:`, error.message)
+          log.error(
+            { job: job.name, durationMs: Math.round(performance.now() - start), err: error.message },
+            'Scheduled job failed',
+          )
         }
       },
       { timezone },
     )
     runningTasks.set(key, task)
-    console.log(`✅ ${job.name} scheduler configured: Schedule '${schedule}' (timezone: ${timezone})`)
+    log.info({ job: job.name, schedule, timezone }, 'Scheduler configured')
   }
 }
+
+/** Initialize scheduler. Idempotent: already-running jobs are left untouched. */
+export const initializeScheduler = withLogging('initializeScheduler', _initializeScheduler, {
+  module: 'scheduler',
+})
 
 /** Stop all scheduled jobs. */
 export function stopScheduler(): void {
   for (const task of runningTasks.values()) task.stop()
   runningTasks.clear()
-  console.log('✅ Scheduler stopped')
+  log.info('Scheduler stopped')
 }

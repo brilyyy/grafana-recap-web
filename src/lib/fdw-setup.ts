@@ -1,4 +1,5 @@
 import type { Sql } from 'postgres'
+import { withLogging } from '@/lib/logger/with-logging'
 import { fdwLocalRelationName } from './fdw'
 
 export interface FdwSetupResult {
@@ -13,7 +14,7 @@ export interface FdwSetupResult {
  * Drops and recreates foreign servers, user mappings, foreign tables,
  * and compatibility views for every row in fdw_source_table.
  */
-export async function applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
+async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
   const result: FdwSetupResult = { serversProcessed: 0, tablesProcessed: 0, errors: [] }
 
   const DB_HOST = process.env.DB_HOST ?? 'localhost'
@@ -145,3 +146,8 @@ export async function applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
 
   return result
 }
+
+export const applyFdwConfig = withLogging('applyFdwConfig', _applyFdwConfig, {
+  module: 'fdw',
+  logArgs: false, // arg is a live DB client, not loggable
+})
