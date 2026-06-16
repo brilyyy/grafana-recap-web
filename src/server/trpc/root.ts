@@ -7,10 +7,12 @@ import { databasesRouter } from './routers/databases'
 import { dictionaryRouter } from './routers/dictionary'
 import { fdwRouter } from './routers/fdw'
 import { housekeepingRouter } from './routers/housekeeping'
+import { indexAnalyzerRouter } from './routers/indexAnalyzer'
 import { noRcTransactionRouter } from './routers/noRcTransaction'
 import { processingLogsRouter } from './routers/processingLogs'
 import { recapRouter } from './routers/recap'
 import { schedulerRouter } from './routers/scheduler'
+import { setupRouter } from './routers/setup'
 import { systemRouter } from './routers/system'
 import { unmappedRcRouter } from './routers/unmappedRc'
 import { uploadsRouter } from './routers/uploads'
@@ -33,6 +35,8 @@ export const appRouter = router({
   housekeeping: housekeepingRouter,
   uploads: uploadsRouter,
   scheduler: schedulerRouter,
+  setup: setupRouter,
+  indexAnalyzer: indexAnalyzerRouter,
 })
 
 export type AppRouter = typeof appRouter

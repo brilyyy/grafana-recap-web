@@ -3,6 +3,7 @@ import {
   BookOpen,
   Cog,
   Database,
+  DatabaseZap,
   FileText,
   Gauge,
   LayoutDashboard,
@@ -51,6 +52,7 @@ const superadminNav = [
   { title: 'Scheduler', to: '/superadmin/scheduler', icon: Timer },
   { title: 'Databases', to: '/superadmin/databases', icon: Server },
   { title: 'App config', to: '/superadmin/config', icon: Database },
+  { title: 'Index analyzer', to: '/superadmin/index-analyzer', icon: DatabaseZap },
   { title: 'Housekeeping', to: '/superadmin/housekeeping', icon: Trash2 },
 ] as const
 

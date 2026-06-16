@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { useAuthSession } from '@/hooks/use-auth-session'
 import { useBackgroundMode } from '@/hooks/use-background-mode'
 import { cn } from '@/lib/utils'
+import { AppSetupPanel } from './-components/app-setup-panel'
 
 export const Route = createFileRoute('/_dashboard/settings')({
   ssr: false,
@@ -69,6 +71,7 @@ function ThemeSwatch({ bg, accent, swatch }: { bg: string; accent: string; swatc
 function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { bgMode, setBgMode } = useBackgroundMode()
+  const { user } = useAuthSession()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -169,6 +172,8 @@ function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {user?.role === 'superadmin' && <AppSetupPanel />}
     </div>
   )
 }

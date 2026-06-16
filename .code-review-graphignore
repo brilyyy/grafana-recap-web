@@ -121,3 +121,5 @@ langchain_cache/
 **/exports/
 **/assets/
 **/public/**/*.@(png|jpg|jpeg|webp|svg|gif|mp4)
+
+notes.txt

@@ -1,9 +1,8 @@
 import { sql } from 'drizzle-orm'
-import { RECAP_MODEL_REGISTRY } from '@scripts/recap_models/registry'
-import { PROCEDURE_APPS } from '@scripts/success_rate/registry'
 import { db } from '@/db'
-import type { RecapCatalogEntry } from './types'
+import { loadProcedureMetas, type ProcedureMeta } from '@/db/sql-loader'
 import { normalizeAppNameToKey } from './resolve-app'
+import type { RecapCatalogEntry, RecapScope } from './types'
 
 const DISPLAY_APP: Record<string, string> = {
   bale: 'Bale',
@@ -17,84 +16,34 @@ const DISPLAY_APP: Record<string, string> = {
   debit_online: 'Debit Online',
 }
 
-const BRIEF_SUCCESS_RATE: Record<string, string> = {
-  bale: 'FROM raw_bale: aggregate by day, jenis, RC, status; map dictionary error_type; INSERT app_success_rate.',
-  bale_bisnis: 'FROM raw_bale_bisnis: matrix-style aggregate; INSERT app_success_rate (see raw.postgres.sql).',
-  olob: 'FROM raw_olob: aggregate by day, jenis, RC; INSERT app_success_rate.',
-  edc_agen: 'FROM ZTRANS0P (ITM/FDW): aggregate by TRXMDT / service; INSERT app_success_rate.',
-  edc_merchant: 'FROM ZTRANS0P (ITM/FDW): aggregate; INSERT app_success_rate.',
-  edc_merchant_ancol: 'FROM ZTRANS0P (ITM/FDW): aggregate; INSERT app_success_rate.',
-  cms: 'FROM cms_db_GCM_AGCM_LOG_ACTV: GROUP BY day, service, ERR_MAP, IS_ERR; INSERT app_success_rate.',
-  bale_korpora: 'FROM raw_bale_korpora: aggregate; INSERT app_success_rate.',
-  debit_online: 'FROM ASID160448_ZTRANS0P + ZRSPCD0P (FDW): TRTRTY=21, TRPCCD=59; INSERT app_success_rate.',
-}
-
-function successRateEntries(): RecapCatalogEntry[] {
-  return PROCEDURE_APPS.map(({ appKey, procedureName }) => ({
-    id: `sr:${appKey}`,
-    recapKind: 'success_rate_daily',
-    title: `${DISPLAY_APP[appKey] ?? appKey} — success rate (daily)`,
-    description: `H-1 recap of transaction success metrics into app_success_rate for ${DISPLAY_APP[appKey] ?? appKey}.`,
-    briefProcessSummary: `Reads the app raw / FDW source for the processing day, normalizes RCs, joins response_code_dictionary, and replaces rows in app_success_rate for that app and date.`,
-    briefQuery: BRIEF_SUCCESS_RATE[appKey] ?? 'See scripts/success_rate/{app}/raw.postgres.sql in the repository.',
-    outputTable: 'app_success_rate',
-    functionName: procedureName,
-    rawSqlRepoPath: `scripts/success_rate/${appKey}/raw.postgres.sql`,
-    scope: { type: 'per_app', appKey },
-  }))
-}
-
-const CMS_CORP_BRIEF_QUERY = `FROM "cms_db_GCM_AGCM_LOG_ACTV" a
-WHERE a."ACTN_DT" >= v_start_timestamp AND a."ACTN_DT" <= v_end_timestamp
-GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (as corp_id), jenis_transaksi, ERR_MAP_CD, ERR_MAP_NM, IS_ERR (same split as CMS success rate, plus per-corp)
-→ COUNT(DISTINCT ID), SUM(AMT). Full SQL: scripts/recap_models/cms_corp_daily/raw.postgres.sql.`
-
-const BALE_KORP_CORP_BRIEF_QUERY = `FROM "bale_korpora_db_GCM_AGCM_LOG_ACTV" a
-WHERE a."ACTN_DT" >= v_start_timestamp AND a."ACTN_DT" <= v_end_timestamp
-GROUP BY date(a."ACTN_DT"), ACTN_BY_CUST_ID (as corp_id), jenis_transaksi, ERR_MAP_CD, ERR_MAP_NM, IS_ERR (same split as Bale Korpora success rate, plus per-corp)
-→ COUNT(DISTINCT ID), SUM(AMT). Full SQL: scripts/recap_models/bale_korpora_corp_daily/raw.postgres.sql.`
-
-function customRecapEntries(): RecapCatalogEntry[] {
-  const out: RecapCatalogEntry[] = []
-  for (const m of RECAP_MODEL_REGISTRY) {
-    if (m.modelKey === 'cms_corp_daily') {
-      out.push({
-        id: 'cms_corp_daily',
-        recapKind: 'cms_corp_daily',
-        title: 'CMS — daily recap by ACTN_BY_CUST_ID (dimensional)',
-        description:
-          'Aggregates CMS activity log by corporation, jenis transaksi, RC, status, and error_type per day into recap_cms_corp_daily.',
-        briefProcessSummary:
-          'For the processing date, deletes prior CMS rows for that day in recap_cms_corp_daily, rolls up cms_db_GCM_AGCM_LOG_ACTV one row per corporation (ACTN_BY_CUST_ID), day, jenis, RC, RC description, and IS_ERR—aligned with CMS daily success rate plus corp_id. error_type matches sp_process_cms_daily (dictionary, unmapped_rc, normalized rc).',
-        briefQuery: CMS_CORP_BRIEF_QUERY,
-        outputTable: 'recap_cms_corp_daily',
-        functionName: m.functionName,
-        rawSqlRepoPath: 'scripts/recap_models/cms_corp_daily/raw.postgres.sql',
-        scope: { type: 'fixed_app', appKey: 'cms' },
-      })
-    } else if (m.modelKey === 'bale_korpora_corp_daily') {
-      out.push({
-        id: 'bale_korpora_corp_daily',
-        recapKind: 'bale_korpora_corp_daily',
-        title: 'Bale Korpora — daily recap by ACTN_BY_CUST_ID (dimensional)',
-        description:
-          'Aggregates Bale Korpora activity log by corporation, jenis transaksi, RC, status, and error_type per day into recap_bale_korpora_corp_daily.',
-        briefProcessSummary:
-          'For the processing date, deletes prior Bale Korpora rows for that day in recap_bale_korpora_corp_daily, rolls up bale_korpora_db_GCM_AGCM_LOG_ACTV one row per corporation (ACTN_BY_CUST_ID), day, jenis, RC, RC description, and IS_ERR—aligned with Bale Korpora daily success rate plus corp_id. error_type matches sp_process_bale_korpora_daily (dictionary, unmapped_rc, normalized rc).',
-        briefQuery: BALE_KORP_CORP_BRIEF_QUERY,
-        outputTable: 'recap_bale_korpora_corp_daily',
-        functionName: m.functionName,
-        rawSqlRepoPath: 'scripts/recap_models/bale_korpora_corp_daily/raw.postgres.sql',
-        scope: { type: 'fixed_app', appKey: 'bale_korpora' },
-      })
-    }
+/** Map a procedure file's @meta frontmatter to a catalog entry (the .sql file is the source of truth). */
+function metaToEntry(m: ProcedureMeta): RecapCatalogEntry {
+  const meta = m.meta
+  const scope: RecapScope =
+    meta.scope_type === 'fixed_app'
+      ? { type: 'fixed_app', appKey: meta.app_key }
+      : { type: 'per_app', appKey: meta.app_key }
+  return {
+    id: meta.id,
+    recapKind: meta.recap_kind,
+    title: meta.title,
+    description: meta.description,
+    briefProcessSummary: meta.brief_process_summary,
+    briefQuery: meta.brief_query,
+    outputTable: meta.output_table,
+    functionName: meta.function_name || m.functionName,
+    rawSqlRepoPath: meta.raw_sql_repo_path ?? '',
+    scope,
   }
-  return out
 }
 
-/** Static (file-based) catalog entries — synchronous, no DB access. */
+/**
+ * Static catalog entries, parsed from the @meta frontmatter of each procedure .sql under
+ * src/db/sql/03_procedures/. The .sql file is the single source of truth — no separate registry.
+ * Synchronous, no DB access.
+ */
 export function buildRecapCatalog(): RecapCatalogEntry[] {
-  return [...successRateEntries(), ...customRecapEntries()]
+  return [...loadProcedureMetas('success_rate'), ...loadProcedureMetas('recap_models')].map(metaToEntry)
 }
 
 /**

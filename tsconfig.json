@@ -19,8 +19,7 @@
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "paths": {
-      "@/*": ["./src/*"],
-      "@scripts/*": ["./scripts/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["vite/client"]
   },

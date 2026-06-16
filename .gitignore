@@ -34,7 +34,7 @@ public/uploads/
 # Logs (folder tracked via log/.gitkeep, contents ignored)
 log/*.log
 log/*.gz
-
+log/
 # Code review graph
 .code-review-graph/
 
