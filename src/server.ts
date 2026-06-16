@@ -5,7 +5,7 @@ import '@/env'
 
 const IS_COMPILED = import.meta.url.endsWith('.mjs') || import.meta.url.endsWith('.js')
 const WORKER_PATH = IS_COMPILED
-  ? resolve(process.cwd(), 'dist/server/workers/scheduler-worker.mjs')
+  ? resolve(process.cwd(), '.output/server/workers/scheduler-worker.mjs')
   : resolve(process.cwd(), 'src/workers/scheduler-worker.ts')
 const MAX_RESTART_ATTEMPTS = 5
 
