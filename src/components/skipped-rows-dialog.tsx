@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { m } from '@/paraglide/messages'
 
 export interface SkippedRow {
   rowNumber: number
@@ -35,17 +36,15 @@ export function SkippedRowsDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Upload Gagal — Row dengan Error Ditemukan</DialogTitle>
+          <DialogTitle>{m.skipped_title()}</DialogTitle>
           <DialogDescription>
-            {totalSkipped} row di-skip, {totalProcessed} row berhasil diproses
+            {m.skipped_desc({ skipped: totalSkipped, processed: totalProcessed })}
           </DialogDescription>
         </DialogHeader>
 
         <Alert>
           <TriangleAlert />
-          <AlertDescription>
-            Upload dibatalkan. Silakan perbaiki error pada row berikut sebelum mengupload ulang.
-          </AlertDescription>
+          <AlertDescription>{m.skipped_alert()}</AlertDescription>
         </Alert>
 
         <ScrollArea className="h-64 rounded-md border">
@@ -53,7 +52,7 @@ export function SkippedRowsDialog({
             {skippedRows.map((row) => (
               <li key={row.rowNumber} className="flex items-baseline gap-3 px-3 py-2">
                 <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
-                  Row {row.rowNumber}
+                  {m.skipped_row_label({ number: row.rowNumber })}
                 </span>
                 <span className="text-sm break-words">{row.reason}</span>
               </li>
@@ -63,7 +62,7 @@ export function SkippedRowsDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Tutup
+            {m.skipped_close()}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,8 +6,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   const { resolvedTheme } = useTheme()
 
   // Map Catppuccin flavor names to Sonner's expected 'light' | 'dark'
-  const sonnerTheme: ToasterProps['theme'] =
-    resolvedTheme === 'latte' || resolvedTheme === 'light' ? 'light' : 'dark'
+  const sonnerTheme: ToasterProps['theme'] = resolvedTheme === 'latte' || resolvedTheme === 'light' ? 'light' : 'dark'
 
   return (
     <Sonner

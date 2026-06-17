@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  loadProcedureMetas,
-  parseSqlMeta,
-  scanSqlObjects,
-  splitSqlStatements,
-} from '@/db/sql-loader'
+import { loadProcedureMetas, parseSqlMeta, scanSqlObjects, splitSqlStatements } from '@/db/sql-loader'
 
 describe('splitSqlStatements', () => {
   it('splits on top-level semicolons', () => {

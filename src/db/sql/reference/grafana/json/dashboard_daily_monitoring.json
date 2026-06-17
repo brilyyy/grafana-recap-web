@@ -179,9 +179,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -369,9 +367,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -550,9 +546,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -740,9 +734,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -1108,9 +1100,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -1273,9 +1263,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "/.*/",
           "values": false
         },
@@ -1465,9 +1453,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -1809,9 +1795,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -1965,9 +1949,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "/^jumlah$/",
           "values": false
         },
@@ -2098,9 +2080,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
+          "calcs": ["mean"],
           "fields": "",
           "values": false
         },
@@ -2191,9 +2171,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
+          "calcs": ["mean"],
           "fields": "",
           "values": false
         },
@@ -2389,9 +2367,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -2497,9 +2473,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -2579,9 +2553,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
+          "calcs": ["mean"],
           "fields": "/^B$/",
           "values": false
         },
@@ -2697,9 +2669,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
+          "calcs": ["mean"],
           "fields": "/^Success Rate$/",
           "values": false
         },
@@ -2957,9 +2927,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "timezone": [
-          "Asia/Jakarta"
-        ],
+        "timezone": ["Asia/Jakarta"],
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -3108,11 +3076,7 @@
           "options": {
             "byVariable": false,
             "include": {
-              "names": [
-                "Time",
-                "Jumlah Transaksi",
-                "Success Rate"
-              ]
+              "names": ["Time", "Jumlah Transaksi", "Success Rate"]
             }
           }
         },
@@ -3194,9 +3158,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -3275,9 +3237,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
+          "calcs": ["mean"],
           "fields": "/^B$/",
           "values": false
         },
@@ -3424,9 +3384,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
+          "calcs": ["mean"],
           "fields": "/^Success Rate$/",
           "values": false
         },
@@ -3831,11 +3789,7 @@
           "options": {
             "byVariable": false,
             "include": {
-              "names": [
-                "Time",
-                "Jumlah Transaksi",
-                "Success Rate"
-              ]
+              "names": ["Time", "Jumlah Transaksi", "Success Rate"]
             }
           }
         }
@@ -3889,9 +3843,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -3973,9 +3925,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -4090,9 +4040,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -4280,9 +4228,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -4413,9 +4359,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -4570,9 +4514,7 @@
           "id": 486,
           "options": {
             "legend": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "displayMode": "list",
               "placement": "bottom",
               "showLegend": true
@@ -5097,9 +5039,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
+              "calcs": ["lastNotNull"],
               "fields": "",
               "values": false
             },
@@ -5180,9 +5120,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -5366,9 +5304,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -5459,9 +5395,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -5616,9 +5550,7 @@
           "id": 497,
           "options": {
             "legend": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "displayMode": "list",
               "placement": "bottom",
               "showLegend": true
@@ -6209,9 +6141,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
+              "calcs": ["lastNotNull"],
               "fields": "",
               "values": false
             },
@@ -6292,9 +6222,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -6408,9 +6336,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -6594,9 +6520,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -6751,9 +6675,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -6940,9 +6862,7 @@
               "placement": "bottom",
               "showLegend": true
             },
-            "timezone": [
-              "Asia/Jakarta"
-            ],
+            "timezone": ["Asia/Jakarta"],
             "tooltip": {
               "hideZeros": false,
               "mode": "single",
@@ -7467,9 +7387,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
+              "calcs": ["lastNotNull"],
               "fields": "",
               "values": false
             },
@@ -7550,9 +7468,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -7666,9 +7582,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -7852,9 +7766,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -8009,9 +7921,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -8198,9 +8108,7 @@
               "placement": "bottom",
               "showLegend": true
             },
-            "timezone": [
-              "Asia/Jakarta"
-            ],
+            "timezone": ["Asia/Jakarta"],
             "tooltip": {
               "hideZeros": false,
               "mode": "single",
@@ -8725,9 +8633,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
+              "calcs": ["lastNotNull"],
               "fields": "",
               "values": false
             },
@@ -8808,9 +8714,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -8900,9 +8804,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -8984,9 +8886,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
+              "calcs": ["mean"],
               "fields": "",
               "values": false
             },
@@ -9067,9 +8967,7 @@
             "orientation": "auto",
             "percentChangeColorMode": "standard",
             "reduceOptions": {
-              "calcs": [
-                "sum"
-              ],
+              "calcs": ["sum"],
               "fields": "",
               "values": false
             },
@@ -9256,9 +9154,7 @@
               "placement": "bottom",
               "showLegend": true
             },
-            "timezone": [
-              "Asia/Jakarta"
-            ],
+            "timezone": ["Asia/Jakarta"],
             "tooltip": {
               "hideZeros": false,
               "mode": "single",

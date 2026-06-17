@@ -30,9 +30,7 @@ export function BackgroundModeProvider({ children }: { children: React.ReactNode
   }, [])
 
   return (
-    <BackgroundModeContext.Provider
-      value={{ bgMode: mounted ? bgMode : DEFAULT_BG_MODE, setBgMode }}
-    >
+    <BackgroundModeContext.Provider value={{ bgMode: mounted ? bgMode : DEFAULT_BG_MODE, setBgMode }}>
       {children}
     </BackgroundModeContext.Provider>
   )

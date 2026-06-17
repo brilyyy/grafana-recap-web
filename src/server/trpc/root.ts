@@ -1,6 +1,6 @@
 import { router } from './init'
-import { appProceduresRouter } from './routers/appProcedures'
 import { applicationsRouter } from './routers/applications'
+import { appProceduresRouter } from './routers/appProcedures'
 import { auditLogsRouter } from './routers/auditLogs'
 import { authRouter } from './routers/auth'
 import { databasesRouter } from './routers/databases'

@@ -1,4 +1,4 @@
-import * as React from 'react'
+import type * as React from 'react'
 
 import { AnimatedBackground } from '@/components/animated-background'
 import { useBackgroundMode } from '@/hooks/use-background-mode'

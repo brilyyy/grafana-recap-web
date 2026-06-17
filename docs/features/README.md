@@ -12,6 +12,7 @@ Feature docs explain what each module does, who uses it, and how data flows thro
 - [No RC Transaction Handling](no-rc-transaction.md) -> [Technical](../technical/no-rc-transaction.md)
 - [Audit Logging](audit-logging.md) -> [Technical](../technical/audit-logging.md)
 - [Processing Scheduler](processing-scheduler.md) -> [Technical](../technical/processing-scheduler.md)
+- [Index Analyzer](index-analyzer.md) -> [Technical](../technical/index-analyzer.md)
 
 ## Related Docs
 - [Documentation Hub](../README.md)

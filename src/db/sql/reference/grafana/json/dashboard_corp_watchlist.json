@@ -215,10 +215,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 }
-            ]
+            "properties": [{ "id": "custom.drawStyle", "value": "bars" }, { "id": "custom.fillOpacity", "value": 70 }]
           },
           {
             "matcher": { "id": "byName", "options": "Success Rate" },
@@ -450,10 +447,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 }
-            ]
+            "properties": [{ "id": "custom.drawStyle", "value": "bars" }, { "id": "custom.fillOpacity", "value": 70 }]
           },
           {
             "matcher": { "id": "byName", "options": "Success Rate" },
@@ -685,10 +679,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 }
-            ]
+            "properties": [{ "id": "custom.drawStyle", "value": "bars" }, { "id": "custom.fillOpacity", "value": 70 }]
           },
           {
             "matcher": { "id": "byName", "options": "Success Rate" },
@@ -920,10 +911,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 }
-            ]
+            "properties": [{ "id": "custom.drawStyle", "value": "bars" }, { "id": "custom.fillOpacity", "value": 70 }]
           },
           {
             "matcher": { "id": "byName", "options": "Success Rate" },
@@ -1155,10 +1143,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Total" },
-            "properties": [
-              { "id": "custom.drawStyle", "value": "bars" },
-              { "id": "custom.fillOpacity", "value": 70 }
-            ]
+            "properties": [{ "id": "custom.drawStyle", "value": "bars" }, { "id": "custom.fillOpacity", "value": 70 }]
           },
           {
             "matcher": { "id": "byName", "options": "Success Rate" },

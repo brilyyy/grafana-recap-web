@@ -2,6 +2,7 @@ import { fork } from 'node:child_process'
 import { resolve } from 'node:path'
 import handler, { createServerEntry } from '@tanstack/react-start/server-entry'
 import '@/env'
+import { paraglideMiddleware } from '@/paraglide/server'
 
 const IS_COMPILED = import.meta.url.endsWith('.mjs') || import.meta.url.endsWith('.js')
 const WORKER_PATH = IS_COMPILED
@@ -56,6 +57,9 @@ if (!(globalThis as any).__schedulerStarted) {
 
 export default createServerEntry({
   async fetch(request: Request) {
-    return handler.fetch(request)
+    // Resolve the request locale (cookie → Accept-Language → base) and run the render
+    // inside Paraglide's request-scoped context so m.*() and getLocale() are correct
+    // during SSR without cross-request bleed.
+    return paraglideMiddleware(request, ({ request: localizedRequest }) => handler.fetch(localizedRequest))
   },
 })

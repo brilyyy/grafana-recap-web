@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, CircleCheck, Gauge, Info, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { AuthLayout } from '@/components/auth-layout'
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/register')({
@@ -18,19 +19,7 @@ export const Route = createFileRoute('/register')({
   component: RegisterPage,
 })
 
-const schema = z
-  .object({
-    username: z.string().min(1, 'Username is required'),
-    email: z.string().email('Enter a valid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters long'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  })
-
-type FormValues = z.infer<typeof schema>
+type FormValues = { username: string; email: string; password: string; confirmPassword: string }
 
 function RegisterPage() {
   const navigate = useNavigate()
@@ -48,6 +37,23 @@ function RegisterPage() {
     }
   }, [authCheck, navigate])
 
+  // Built per render so validation messages resolve in the active locale.
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          username: z.string().min(1, m.validation_username_required()),
+          email: z.string().email(m.validation_email_invalid()),
+          password: z.string().min(8, m.validation_password_min8()),
+          confirmPassword: z.string().min(1, m.validation_confirm_password_required()),
+        })
+        .refine((values) => values.password === values.confirmPassword, {
+          message: m.validation_passwords_mismatch(),
+          path: ['confirmPassword'],
+        }),
+    [],
+  )
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { username: '', email: '', password: '', confirmPassword: '' },
@@ -63,20 +69,18 @@ function RegisterPage() {
       })
       if (data.success) {
         if ((data.data as { status?: string } | undefined)?.status === 'pending') {
-          setSuccess(
-            'Registration request submitted successfully! Please wait for superadmin approval before you can login.',
-          )
+          setSuccess(m.register_success_pending())
           form.reset()
         } else {
-          setSuccess('Admin user created successfully! Redirecting to login...')
+          setSuccess(m.register_success_created())
           setTimeout(() => navigate({ to: '/login' }), 2000)
         }
       } else {
-        form.setError('root', { message: (data as { message?: string }).message || 'Registration failed' })
+        form.setError('root', { message: (data as { message?: string }).message || m.register_error_failed() })
       }
     } catch (error) {
       form.setError('root', {
-        message: error instanceof Error ? error.message : 'An error occurred. Please try again.',
+        message: error instanceof Error ? error.message : m.register_error_generic(),
       })
     }
   }
@@ -96,22 +100,18 @@ function RegisterPage() {
         <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Gauge className="size-4" />
         </div>
-        Grafana Recap
+        {m.common_app_name()}
       </div>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle>{adminExists ? 'Request admin account' : 'Create first admin account'}</CardTitle>
-          <CardDescription>
-            {adminExists
-              ? 'Submit a request for an admin account. Superadmin approval required.'
-              : 'Set up your first admin account to access the dashboard.'}
-          </CardDescription>
+          <CardTitle>{adminExists ? m.register_title_request() : m.register_title_first()}</CardTitle>
+          <CardDescription>{adminExists ? m.register_desc_request() : m.register_desc_first()}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {adminExists && (
             <Alert>
               <Info />
-              <AlertDescription>Your request will be reviewed by a superadmin before you can login.</AlertDescription>
+              <AlertDescription>{m.register_info_review()}</AlertDescription>
             </Alert>
           )}
           <Form {...form}>
@@ -121,7 +121,7 @@ function RegisterPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>{m.register_username()}</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
@@ -134,7 +134,7 @@ function RegisterPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{m.register_email()}</FormLabel>
                     <FormControl>
                       <Input type="email" autoComplete="email" {...field} />
                     </FormControl>
@@ -147,9 +147,14 @@ function RegisterPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>{m.register_password()}</FormLabel>
                     <FormControl>
-                      <Input type="password" autoComplete="new-password" placeholder="Min. 8 characters" {...field} />
+                      <Input
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder={m.register_password_ph()}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -160,7 +165,7 @@ function RegisterPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm password</FormLabel>
+                    <FormLabel>{m.register_confirm_password()}</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="new-password" {...field} />
                     </FormControl>
@@ -182,15 +187,15 @@ function RegisterPage() {
               )}
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                {adminExists ? 'Submit admin request' : 'Create admin account'}
+                {adminExists ? m.register_submit_request() : m.register_submit_create()}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="justify-center text-sm text-muted-foreground">
-          Already have an account?
+          {m.register_have_account()}
           <Link to="/login" className="ml-1 text-foreground underline-offset-4 hover:underline">
-            Sign in
+            {m.register_signin()}
           </Link>
         </CardFooter>
       </Card>

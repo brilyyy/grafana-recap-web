@@ -77,7 +77,9 @@ describe('applyFdwConfig', () => {
   it('emits CREATE USER MAPPING for CURRENT_USER after server creation', async () => {
     enqueueHappyPath(sqlMock)
     await applyFdwConfig(sqlMock as any)
-    expect(sqlMock.getQueries().some((q) => q.includes('CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER'))).toBe(true)
+    expect(sqlMock.getQueries().some((q) => q.includes('CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER'))).toBe(
+      true,
+    )
   })
 
   it('emits IMPORT FOREIGN SCHEMA for the table', async () => {

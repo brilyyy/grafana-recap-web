@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
 
@@ -26,21 +27,18 @@ function JobsPage() {
   const triggerMutation = trpc.recap.triggerManual.useMutation({
     onSuccess: (res) => {
       catalogQuery.refetch()
-      const message = res.data?.message ?? 'Job triggered'
+      const message = res.data?.message ?? m.jobs_toast_triggered()
       const status = res.data?.logEntry?.status
-      toast.success(status ? `${message} — status: ${status}` : message)
+      toast.success(status ? m.jobs_toast_with_status({ message, status }) : message)
     },
-    onError: (error) => toast.error(error.message || 'Trigger failed'),
+    onError: (error) => toast.error(error.message || m.jobs_toast_trigger_failed()),
   })
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">Job list</h1>
-        <p className="text-sm text-muted-foreground">
-          All schedulable recap jobs (success rate per app and custom models). Expand a row for the summary and
-          representative query. Use Processing with the same job to inspect calendar logs.
-        </p>
+        <h1 className="text-lg font-semibold tracking-tight">{m.jobs_title()}</h1>
+        <p className="text-sm text-muted-foreground">{m.jobs_subtitle()}</p>
       </header>
 
       <Card className="py-0">
@@ -57,11 +55,11 @@ function JobsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8" />
-                  <TableHead>Title</TableHead>
-                  <TableHead className="hidden md:table-cell">ID</TableHead>
-                  <TableHead className="hidden lg:table-cell">Kind</TableHead>
-                  <TableHead className="hidden lg:table-cell">Output table</TableHead>
-                  <TableHead className="text-right">Run</TableHead>
+                  <TableHead>{m.jobs_col_title()}</TableHead>
+                  <TableHead className="hidden md:table-cell">{m.jobs_col_id()}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{m.jobs_col_kind()}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{m.appcfg_col_output_table()}</TableHead>
+                  <TableHead className="text-right">{m.jobs_col_run()}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,14 +99,14 @@ function JobsPage() {
                             variant="outline"
                             size="sm"
                             disabled={triggerMutation.isPending}
-                            title="Run now (empty date = H-1)"
+                            title={m.jobs_run_title()}
                             onClick={() => {
                               const d = manualDates[row.id]?.trim()
                               triggerMutation.mutate({ catalogEntryId: row.id, date: d || undefined })
                             }}
                           >
                             {triggerMutation.isPending ? <Loader2 className="animate-spin" /> : <Play />}
-                            Run
+                            {m.hk_run()}
                           </Button>
                         </div>
                       </TableCell>
@@ -119,10 +117,11 @@ function JobsPage() {
                           <p className="mb-2 text-sm">{row.description}</p>
                           <p className="mb-2 text-xs text-muted-foreground">{row.briefProcessSummary}</p>
                           <p className="mb-2 text-xs text-muted-foreground">
-                            Function: <code className="font-mono text-foreground">{row.functionName}</code> · Doc:{' '}
+                            {m.proc_function_label()} <code className="font-mono text-foreground">{row.functionName}</code>{' '}
+                            · {m.jobs_doc_label()}{' '}
                             <code className="font-mono text-foreground">{row.rawSqlRepoPath}</code>
                           </p>
-                          <p className="mb-1 text-xs font-medium text-muted-foreground">Representative query (brief)</p>
+                          <p className="mb-1 text-xs font-medium text-muted-foreground">{m.jobs_query_label()}</p>
                           <pre className="overflow-x-auto rounded-md border bg-background p-3 font-mono text-xs whitespace-pre-wrap">
                             {row.briefQuery}
                           </pre>

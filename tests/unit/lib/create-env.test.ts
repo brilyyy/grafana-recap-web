@@ -1,6 +1,6 @@
-import { describe, expect, it, afterEach } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { createEnv, parseEnv, prettifyZodError, EnvValidationError } from '@/lib/create-env'
+import { createEnv, EnvValidationError, parseEnv, prettifyZodError } from '@/lib/create-env'
 
 // ─── prettifyZodError ─────────────────────────────────────────────────────────
 

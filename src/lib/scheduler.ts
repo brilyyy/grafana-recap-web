@@ -78,10 +78,7 @@ async function _initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
     const timezone = job.timezone ?? defaultTimezone
     let schedule = (job.schedule ?? DEFAULT_SCHEDULE).trim()
     if (!cron.validate(schedule)) {
-      log.warn(
-        { job: job.name, schedule, fallback: DEFAULT_SCHEDULE },
-        'Invalid cron schedule, using default',
-      )
+      log.warn({ job: job.name, schedule, fallback: DEFAULT_SCHEDULE }, 'Invalid cron schedule, using default')
       schedule = DEFAULT_SCHEDULE
     }
 
@@ -92,10 +89,7 @@ async function _initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
         try {
           log.info({ job: job.name, procedure: job.procedure }, 'Scheduled job starting')
           await runStoredProcedure(job.procedure)
-          log.info(
-            { job: job.name, durationMs: Math.round(performance.now() - start) },
-            'Scheduled job completed',
-          )
+          log.info({ job: job.name, durationMs: Math.round(performance.now() - start) }, 'Scheduled job completed')
         } catch (error: any) {
           log.error(
             { job: job.name, durationMs: Math.round(performance.now() - start), err: error.message },

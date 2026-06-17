@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { docSections } from '@/lib/docs-manifest'
+import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/_dashboard/docs')({
   ssr: false,
@@ -10,8 +11,8 @@ function DocsLayout() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">Docs</h1>
-        <p className="text-sm text-muted-foreground">Project documentation.</p>
+        <h1 className="text-lg font-semibold tracking-tight">{m.docs_title()}</h1>
+        <p className="text-sm text-muted-foreground">{m.docs_subtitle()}</p>
       </header>
       <div className="flex flex-col gap-8 lg:flex-row">
         <nav className="w-full shrink-0 lg:sticky lg:top-6 lg:w-56 lg:self-start">
@@ -23,7 +24,7 @@ function DocsLayout() {
                 className="text-sm font-medium text-muted-foreground hover:text-foreground"
                 activeProps={{ className: 'text-sm font-medium text-foreground' }}
               >
-                Overview
+                {m.docs_overview_link()}
               </Link>
             </li>
             {docSections.map((section) => (

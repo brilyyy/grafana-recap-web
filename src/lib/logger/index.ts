@@ -25,8 +25,7 @@ const isServer = typeof window === 'undefined'
 
 const LOG_DIR = process.env.LOG_DIR ?? 'log'
 const NODE_ENV = process.env.NODE_ENV ?? 'development'
-const LOG_LEVEL = (process.env.LOG_LEVEL ??
-  (NODE_ENV === 'development' ? 'debug' : 'info')) as pino.Level
+const LOG_LEVEL = (process.env.LOG_LEVEL ?? (NODE_ENV === 'development' ? 'debug' : 'info')) as pino.Level
 
 /** Secrets / noisy fields scrubbed before anything is written. */
 const redact: pino.LoggerOptions['redact'] = {

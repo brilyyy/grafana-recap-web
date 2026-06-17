@@ -1,6 +1,7 @@
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { ChevronsUpDown, Loader2, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { LanguageMenuItems } from '@/components/language-toggle'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import type { SessionUser } from '@/hooks/use-auth-session'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export function NavUser({ user }: { user: SessionUser }) {
@@ -71,9 +73,11 @@ export function NavUser({ user }: { user: SessionUser }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <LanguageMenuItems />
+            <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={handleLogout} disabled={loggingOut}>
               {loggingOut ? <Loader2 className="animate-spin" /> : <LogOut />}
-              Logout
+              {m.nav_logout()}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

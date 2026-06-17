@@ -12,7 +12,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatMonthName, formatMonthYear, localeTag } from '@/lib/i18n-format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
 
@@ -20,21 +22,6 @@ export const Route = createFileRoute('/_dashboard/superadmin/processing')({
   ssr: false,
   component: ProcessingPage,
 })
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 
 interface ProcessingLog {
   id: number
@@ -76,7 +63,7 @@ function StatusBadge({ status }: { status: ProcessingLog['status'] | null }) {
   if (!status) {
     return (
       <Badge variant="outline" className="text-muted-foreground">
-        not processed
+        {m.proc_status_not_processed_badge()}
       </Badge>
     )
   }
@@ -158,7 +145,7 @@ function ProcessingPage() {
 
   const handleDateProcessing = async (date: string) => {
     if (!catalogEntryId) {
-      toast.error('Please select a job before processing data.')
+      toast.error(m.proc_toast_select_job_first())
       return
     }
     setProcessingDates((prev) => ({ ...prev, [date]: true }))
@@ -166,19 +153,23 @@ function ProcessingPage() {
       const res = await triggerMutation.mutateAsync({ catalogEntryId, date })
       const logEntry = res.data?.logEntry
       if (logEntry?.status === 'failed') {
-        toast.error(`Processing failed for ${date}: ${logEntry.errorMessage || 'Unknown error'}`)
+        toast.error(m.proc_toast_process_failed({ date, error: logEntry.errorMessage || m.proc_unknown_error() }))
       } else if (logEntry?.status === 'success') {
         toast.success(
-          `Processed ${date}: ${logEntry.recordsProcessed || 0} records (${logEntry.recordsInserted || 0} inserted)`,
+          m.proc_toast_process_success({
+            date,
+            processed: logEntry.recordsProcessed || 0,
+            inserted: logEntry.recordsInserted || 0,
+          }),
         )
       } else {
-        toast.success(`Processing triggered for ${date}`)
+        toast.success(m.proc_toast_process_triggered({ date }))
       }
       // Small delay so the stored procedure finishes writing before refresh
       await new Promise((resolve) => setTimeout(resolve, 500))
       await logsQuery.refetch()
     } catch (error) {
-      toast.error(`Error triggering processing: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(m.proc_toast_process_error({ error: error instanceof Error ? error.message : String(error) }))
     } finally {
       setProcessingDates((prev) => ({ ...prev, [date]: false }))
     }
@@ -210,11 +201,11 @@ function ProcessingPage() {
     setBatchProgress(null)
     setSelectedDates(new Set())
     if (skipped > 0) {
-      toast.info(`Batch cancelled: ${succeeded} succeeded, ${failed} failed, ${skipped} skipped`)
+      toast.info(m.proc_toast_batch_cancelled({ succeeded, failed, skipped }))
     } else if (failed > 0) {
-      toast.error(`Batch finished: ${succeeded} succeeded, ${failed} failed`)
+      toast.error(m.proc_toast_batch_failed({ succeeded, failed }))
     } else {
-      toast.success(`Batch finished: ${succeeded} succeeded`)
+      toast.success(m.proc_toast_batch_success({ succeeded }))
     }
     // Small delay so the stored procedure finishes writing before refresh
     await new Promise((resolve) => setTimeout(resolve, 500))
@@ -232,30 +223,28 @@ function ProcessingPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">Application data processing</h1>
-        <p className="text-sm text-muted-foreground">
-          View processing logs per job and trigger manual runs for past dates.
-        </p>
+        <h1 className="text-lg font-semibold tracking-tight">{m.proc_title()}</h1>
+        <p className="text-sm text-muted-foreground">{m.proc_subtitle()}</p>
       </header>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Month</Label>
+          <Label className="text-xs">{m.proc_month_label()}</Label>
           <Select value={String(month)} onValueChange={(value) => setMonth(Number(value))}>
             <SelectTrigger size="sm" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MONTHS.map((name, idx) => (
-                <SelectItem key={name} value={String(idx + 1)}>
-                  {name}
+              {Array.from({ length: 12 }, (_, idx) => idx + 1).map((monthNum) => (
+                <SelectItem key={monthNum} value={String(monthNum)}>
+                  {formatMonthName(monthNum)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Year</Label>
+          <Label className="text-xs">{m.proc_year_label()}</Label>
           <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
             <SelectTrigger size="sm" className="w-full">
               <SelectValue />
@@ -270,25 +259,25 @@ function ProcessingPage() {
           </Select>
         </div>
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <Label className="text-xs">Search job</Label>
+          <Label className="text-xs">{m.proc_search_job_label()}</Label>
           <div className="relative">
             <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={jobSearch}
               onChange={(e) => setJobSearch(e.target.value)}
-              placeholder="Search by job title, ID, or output table"
+              placeholder={m.proc_search_job_ph()}
               className="h-8 pl-8"
             />
           </div>
         </div>
         <div className="flex flex-col gap-1.5 md:col-span-2 lg:col-span-4">
-          <Label className="text-xs">Job</Label>
+          <Label className="text-xs">{m.proc_job_label()}</Label>
           {catalogQuery.isLoading ? (
             <Skeleton className="h-8 w-full" />
           ) : (
             <Select value={catalogEntryId} onValueChange={setCatalogEntryId} disabled={isBatchRunning}>
               <SelectTrigger size="sm" className="w-full">
-                <SelectValue placeholder="Select job" />
+                <SelectValue placeholder={m.proc_select_job_ph()} />
               </SelectTrigger>
               <SelectContent>
                 {filteredEntries.map((entry) => (
@@ -301,9 +290,9 @@ function ProcessingPage() {
           )}
           {selectedJob && (
             <p className="text-xs text-muted-foreground">
-              Output: <span className="font-mono">{selectedJob.outputTable}</span>
+              {m.proc_output_label()} <span className="font-mono">{selectedJob.outputTable}</span>
               {' · '}
-              Function: <span className="font-mono">{selectedJob.functionName}</span>
+              {m.proc_function_label()} <span className="font-mono">{selectedJob.functionName}</span>
             </p>
           )}
         </div>
@@ -315,8 +304,8 @@ function ProcessingPage() {
             <EmptyMedia variant="icon">
               <CircleDashed />
             </EmptyMedia>
-            <EmptyTitle>No job selected</EmptyTitle>
-            <EmptyDescription>Select a job to view processing logs.</EmptyDescription>
+            <EmptyTitle>{m.proc_empty_no_job_title()}</EmptyTitle>
+            <EmptyDescription>{m.proc_empty_no_job_desc()}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -330,25 +319,25 @@ function ProcessingPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-              <StatTile label="Success" value={summary.success} />
-              <StatTile label="Failed" value={summary.failed} />
-              <StatTile label="Running" value={summary.running} />
-              <StatTile label="Not processed" value={summary.notProcessed} />
-              <StatTile label="Total days" value={summary.total} />
+              <StatTile label={m.proc_stat_success()} value={summary.success} />
+              <StatTile label={m.proc_stat_failed()} value={summary.failed} />
+              <StatTile label={m.proc_stat_running()} value={summary.running} />
+              <StatTile label={m.proc_stat_not_processed()} value={summary.notProcessed} />
+              <StatTile label={m.proc_stat_total_days()} value={summary.total} />
             </div>
           )}
 
           <Card>
             <CardHeader className="flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <p className="text-base font-medium">
-                {new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                {formatMonthYear(new Date(year, month - 1, 1))}
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 {isBatchRunning ? (
                   <>
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Loader2 className="size-3.5 animate-spin" />
-                      Processing {batchProgress.current}/{batchProgress.total}…
+                      {m.proc_processing_progress({ current: batchProgress.current, total: batchProgress.total })}
                     </span>
                     <Button
                       variant="outline"
@@ -358,7 +347,7 @@ function ProcessingPage() {
                       }}
                     >
                       <X className="size-3.5" />
-                      Cancel
+                      {m.common_cancel()}
                     </Button>
                   </>
                 ) : (
@@ -370,7 +359,7 @@ function ProcessingPage() {
                         className="text-muted-foreground"
                         onClick={() => setSelectedDates(new Set())}
                       >
-                        Clear selection
+                        {m.proc_clear_selection()}
                       </Button>
                     )}
                     <Button
@@ -380,7 +369,7 @@ function ProcessingPage() {
                       onClick={() => runBatch([...selectedDates])}
                     >
                       <ListChecks className="size-3.5" />
-                      Process selected ({selectedDates.size})
+                      {m.proc_process_selected({ count: selectedDates.size })}
                     </Button>
                     <Button
                       variant="outline"
@@ -389,7 +378,7 @@ function ProcessingPage() {
                       onClick={() => runBatch(processableDates)}
                     >
                       <RefreshCw className="size-3.5" />
-                      Process all ({processableDates.length})
+                      {m.proc_process_all({ count: processableDates.length })}
                     </Button>
                   </>
                 )}
@@ -412,15 +401,15 @@ function ProcessingPage() {
                           checked={allSelected ? true : selectedDates.size > 0 ? 'indeterminate' : false}
                           onCheckedChange={(checked) => toggleAll(checked === true)}
                           disabled={isBatchRunning || processableDates.length === 0}
-                          aria-label="Select all processable dates"
+                          aria-label={m.proc_select_all_dates()}
                         />
                       </TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Processed</TableHead>
-                      <TableHead className="text-right">Inserted</TableHead>
-                      <TableHead>Processed at</TableHead>
-                      <TableHead>Error</TableHead>
+                      <TableHead>{m.proc_col_date()}</TableHead>
+                      <TableHead>{m.proc_col_status()}</TableHead>
+                      <TableHead className="text-right">{m.proc_col_processed()}</TableHead>
+                      <TableHead className="text-right">{m.proc_col_inserted()}</TableHead>
+                      <TableHead>{m.proc_col_processed_at()}</TableHead>
+                      <TableHead>{m.proc_col_error()}</TableHead>
                       <TableHead className="w-28" />
                     </TableRow>
                   </TableHeader>
@@ -443,12 +432,12 @@ function ProcessingPage() {
                               checked={isSelected}
                               onCheckedChange={(checked) => toggleDate(dateStr, checked === true)}
                               disabled={!canProcess || isBatchRunning}
-                              aria-label={`Select ${dateStr}`}
+                              aria-label={m.proc_select_date({ date: dateStr })}
                             />
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <span className="tabular-nums">
-                              {new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', {
+                              {new Date(`${dateStr}T00:00:00`).toLocaleDateString(localeTag(), {
                                 weekday: 'short',
                                 day: 'numeric',
                                 month: 'short',
@@ -457,7 +446,7 @@ function ProcessingPage() {
                             </span>
                             {isToday && (
                               <Badge variant="outline" className="ml-2">
-                                today
+                                {m.proc_today_badge()}
                               </Badge>
                             )}
                           </TableCell>
@@ -472,7 +461,7 @@ function ProcessingPage() {
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-muted-foreground">
                             {processedAt
-                              ? new Date(processedAt).toLocaleString('id-ID', {
+                              ? new Date(processedAt).toLocaleString(localeTag(), {
                                   day: '2-digit',
                                   month: 'short',
                                   hour: '2-digit',
@@ -503,7 +492,7 @@ function ProcessingPage() {
                                 ) : (
                                   <RefreshCw className="size-3" />
                                 )}
-                                Process
+                                {m.proc_process_button()}
                               </Button>
                             )}
                           </TableCell>

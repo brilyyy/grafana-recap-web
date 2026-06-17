@@ -85,10 +85,7 @@ async function startAll() {
           log.info({ job: job.name, procedure: job.procedure }, 'Job starting')
           await updateJobStatus(job.id, 'running')
           await runProcedure(job.procedure)
-          log.info(
-            { job: job.name, durationMs: Math.round(performance.now() - start) },
-            'Job completed',
-          )
+          log.info({ job: job.name, durationMs: Math.round(performance.now() - start) }, 'Job completed')
           await updateJobStatus(job.id, 'success')
         } catch (error: any) {
           log.error(

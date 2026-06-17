@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, Gauge, Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { AuthLayout } from '@/components/auth-layout'
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/login')({
@@ -18,12 +19,7 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
 })
 
-const schema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
-})
-
-type FormValues = z.infer<typeof schema>
+type FormValues = { username: string; password: string }
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -36,6 +32,16 @@ function LoginPage() {
     }
   }, [authCheck, navigate])
 
+  // Built per render so validation messages resolve in the active locale.
+  const schema = useMemo(
+    () =>
+      z.object({
+        username: z.string().min(1, m.validation_username_required()),
+        password: z.string().min(1, m.validation_password_required()),
+      }),
+    [],
+  )
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { username: '', password: '' },
@@ -45,13 +51,13 @@ function LoginPage() {
     try {
       const { data, error } = await authClient.signIn.username(values)
       if (error) {
-        form.setError('root', { message: error.message || 'Invalid username or password' })
+        form.setError('root', { message: error.message || m.login_error_invalid() })
       } else if (data) {
         await utils.auth.check.invalidate()
         navigate({ to: '/' })
       }
     } catch {
-      form.setError('root', { message: 'An error occurred. Please try again.' })
+      form.setError('root', { message: m.login_error_generic() })
     }
   }
 
@@ -61,12 +67,12 @@ function LoginPage() {
         <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Gauge className="size-4" />
         </div>
-        Grafana Recap
+        {m.common_app_name()}
       </div>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Enter your username and password to access the dashboard.</CardDescription>
+          <CardTitle>{m.login_title()}</CardTitle>
+          <CardDescription>{m.login_desc()}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -76,7 +82,7 @@ function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>{m.login_username()}</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
@@ -89,7 +95,7 @@ function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>{m.login_password()}</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="current-password" {...field} />
                     </FormControl>
@@ -105,15 +111,15 @@ function LoginPage() {
               )}
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                Sign in
+                {m.login_submit()}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="justify-center text-sm text-muted-foreground">
-          Need an account?
+          {m.login_need_account()}
           <Link to="/register" className="ml-1 text-foreground underline-offset-4 hover:underline">
-            Create admin account
+            {m.login_create_account()}
           </Link>
         </CardFooter>
       </Card>

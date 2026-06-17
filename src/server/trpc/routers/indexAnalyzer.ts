@@ -166,7 +166,8 @@ function findRedundant(all: { table: string; index: string; unique: boolean; col
   for (const idx of all) {
     if (idx.unique || idx.cols.length === 0) continue
     const cover = all.find(
-      (o) => o.table === idx.table && o.index !== idx.index && o.cols.length > idx.cols.length && isPrefix(idx.cols, o.cols),
+      (o) =>
+        o.table === idx.table && o.index !== idx.index && o.cols.length > idx.cols.length && isPrefix(idx.cols, o.cols),
     )
     if (cover) {
       out.push({
@@ -206,7 +207,12 @@ async function indexDrift(): Promise<IndexDrift[]> {
     const key = `${str(r.table)}.${str(r.index)}`
     const name = str(r.index)
     if (expectedKeys.has(key)) continue
-    if (name.endsWith('_pkey') || name.endsWith('_key') || name.endsWith('_grain_key') || name === 'unique_dictionary_entry')
+    if (
+      name.endsWith('_pkey') ||
+      name.endsWith('_key') ||
+      name.endsWith('_grain_key') ||
+      name === 'unique_dictionary_entry'
+    )
       continue
     drift.push({
       table: str(r.table),

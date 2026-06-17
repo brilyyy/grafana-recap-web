@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { useAuthSession } from '@/hooks/use-auth-session'
+import { formatDateTime } from '@/lib/i18n-format'
 
 export interface User {
   id: number
@@ -45,13 +46,7 @@ export interface AuditStats {
 }
 
 export function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleString('id-ID', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatDateTime(dateString)
 }
 
 export function RoleBadge({ role }: { role: string }) {

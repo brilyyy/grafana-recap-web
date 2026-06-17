@@ -133,23 +133,7 @@ Covers two migration layers:
 
 ---
 
-## 6 · External trigger API — backward compatibility
-
-`recap.triggerExternal` (`src/server/trpc/routers/recap.ts`)
-
-| ID | Test Scenario | Prerequisites / Setup | Expected Result | Risk |
-|----|---------------|-----------------------|-----------------|------|
-| E1 | Old REST endpoint removed | `curl POST /api/processing/process-manual` | Returns 404 — **check no external cron/integration still calls it; update callers to tRPC endpoint** | High |
-| E2 | Valid API-key trigger — audit trail (↔ E5/E7 for param handling) | POST with correct key + valid `catalogEntryId`; capture server/audit logs | Audit row `RECAP_EXTERNAL_TRIGGER` written with caller IP, User-Agent, actor=API\_KEY; result JSON returned; no sensitive env vars in response body | High |
-| E3 | Missing or wrong API key | POST with bad/no key | `UNAUTHORIZED`; nothing runs; error does not leak which part failed | High |
-| E4 | API key unset in env | `RECAP_TRIGGER_API_KEY` empty or absent | All external triggers rejected (fail-closed); never open | High |
-| E5 | `app_name` → key normalization | POST `app_name` only | `normalizeAppNameToKey` resolves to `sr:<key>`; matches catalog; bad name → `BAD_REQUEST` | Medium |
-| E6 | Date format validation | POST `date` not matching `YYYY-MM-DD` | Zod regex rejects with clear message; no proc runs | Medium |
-| E7 | Default H-1 behavior | POST with no `date` | Processes H-1 (yesterday) per proc's NULL-date convention; audit notes "(H-1)" | Medium |
-
----
-
-## 7 · PostgreSQL-only migration & stored procedures
+## 6 · PostgreSQL-only migration & stored procedures
 
 `src/db/migrate.ts`, `drizzle/`, `src/db/schema/*`
 
@@ -167,7 +151,7 @@ Covers two migration layers:
 
 ---
 
-## 8 · Auth (better-auth + argon2)
+## 7 · Auth (better-auth + argon2)
 
 `src/server/trpc/routers/auth.ts`, better-auth config, `db:seed-superadmin`
 
@@ -184,7 +168,7 @@ Covers two migration layers:
 
 ---
 
-## 9 · Cross-cutting — env, build, config
+## 8 · Cross-cutting — env, build, config
 
 `src/env.ts`, `vite.config.ts`, `package.json` build scripts
 
@@ -192,8 +176,8 @@ Covers two migration layers:
 |----|---------------|-----------------------|-----------------|------|
 | C1 | Env validation fail-fast | Unset a required var (`DB_HOST`, `BETTER_AUTH_SECRET`) | App refuses to boot with a clear Zod error; no half-started state | High |
 | C2 | Server env never in client bundle | Inspect built client JS assets | No `DB_PASSWORD`/`BETTER_AUTH_SECRET` present; only `VITE_`-prefixed client vars | High |
-| C3 | Worker bundle externals | `pnpm build && pnpm start` | esbuild bundles worker; `pg`/`drizzle-orm`/`node-cron`/`dotenv` resolved as node externals at runtime | High |
-| C4 | node-cron v4 timezone | Job configured with `Asia/Jakarta` vs UTC | Fires at correct wall-clock time for configured timezone; default `SCHEDULER_TIMEZONE` env honored | High |
+| C3 | Worker bundle externals | `pnpm build && pnpm start` | tsup bundles worker; `pg`/`drizzle-orm`/`node-cron`/`dotenv` resolved as node externals at runtime | High |
+| C4 | node-cron v4 timezone | Job configured with `Asia/Jakarta` vs UTC, per-job `timezone` column | Fires at correct wall-clock time for the job's `timezone` (fallback `Asia/Jakarta` if unset); `SCHEDULER_TIMEZONE` env is **not** read by the worker | High |
 | C5 | Docs reader `/docs` | Open in-app docs, deep link to `/docs/$` slug | Markdown renders; missing slug handled without crash; navigation works | Low |
 | C6 | Dictionary + unmapped-RC merge | Open dictionary page | Merged unmapped-RC panel shows correct data; old standalone `/unmapped-rc` route still resolves or redirects as intended | Medium |
 | C7 | Lint/type-check clean | `pnpm type-check && pnpm lint` | Zero type errors; zero Biome violations | Low |
@@ -207,8 +191,7 @@ Covers two migration layers:
 3. **DB idempotency**: against a disposable Postgres, run `npm run db:migrate` twice; use `dz:studio` to inspect `scheduler_jobs` / `fdw_source_table` (D1, D2).
 4. **Worker resilience**: `kill <workerPid>` and watch parent backoff/restart (S4, S5).
 5. **FDW**: add/remove/re-apply from Config page against a throwaway remote DB; verify foreign tables + views in `dz:studio`; confirm recap output table counts unchanged across a CASCADE re-apply (F1–F4, F11).
-6. **External API**: `curl` the tRPC `triggerExternal` endpoint with correct/wrong `x-recap-api-key`; confirm old REST path returns 404 (E1–E4).
-7. **Type/lint gate**: `pnpm type-check && pnpm lint` clean (C7).
+6. **Type/lint gate**: `pnpm type-check && pnpm lint` clean (C7).
 
 Any **High**-risk failure = release blocker.
 

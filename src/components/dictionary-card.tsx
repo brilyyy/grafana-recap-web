@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApplications } from '@/hooks/useApplications'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import type { DictionaryViewEntry } from '@/types'
 import MultiSelectFilter from './multi-select-filter'
@@ -99,45 +100,45 @@ export default function DictionaryCard() {
     if (!editingErrorType) return
     try {
       const result = await updateErrorTypeMutation.mutateAsync({ id, error_type: editingErrorType })
-      if (!result.success) throw new Error(result.message || 'Failed to update error type')
-      toast.success(result.message || 'Error type updated')
+      if (!result.success) throw new Error(result.message || m.dict_toast_error_type_err())
+      toast.success(result.message || m.dict_toast_error_type_updated())
       setEditingId(null)
       setEditingErrorType('')
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update error type')
+      toast.error(err instanceof Error ? err.message : m.dict_toast_error_type_err())
     }
   }
 
   const handleUpdateDescription = async (id: number) => {
     try {
       const result = await updateDescriptionMutation.mutateAsync({ id, rc_description: editingDescription })
-      if (!result.success) throw new Error(result.message || 'Failed to update RC description')
-      toast.success(result.message || 'RC description updated')
+      if (!result.success) throw new Error(result.message || m.dict_toast_description_err())
+      toast.success(result.message || m.dict_toast_description_updated())
       setEditingDescriptionId(null)
       setEditingDescription('')
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update RC description')
+      toast.error(err instanceof Error ? err.message : m.dict_toast_description_err())
     }
   }
 
   const handleBulkUpdateDescription = async () => {
     if (selectedItems.size === 0 || !bulkDescription.trim()) {
-      toast.error('Select entries and enter a description')
+      toast.error(m.dict_toast_select_required())
       return
     }
     try {
       const result = await updateDescriptionBatchMutation.mutateAsync({
         updates: [...selectedItems].map((id) => ({ id, rc_description: bulkDescription.trim() })),
       })
-      if (!result.success) throw new Error(result.message || 'Failed to update RC descriptions')
-      toast.success(result.message || `Updated ${selectedItems.size} RC description(s)`)
+      if (!result.success) throw new Error(result.message || m.dict_toast_bulk_err())
+      toast.success(result.message || m.dict_toast_bulk_updated({ count: selectedItems.size }))
       setSelectedItems(new Set())
       setBulkDescription('')
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update RC descriptions')
+      toast.error(err instanceof Error ? err.message : m.dict_toast_bulk_err())
     }
   }
 
@@ -161,11 +162,11 @@ export default function DictionaryCard() {
     try {
       setExporting(true)
       const result = await utils.dictionary.list.fetch({ ...filterInput, fetch_all: true }, { staleTime: 0 })
-      if (!result.success) throw new Error('Failed to load dictionary for export')
+      if (!result.success) throw new Error(m.dict_toast_export_load_err())
 
       const exportData = (result.data?.entries ?? []) as DictionaryViewEntry[]
       if (exportData.length === 0) {
-        toast.error('No data to export with current filters')
+        toast.error(m.dict_toast_export_empty())
         return
       }
 
@@ -201,9 +202,9 @@ export default function DictionaryCard() {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      toast.success(`Exported ${exportData.length} entries`)
+      toast.success(m.dict_toast_export_success({ count: exportData.length }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to export data')
+      toast.error(err instanceof Error ? err.message : m.dict_toast_export_err())
     } finally {
       setExporting(false)
     }
@@ -215,14 +216,14 @@ export default function DictionaryCard() {
         <div className="relative">
           <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search RC, description, app…"
+            placeholder={m.dict_search_ph()}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="h-8 w-64 pl-8"
           />
         </div>
         <MultiSelectFilter
-          label="App"
+          label={m.dict_app()}
           options={applications.map((app) => ({ value: String(app.id), label: app.app_name }))}
           selectedValues={selectedAppIds}
           onChange={(values) => {
@@ -230,10 +231,10 @@ export default function DictionaryCard() {
             setPage(1)
             setSelectedItems(new Set())
           }}
-          searchPlaceholder="Search apps…"
+          searchPlaceholder={m.dict_search_app_ph()}
         />
         <MultiSelectFilter
-          label="Error Type"
+          label={m.dict_filter_error_type()}
           options={ERROR_TYPES.map((value) => ({ value, label: value }))}
           selectedValues={selectedErrorTypes}
           onChange={(values) => {
@@ -241,7 +242,7 @@ export default function DictionaryCard() {
             setPage(1)
             setSelectedItems(new Set())
           }}
-          searchPlaceholder="Search types…"
+          searchPlaceholder={m.dict_search_types_ph()}
         />
         <MultiSelectFilter
           label="Jenis Transaksi"
@@ -252,25 +253,25 @@ export default function DictionaryCard() {
             setPage(1)
             setSelectedItems(new Set())
           }}
-          searchPlaceholder="Search jenis…"
+          searchPlaceholder={m.dict_search_jenis_ph()}
         />
         <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={exportToCSV} disabled={exporting || listQuery.isLoading}>
             {exporting ? <Loader2 className="animate-spin" /> : <Download />}
-            Export
+            {m.common_export()}
           </Button>
           <Button variant="outline" size="sm" onClick={() => listQuery.refetch()} disabled={listQuery.isFetching}>
             <RefreshCw className={cn(listQuery.isFetching && 'animate-spin')} />
-            Refresh
+            {m.common_refresh()}
           </Button>
         </div>
       </div>
 
       {selectedItems.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted px-3 py-2">
-          <span className="text-sm tabular-nums">{selectedItems.size} selected</span>
+          <span className="text-sm tabular-nums">{m.dict_selected_count({ count: selectedItems.size })}</span>
           <Input
-            placeholder="Description for selected entries…"
+            placeholder={m.dict_bulk_desc_ph()}
             value={bulkDescription}
             onChange={(e) => setBulkDescription(e.target.value)}
             className="h-8 max-w-md flex-1"
@@ -282,7 +283,7 @@ export default function DictionaryCard() {
             disabled={updateDescriptionBatchMutation.isPending || !bulkDescription.trim()}
           >
             {updateDescriptionBatchMutation.isPending ? <Loader2 className="animate-spin" /> : <CircleCheck />}
-            Update all ({selectedItems.size})
+            {m.dict_update_all({ count: selectedItems.size })}
           </Button>
           <Button
             variant="ghost"
@@ -292,7 +293,7 @@ export default function DictionaryCard() {
               setBulkDescription('')
             }}
           >
-            Clear
+            {m.common_clear()}
           </Button>
         </div>
       )}
@@ -309,7 +310,7 @@ export default function DictionaryCard() {
           ) : listQuery.error ? (
             <div className="p-4">
               <Alert variant="destructive">
-                <AlertTitle>Failed to load dictionary</AlertTitle>
+                <AlertTitle>{m.dict_load_error_title()}</AlertTitle>
                 <AlertDescription>{listQuery.error.message}</AlertDescription>
               </Alert>
             </div>
@@ -319,8 +320,8 @@ export default function DictionaryCard() {
                 <EmptyMedia variant="icon">
                   <FileX />
                 </EmptyMedia>
-                <EmptyTitle>No dictionary entries found</EmptyTitle>
-                <EmptyDescription>Adjust the filters or upload a dictionary document.</EmptyDescription>
+                <EmptyTitle>{m.dict_empty_title()}</EmptyTitle>
+                <EmptyDescription>{m.dict_empty_desc()}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -331,15 +332,15 @@ export default function DictionaryCard() {
                     <Checkbox
                       checked={selectedItems.size === entries.length && entries.length > 0}
                       onCheckedChange={toggleAll}
-                      aria-label="Select all"
+                      aria-label={m.common_select_all()}
                     />
                   </TableHead>
-                  <TableHead>App</TableHead>
+                  <TableHead>{m.dict_app()}</TableHead>
                   <TableHead>RC</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>{m.dict_col_description()}</TableHead>
+                  <TableHead>{m.dict_col_type()}</TableHead>
                   <TableHead className="hidden md:table-cell">Jenis Transaksi</TableHead>
-                  <TableHead className="w-24 text-right">Action</TableHead>
+                  <TableHead className="w-24 text-right">{m.common_action()}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -349,7 +350,7 @@ export default function DictionaryCard() {
                       <Checkbox
                         checked={selectedItems.has(entry.id)}
                         onCheckedChange={() => toggleItem(entry.id)}
-                        aria-label={`Select RC ${entry.rc}`}
+                        aria-label={m.dict_select_rc({ rc: entry.rc })}
                       />
                     </TableCell>
                     <TableCell className="text-sm font-medium">{entry.app_name}</TableCell>
@@ -376,7 +377,7 @@ export default function DictionaryCard() {
                             className="size-7"
                             onClick={() => handleUpdateDescription(entry.id)}
                             disabled={updateDescriptionMutation.isPending}
-                            title="Save"
+                            title={m.common_save()}
                           >
                             {updateDescriptionMutation.isPending ? (
                               <Loader2 className="animate-spin" />
@@ -393,7 +394,7 @@ export default function DictionaryCard() {
                               setEditingDescription('')
                             }}
                             disabled={updateDescriptionMutation.isPending}
-                            title="Cancel"
+                            title={m.common_cancel()}
                           >
                             <X className="size-3.5" />
                           </Button>
@@ -412,7 +413,7 @@ export default function DictionaryCard() {
                               setEditingDescription(entry.rc_description || '')
                             }}
                             disabled={editingDescriptionId !== null}
-                            title="Edit description"
+                            title={m.dict_edit_description_title()}
                           >
                             <Pencil className="size-3" />
                           </Button>
@@ -453,7 +454,7 @@ export default function DictionaryCard() {
                             disabled={!editingErrorType || updateErrorTypeMutation.isPending}
                           >
                             {updateErrorTypeMutation.isPending ? <Loader2 className="animate-spin" /> : null}
-                            Save
+                            {m.common_save()}
                           </Button>
                           <Button
                             variant="ghost"
@@ -465,7 +466,7 @@ export default function DictionaryCard() {
                             }}
                             disabled={updateErrorTypeMutation.isPending}
                           >
-                            Cancel
+                            {m.common_cancel()}
                           </Button>
                         </div>
                       ) : (
@@ -480,7 +481,7 @@ export default function DictionaryCard() {
                           disabled={editingId !== null}
                         >
                           <Pencil className="size-3" />
-                          Edit
+                          {m.common_edit()}
                         </Button>
                       )}
                     </TableCell>

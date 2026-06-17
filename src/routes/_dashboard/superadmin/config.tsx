@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute } from '@tanstack/react-router'
 import { Database, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -11,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
 
@@ -19,13 +21,7 @@ export const Route = createFileRoute('/_dashboard/superadmin/config')({
   component: ConfigPage,
 })
 
-const fdwSchema = z.object({
-  source_db_name: z.string().trim().min(1, 'Source DB is required'),
-  table_name: z.string().trim().min(1, 'Table name is required'),
-  schema_name: z.string().trim().min(1, 'Schema is required'),
-})
-
-type FdwFormValues = z.infer<typeof fdwSchema>
+type FdwFormValues = { source_db_name: string; table_name: string; schema_name: string }
 
 interface FdwSource {
   id: number
@@ -39,6 +35,16 @@ function ConfigPage() {
   const fdwQuery = trpc.fdw.list.useQuery(undefined, { enabled: isSuperadmin })
   const fdwSources = (fdwQuery.data?.data?.fdwSources ?? []) as FdwSource[]
 
+  const fdwSchema = useMemo(
+    () =>
+      z.object({
+        source_db_name: z.string().trim().min(1, m.validation_source_db_required()),
+        table_name: z.string().trim().min(1, m.validation_table_name_required()),
+        schema_name: z.string().trim().min(1, m.validation_schema_required()),
+      }),
+    [],
+  )
+
   const form = useForm<FdwFormValues>({
     resolver: zodResolver(fdwSchema),
     defaultValues: { source_db_name: '', table_name: '', schema_name: 'public' },
@@ -46,26 +52,26 @@ function ConfigPage() {
 
   const addMutation = trpc.fdw.add.useMutation({
     onSuccess: (_res, vars) => {
-      toast.success(`Added FDW source ${vars.source_db_name}.${vars.table_name}`)
+      toast.success(m.db_toast_fdw_added({ sourceDbName: vars.source_db_name, tableName: vars.table_name }))
       form.reset()
       fdwQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || 'Failed to add FDW source'),
+    onError: (error) => toast.error(error.message || m.db_toast_fdw_add_err()),
   })
   const removeMutation = trpc.fdw.remove.useMutation({
     onSuccess: () => {
-      toast.success('FDW source removed')
+      toast.success(m.config_toast_fdw_removed())
       fdwQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || 'Failed to remove FDW source'),
+    onError: (error) => toast.error(error.message || m.config_toast_fdw_remove_err()),
   })
 
   const applyMutation = trpc.fdw.applyFdw.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || 'FDW re-applied')
+      toast.success(res.message || m.config_toast_fdw_reapplied())
       fdwQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || 'Failed to re-apply FDW'),
+    onError: (error) => toast.error(error.message || m.config_toast_fdw_reapply_err()),
   })
 
   return (
@@ -73,15 +79,12 @@ function ConfigPage() {
       <header>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">FDW configuration</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage Foreign Data Wrapper source tables imported from external databases (e.g. itm_db) used by apps like
-              EDC Agen and EDC Merchant. FDW changes are applied automatically.
-            </p>
+            <h1 className="text-lg font-semibold tracking-tight">{m.config_title()}</h1>
+            <p className="text-sm text-muted-foreground">{m.config_subtitle()}</p>
           </div>
           <Button variant="outline" size="sm" disabled={applyMutation.isPending} onClick={() => applyMutation.mutate()}>
             {applyMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-            Re-apply FDW
+            {m.config_reapply_fdw()}
           </Button>
         </div>
       </header>
@@ -102,18 +105,18 @@ function ConfigPage() {
                   <EmptyMedia variant="icon">
                     <Database />
                   </EmptyMedia>
-                  <EmptyTitle>No FDW sources configured</EmptyTitle>
-                  <EmptyDescription>Add a source table using the form.</EmptyDescription>
+                  <EmptyTitle>{m.config_empty_title()}</EmptyTitle>
+                  <EmptyDescription>{m.config_empty_desc()}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Source DB</TableHead>
-                    <TableHead>Table name</TableHead>
-                    <TableHead>Schema</TableHead>
-                    <TableHead className="w-24 text-right">Actions</TableHead>
+                    <TableHead>{m.db_source_db_label()}</TableHead>
+                    <TableHead>{m.db_table_name_label()}</TableHead>
+                    <TableHead>{m.db_schema_label()}</TableHead>
+                    <TableHead className="w-24 text-right">{m.common_actions()}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -133,7 +136,7 @@ function ConfigPage() {
                           disabled={removeMutation.isPending}
                         >
                           <Trash2 className="size-3.5" />
-                          Remove
+                          {m.config_remove()}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -146,8 +149,8 @@ function ConfigPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">Add FDW source</CardTitle>
-            <CardDescription>Import a source table via postgres_fdw.</CardDescription>
+            <CardTitle className="text-base font-medium">{m.db_add_fdw_source()}</CardTitle>
+            <CardDescription>{m.config_add_card_desc()}</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -160,7 +163,7 @@ function ConfigPage() {
                   name="source_db_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Source DB</FormLabel>
+                      <FormLabel>{m.db_source_db_label()}</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. itm_db" className="font-mono" {...field} />
                       </FormControl>
@@ -173,7 +176,7 @@ function ConfigPage() {
                   name="table_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Table name</FormLabel>
+                      <FormLabel>{m.db_table_name_label()}</FormLabel>
                       <FormControl>
                         <Input className="font-mono" {...field} />
                       </FormControl>
@@ -186,7 +189,7 @@ function ConfigPage() {
                   name="schema_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Schema</FormLabel>
+                      <FormLabel>{m.db_schema_label()}</FormLabel>
                       <FormControl>
                         <Input className="font-mono" {...field} />
                       </FormControl>
@@ -196,7 +199,7 @@ function ConfigPage() {
                 />
                 <Button type="submit" disabled={addMutation.isPending}>
                   {addMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                  Add FDW source
+                  {m.db_add_fdw_source()}
                 </Button>
               </form>
             </Form>

@@ -1,4 +1,4 @@
-import type { ZodType, ZodError, ZodIssue, infer as ZodInfer } from 'zod'
+import type { ZodError, infer as ZodInfer, ZodIssue, ZodType } from 'zod'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,7 +249,7 @@ export function createEnv<TServerSchema extends EnvSchema, TClientSchema extends
         )
       }
 
-      if (!Object.prototype.hasOwnProperty.call(target, key)) return undefined
+      if (!Object.hasOwn(target, key)) return undefined
       return Reflect.get(target, prop, receiver)
     },
     set() {

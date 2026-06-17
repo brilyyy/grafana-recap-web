@@ -12,6 +12,8 @@ Technical docs explain implementation internals, schemas, migration behavior, an
 - [No RC Transaction Technical Notes](no-rc-transaction.md) -> [Feature](../features/no-rc-transaction.md)
 - [Audit Logging Technical Notes](audit-logging.md) -> [Feature](../features/audit-logging.md)
 - [Processing Scheduler Technical Notes](processing-scheduler.md) -> [Feature](../features/processing-scheduler.md)
+- [Index Analyzer Technical Notes](index-analyzer.md) -> [Feature](../features/index-analyzer.md)
+- [Internationalization (i18n) Technical Notes](i18n.md)
 
 ## Related Docs
 - [Documentation Hub](../README.md)

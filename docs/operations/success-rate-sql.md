@@ -7,16 +7,16 @@ This directory stores SQL assets for success-rate aggregation and processing pro
 - Provide one local reference for SQL naming and execution flow.
 
 ## Directory Convention
-- `scripts/success_rate/registry.ts`: app-to-procedure registry.
-- `scripts/success_rate/runProcedures.ts`: procedure loader/executor.
-- `scripts/success_rate/{app}/raw.postgres.sql`: PostgreSQL raw aggregation query.
-- `scripts/success_rate/{app}/procedure.postgres.sql`: PostgreSQL stored function/procedure definition.
+No registry, no runner script — one `.sql` file per app is the source of truth:
+- `src/db/sql/03_procedures/success_rate/{app_key}.sql`: PostgreSQL stored function, prefixed with a `/* @meta ... @endmeta */` frontmatter block (`id`, `recap_kind`, `title`, `output_table`, `function_name`, `scope_type`, `app_key`, `raw_sql_repo_path`, `description`).
+- `src/db/sql/reference/success_rate/{app_key}.raw.sql`: PostgreSQL raw aggregation query — referenced by `raw_sql_repo_path`, not auto-executed; for documentation / Superadmin brief query only.
+
+`src/db/sql-loader.ts`'s `parseSqlMeta()` reads the `@meta` block at migration time and feeds `buildRecapCatalog()` in `src/lib/domain/recap/catalog.ts` — adding the `.sql` file is the only registration step needed.
 
 ## Workflow
-1. Add or update SQL files per app.
-2. Register app metadata in `registry.ts`.
-3. Run migration phase for procedures.
-4. Verify scheduler and processing logs.
+1. Add or update the `.sql` file (+ optional `.raw.sql` reference) per app.
+2. Run the migration procedures phase (`pnpm db:migrate:procedures` or full `pnpm db:migrate`) — the `@meta` block is picked up automatically.
+3. Verify scheduler and processing logs.
 
 ## Deep Technical References
 - [Processing Scheduler Technical Notes](../../docs/technical/processing-scheduler.md)

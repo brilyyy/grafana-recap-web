@@ -33,27 +33,28 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import type { SessionUser } from '@/hooks/use-auth-session'
+import { m } from '@/paraglide/messages'
 
 const workspaceNav = [
-  { title: 'Summary', to: '/', icon: LayoutDashboard },
-  { title: 'Applications', to: '/application', icon: LayoutGrid },
-  { title: 'Dictionary', to: '/dictionary', icon: BookOpen },
-  { title: 'Uploads', to: '/uploads', icon: Upload },
-  { title: 'Transactions', to: '/transactions', icon: ReceiptText },
-  { title: 'Docs', to: '/docs', icon: FileText },
-  { title: 'Settings', to: '/settings', icon: Settings },
+  { title: m.nav_summary, to: '/', icon: LayoutDashboard },
+  { title: m.nav_applications, to: '/application', icon: LayoutGrid },
+  { title: m.nav_dictionary, to: '/dictionary', icon: BookOpen },
+  { title: m.nav_uploads, to: '/uploads', icon: Upload },
+  { title: m.nav_transactions, to: '/transactions', icon: ReceiptText },
+  { title: m.nav_docs, to: '/docs', icon: FileText },
+  { title: m.nav_settings, to: '/settings', icon: Settings },
 ] as const
 
 const superadminNav = [
-  { title: 'Users', to: '/superadmin/users', icon: Users },
-  { title: 'Audit logs', to: '/superadmin/audit-logs', icon: ScrollText },
-  { title: 'Processing', to: '/superadmin/processing', icon: Cog },
-  { title: 'Jobs', to: '/superadmin/jobs', icon: ListChecks },
-  { title: 'Scheduler', to: '/superadmin/scheduler', icon: Timer },
-  { title: 'Databases', to: '/superadmin/databases', icon: Server },
-  { title: 'App config', to: '/superadmin/config', icon: Database },
-  { title: 'Index analyzer', to: '/superadmin/index-analyzer', icon: DatabaseZap },
-  { title: 'Housekeeping', to: '/superadmin/housekeeping', icon: Trash2 },
+  { title: m.nav_users, to: '/superadmin/users', icon: Users },
+  { title: m.nav_audit_logs, to: '/superadmin/audit-logs', icon: ScrollText },
+  { title: m.nav_processing, to: '/superadmin/processing', icon: Cog },
+  { title: m.nav_jobs, to: '/superadmin/jobs', icon: ListChecks },
+  { title: m.nav_scheduler, to: '/superadmin/scheduler', icon: Timer },
+  { title: m.nav_databases, to: '/superadmin/databases', icon: Server },
+  { title: m.nav_app_config, to: '/superadmin/config', icon: Database },
+  { title: m.nav_index_analyzer, to: '/superadmin/index-analyzer', icon: DatabaseZap },
+  { title: m.nav_housekeeping, to: '/superadmin/housekeeping', icon: Trash2 },
 ] as const
 
 export function AppSidebar({ user }: { user: SessionUser }) {
@@ -70,8 +71,8 @@ export function AppSidebar({ user }: { user: SessionUser }) {
                   <Gauge className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Grafana Recap</span>
-                  <span className="truncate text-xs text-muted-foreground">Setup Data</span>
+                  <span className="truncate font-semibold">{m.common_app_name()}</span>
+                  <span className="truncate text-xs text-muted-foreground">{m.common_app_tagline()}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -80,7 +81,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel>{m.nav_group_workspace()}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {workspaceNav.map((item) => (
@@ -88,11 +89,11 @@ export function AppSidebar({ user }: { user: SessionUser }) {
                   <SidebarMenuButton
                     asChild
                     isActive={pathname === item.to || (item.to !== '/' && pathname.startsWith(`${item.to}/`))}
-                    tooltip={item.title}
+                    tooltip={item.title()}
                   >
                     <Link to={item.to}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{item.title()}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -102,15 +103,15 @@ export function AppSidebar({ user }: { user: SessionUser }) {
         </SidebarGroup>
         {user.role === 'superadmin' && (
           <SidebarGroup>
-            <SidebarGroupLabel>Superadmin</SidebarGroupLabel>
+            <SidebarGroupLabel>{m.nav_group_superadmin()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {superadminNav.map((item) => (
                   <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton asChild isActive={pathname === item.to} tooltip={item.title}>
+                    <SidebarMenuButton asChild isActive={pathname === item.to} tooltip={item.title()}>
                       <Link to={item.to}>
                         <item.icon />
-                        <span>{item.title}</span>
+                        <span>{item.title()}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

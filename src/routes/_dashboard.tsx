@@ -1,71 +1,57 @@
-import {
-  createFileRoute,
-  Outlet,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
-import { useEffect } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAuthSession } from "@/hooks/use-auth-session";
-import { useBackgroundMode } from "@/hooks/use-background-mode";
-import { AnimatedBackground } from "@/components/animated-background";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { AnimatedBackground } from '@/components/animated-background'
+import { AppSidebar } from '@/components/app-sidebar'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb'
+import { Separator } from '@/components/ui/separator'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAuthSession } from '@/hooks/use-auth-session'
+import { useBackgroundMode } from '@/hooks/use-background-mode'
+import { m } from '@/paraglide/messages'
 
-export const Route = createFileRoute("/_dashboard")({
+export const Route = createFileRoute('/_dashboard')({
   ssr: false,
   component: DashboardLayout,
-});
-
-const pageTitles: Record<string, string> = {
-  "/": "Summary",
-  "/application": "Applications",
-  "/dictionary": "Dictionary",
-  "/uploads": "Uploads",
-  "/unmapped-rc": "Unmapped RC",
-  "/transactions": "Transactions",
-  "/settings": "Settings",
-  "/superadmin/users": "Users",
-  "/superadmin/audit-logs": "Audit logs",
-  "/superadmin/processing": "Processing",
-  "/superadmin/jobs": "Jobs",
-  "/superadmin/scheduler": "Scheduler",
-  "/superadmin/config": "App config",
-  "/superadmin/databases": "Databases",
-  "/superadmin/housekeeping": "Housekeeping",
-};
+})
 
 function getPageTitle(pathname: string): string {
-  if (pageTitles[pathname]) return pageTitles[pathname];
-  if (pathname.startsWith("/superadmin/application/")) return "App config";
-  if (pathname.startsWith("/docs/")) return "Docs";
-  if (pathname.startsWith("/superadmin/")) return "Superadmin";
-  return "Dashboard";
+  const pageTitles: Record<string, string> = {
+    '/': m.nav_summary(),
+    '/application': m.nav_applications(),
+    '/dictionary': m.nav_dictionary(),
+    '/uploads': m.nav_uploads(),
+    '/unmapped-rc': m.dict_unmapped_title(),
+    '/transactions': m.nav_transactions(),
+    '/settings': m.nav_settings(),
+    '/superadmin/users': m.nav_users(),
+    '/superadmin/audit-logs': m.nav_audit_logs(),
+    '/superadmin/processing': m.nav_processing(),
+    '/superadmin/jobs': m.nav_jobs(),
+    '/superadmin/scheduler': m.nav_scheduler(),
+    '/superadmin/config': m.nav_app_config(),
+    '/superadmin/databases': m.nav_databases(),
+    '/superadmin/housekeeping': m.nav_housekeeping(),
+  }
+  if (pageTitles[pathname]) return pageTitles[pathname]
+  if (pathname.startsWith('/superadmin/application/')) return m.nav_app_config()
+  if (pathname.startsWith('/docs/')) return m.nav_docs()
+  if (pathname.startsWith('/superadmin/')) return m.nav_group_superadmin()
+  return m.nav_dashboard_fallback()
 }
 
 function DashboardLayout() {
-  const navigate = useNavigate();
-  const { isLoading, isAuthenticated, user } = useAuthSession();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { bgMode } = useBackgroundMode();
+  const navigate = useNavigate()
+  const { isLoading, isAuthenticated, user } = useAuthSession()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const { bgMode } = useBackgroundMode()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate({ to: "/login", replace: true });
+      navigate({ to: '/login', replace: true })
     }
-  }, [isLoading, isAuthenticated, navigate]);
+  }, [isLoading, isAuthenticated, navigate])
 
   if (isLoading || !user) {
     return (
@@ -84,20 +70,17 @@ function DashboardLayout() {
           <Skeleton className="h-64 w-full" />
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
       <SidebarInset className="relative overflow-hidden bg-transparent">
-        {bgMode === "animated" && <AnimatedBackground variant="subtle" />}
+        {bgMode === 'animated' && <AnimatedBackground variant="subtle" />}
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
+          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -112,5 +95,5 @@ function DashboardLayout() {
         <Outlet />
       </SidebarInset>
     </SidebarProvider>
-  );
+  )
 }

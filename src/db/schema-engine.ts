@@ -78,7 +78,12 @@ function bind(db: EngineDb) {
     }
   }
 
-  const createIndexSafely = async (idxName: string, table: string, columns: string[], unique = false): Promise<void> => {
+  const createIndexSafely = async (
+    idxName: string,
+    table: string,
+    columns: string[],
+    unique = false,
+  ): Promise<void> => {
     if (await indexExists(table, idxName)) return
     const u = unique ? 'UNIQUE' : ''
     await exec(
@@ -116,7 +121,17 @@ function bind(db: EngineDb) {
     }
   }
 
-  return { exec, execSql, tableExists, columnExists, indexExists, createIndexSafely, pgEnumExists, functionExists, rowCount }
+  return {
+    exec,
+    execSql,
+    tableExists,
+    columnExists,
+    indexExists,
+    createIndexSafely,
+    pgEnumExists,
+    functionExists,
+    rowCount,
+  }
 }
 
 // ─── SQL-file appliers (the single source of truth lives in src/db/sql/) ────────
@@ -277,7 +292,13 @@ export async function detectColumnConflicts(db: EngineDb): Promise<ColumnConflic
     if (await columnExists(spec.table, spec.column)) continue
     const n = await rowCount(spec.table)
     if (n > 0) {
-      conflicts.push({ key: `${spec.table}.${spec.column}`, table: spec.table, column: spec.column, type: spec.type, rowCount: n })
+      conflicts.push({
+        key: `${spec.table}.${spec.column}`,
+        table: spec.table,
+        column: spec.column,
+        type: spec.type,
+        rowCount: n,
+      })
     }
   }
   return conflicts
@@ -676,9 +697,7 @@ export async function diagnose(db: EngineDb): Promise<DiagnoseReport> {
 
   // Seeds: ≥1 superadmin, scheduler_jobs populated
   try {
-    const r = (await execSql(
-      sql`SELECT COUNT(*)::int AS n FROM "users" WHERE "role"='superadmin'`,
-    )) as { n: number }[]
+    const r = (await execSql(sql`SELECT COUNT(*)::int AS n FROM "users" WHERE "role"='superadmin'`)) as { n: number }[]
     const n = r[0]?.n ?? 0
     rows.push({
       category: 'seed',

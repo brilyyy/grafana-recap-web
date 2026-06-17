@@ -47,11 +47,7 @@ function safeArgs(args: unknown[]): unknown[] {
   })
 }
 
-export function withLogging<F extends AnyFn>(
-  name: string,
-  fn: F,
-  opts: WithLoggingOpts = {},
-): F {
+export function withLogging<F extends AnyFn>(name: string, fn: F, opts: WithLoggingOpts = {}): F {
   const { module = 'fn', logArgs = true } = opts
   const log = logger.child({ module, fn: name })
 
@@ -60,10 +56,7 @@ export function withLogging<F extends AnyFn>(
     log.debug(logArgs ? { args: safeArgs(args) } : {}, `${name} start`)
 
     const onError = (err: unknown): never => {
-      log.error(
-        { durationMs: durationMs(start), status: 'error', err: serializeError(err) },
-        `${name} failed`,
-      )
+      log.error({ durationMs: durationMs(start), status: 'error', err: serializeError(err) }, `${name} failed`)
       throw err
     }
 

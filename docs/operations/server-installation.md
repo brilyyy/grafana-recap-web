@@ -162,30 +162,18 @@ DEFAULT_SU_EMAIL=admin@your.domain.com
 # ─── Optional: trusted origins (if app is behind a load balancer / CDN) ───────
 # BETTER_AUTH_TRUSTED_ORIGINS=https://your.domain.com,https://www.your.domain.com
 
-# ─── Optional: external trigger API key ───────────────────────────────────────
-# RECAP_TRIGGER_API_KEY=some_secret_api_key
-
 # ─── Optional: FDW source databases list (used by migration) ──────────────────
 # TARGET_DATABASES=platform_db,bale_db,cms_db
 
-# ─── Optional: scheduler timezone (default: Asia/Jakarta) ─────────────────────
+# ─── Optional: scheduler timezone fallback (worker uses per-job DB column) ────
 SCHEDULER_TIMEZONE=Asia/Jakarta
-
-# ─── Optional: per-app cron schedules (default: 1 0 * * * = 00:01 daily) ──────
-BALE_PROCESSING_SCHEDULE=1 0 * * *
-BALE_BISNIS_PROCESSING_SCHEDULE=1 0 * * *
-OLOB_PROCESSING_SCHEDULE=1 0 * * *
-EDC_AGEN_PROCESSING_SCHEDULE=1 0 * * *
-EDC_MERCHANT_PROCESSING_SCHEDULE=1 0 * * *
-EDC_MERCHANT_ANCOL_PROCESSING_SCHEDULE=1 0 * * *
-CMS_PROCESSING_SCHEDULE=1 0 * * *
-BALE_KORPORA_PROCESSING_SCHEDULE=1 0 * * *
-CMS_CORP_RECAP_SCHEDULE=1 0 * * *
-BALE_KORPORA_CORP_RECAP_SCHEDULE=1 0 * * *
-
-# ─── Optional: housekeeping cron (default: 0 2 * * * = 02:00 daily) ───────────
-HOUSEKEEPING_SCHEDULE=0 2 * * *
 ```
+
+Cron schedules are **not** set via env vars — every job's schedule lives in the
+`scheduler_jobs` DB table (seeded by `SEED_JOBS` in `src/db/seed-schedules.ts` on
+first migration, editable afterward via Superadmin → Scheduler). There's no
+`RECAP_TRIGGER_API_KEY` / external trigger endpoint — manual recap runs require an
+authenticated superadmin session (`recap.triggerManual`).
 
 Generate `BETTER_AUTH_SECRET`:
 

@@ -80,8 +80,7 @@ export const housekeepingRouter = router({
       const checkRows = await db.execute(sql`
         SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
       `)
-      if (checkRows.length === 0)
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      if (checkRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
 
       const setClauses: SQL[] = []
       if (input.retention_days !== undefined) {
@@ -130,8 +129,7 @@ export const housekeepingRouter = router({
       const checkRows = await db.execute(sql`
         SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
       `)
-      if (checkRows.length === 0)
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      if (checkRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
 
       await db.execute(sql`
         UPDATE raw_table_housekeeping SET retention_days = ${input.retention_days} WHERE id = ${input.id}
@@ -200,8 +198,7 @@ export const housekeepingRouter = router({
       const checkRows = await db.execute(sql`
         SELECT db_name, table_name FROM raw_table_housekeeping WHERE id = ${input.id}
       `)
-      if (checkRows.length === 0)
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
+      if (checkRows.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Raw table config not found' })
 
       await db.execute(sql`DELETE FROM raw_table_housekeeping WHERE id = ${input.id}`)
       const row = checkRows[0] as any

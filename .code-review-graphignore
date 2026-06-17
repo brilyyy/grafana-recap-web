@@ -10,6 +10,7 @@ build/
 dist/
 .cache/
 .parcel-cache/
+.output/
 
 # Environment & System Files
 .env

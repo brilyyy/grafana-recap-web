@@ -41,10 +41,7 @@ export function ThemeToggle() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Theme</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => setTheme('system')}
-          className="flex cursor-pointer items-center gap-2"
-        >
+        <DropdownMenuItem onClick={() => setTheme('system')} className="flex cursor-pointer items-center gap-2">
           <MonitorIcon className="size-3.5 shrink-0 text-muted-foreground" />
           <span>System</span>
           {theme === 'system' && <CheckIcon className="ml-auto size-3.5" />}
@@ -61,10 +58,7 @@ export function ThemeToggle() {
               className="inline-flex size-3.5 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ring-foreground/10"
               style={{ background: f.bg }}
             >
-              <span
-                className="block size-1.5 rounded-full"
-                style={{ background: f.swatch }}
-              />
+              <span className="block size-1.5 rounded-full" style={{ background: f.swatch }} />
             </span>
             <span>{f.label}</span>
             {theme === f.value && <CheckIcon className="ml-auto size-3.5" />}

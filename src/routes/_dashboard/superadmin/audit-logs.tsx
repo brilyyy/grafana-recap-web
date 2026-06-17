@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDayMonth } from '@/lib/i18n-format'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { type AuditLogEntry, type AuditStats, formatDate, useSuperadminGuard } from './-shared'
 
@@ -70,27 +72,31 @@ function AuditLogsPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">Audit logs</h1>
-        <p className="text-sm text-muted-foreground">System activity across users and resources.</p>
+        <h1 className="text-lg font-semibold tracking-tight">{m.nav_audit_logs()}</h1>
+        <p className="text-sm text-muted-foreground">{m.audit_subtitle()}</p>
       </header>
 
       {stats && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total activities" value={stats.total.toLocaleString()} hint="Last 30 days" />
           <StatCard
-            label="Top action"
+            label={m.audit_stat_total_activities()}
+            value={stats.total.toLocaleString()}
+            hint={m.audit_stat_last_30_days()}
+          />
+          <StatCard
+            label={m.audit_stat_top_action()}
             value={stats.actionCounts[0]?.action || '—'}
-            hint={`${stats.actionCounts[0]?.count || 0} times`}
+            hint={m.audit_stat_times({ count: stats.actionCounts[0]?.count || 0 })}
           />
           <StatCard
-            label="Top resource"
+            label={m.audit_stat_top_resource()}
             value={stats.resourceTypeCounts[0]?.resource_type || '—'}
-            hint={`${stats.resourceTypeCounts[0]?.count || 0} times`}
+            hint={m.audit_stat_times({ count: stats.resourceTypeCounts[0]?.count || 0 })}
           />
           <StatCard
-            label="Most active user"
+            label={m.audit_stat_most_active_user()}
             value={stats.topUsers[0]?.username || '—'}
-            hint={`${stats.topUsers[0]?.count || 0} activities`}
+            hint={m.audit_stat_activities_count({ count: stats.topUsers[0]?.count || 0 })}
           />
         </div>
       )}
@@ -99,7 +105,7 @@ function AuditLogsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-medium">Top actions</CardTitle>
+              <CardTitle className="text-base font-medium">{m.audit_top_actions_title()}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {stats.actionCounts.slice(0, 5).map((item) => (
@@ -121,7 +127,7 @@ function AuditLogsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-medium">Daily activity (last 7 days)</CardTitle>
+              <CardTitle className="text-base font-medium">{m.audit_daily_activity_title()}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex h-48 items-end justify-between gap-2">
@@ -140,7 +146,7 @@ function AuditLogsPage() {
                           />
                         </div>
                         <p className="mt-2 text-center text-xs text-muted-foreground">
-                          {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                          {formatDayMonth(item.date)}
                         </p>
                         <p className="text-xs text-muted-foreground tabular-nums">{item.count}</p>
                       </div>
@@ -154,34 +160,34 @@ function AuditLogsPage() {
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Action</Label>
+          <Label className="text-xs">{m.audit_filter_action()}</Label>
           <Input
             value={filters.action}
             onChange={(e) => setFilter('action', e.target.value)}
-            placeholder="Filter by action"
+            placeholder={m.audit_filter_action_ph()}
             className="h-8"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Resource type</Label>
+          <Label className="text-xs">{m.audit_filter_resource_type()}</Label>
           <Input
             value={filters.resource_type}
             onChange={(e) => setFilter('resource_type', e.target.value)}
-            placeholder="Filter by resource"
+            placeholder={m.audit_filter_resource_ph()}
             className="h-8"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Username</Label>
+          <Label className="text-xs">{m.common_username()}</Label>
           <Input
             value={filters.username}
             onChange={(e) => setFilter('username', e.target.value)}
-            placeholder="Filter by username"
+            placeholder={m.audit_filter_username_ph()}
             className="h-8"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">Start date</Label>
+          <Label className="text-xs">{m.audit_filter_start_date()}</Label>
           <Input
             type="date"
             value={filters.start_date}
@@ -190,7 +196,7 @@ function AuditLogsPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs">End date</Label>
+          <Label className="text-xs">{m.audit_filter_end_date()}</Label>
           <Input
             type="date"
             value={filters.end_date}
@@ -215,20 +221,20 @@ function AuditLogsPage() {
                 <EmptyMedia variant="icon">
                   <ScrollText />
                 </EmptyMedia>
-                <EmptyTitle>No audit logs found</EmptyTitle>
-                <EmptyDescription>Adjust the filters to broaden the search.</EmptyDescription>
+                <EmptyTitle>{m.audit_empty_title()}</EmptyTitle>
+                <EmptyDescription>{m.audit_empty_desc()}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Resource</TableHead>
-                  <TableHead className="hidden lg:table-cell">Details</TableHead>
-                  <TableHead className="hidden md:table-cell">IP address</TableHead>
+                  <TableHead>{m.common_date()}</TableHead>
+                  <TableHead>{m.audit_col_user()}</TableHead>
+                  <TableHead>{m.audit_filter_action()}</TableHead>
+                  <TableHead>{m.audit_col_resource()}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{m.audit_col_details()}</TableHead>
+                  <TableHead className="hidden md:table-cell">{m.audit_col_ip()}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -237,7 +243,7 @@ function AuditLogsPage() {
                     <TableCell className="whitespace-nowrap text-muted-foreground">
                       {formatDate(log.created_at)}
                     </TableCell>
-                    <TableCell className="font-medium">{log.username || 'System'}</TableCell>
+                    <TableCell className="font-medium">{log.username || m.audit_system_user()}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{log.action}</Badge>
                     </TableCell>
@@ -264,10 +270,10 @@ function AuditLogsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-            Previous
+            {m.common_previous()}
           </Button>
           <span className="text-sm text-muted-foreground tabular-nums">
-            Page {page} of {totalPages}
+            {m.pagination_page({ page, total: totalPages })}
           </span>
           <Button
             variant="outline"
@@ -275,7 +281,7 @@ function AuditLogsPage() {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
           >
-            Next
+            {m.common_next()}
           </Button>
         </div>
       )}

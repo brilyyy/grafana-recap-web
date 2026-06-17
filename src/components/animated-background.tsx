@@ -24,11 +24,11 @@ function generateStars(count: number, seed: number): StarData[] {
     const r4 = ((r3 ^ (r3 >>> 16)) * 0x45d9f3b) >>> 0
     const r5 = ((r4 ^ (r4 >>> 16)) * 0x45d9f3b) >>> 0
     return {
-      x: (r1 >>> 0) / 0xffffffff * 100,
-      y: (r2 >>> 0) / 0xffffffff * 100,
-      size: (r3 >>> 0) / 0xffffffff * 1.8 + 0.4,
-      delay: (r4 >>> 0) / 0xffffffff * 8,
-      duration: (r5 >>> 0) / 0xffffffff * 4 + 3,
+      x: ((r1 >>> 0) / 0xffffffff) * 100,
+      y: ((r2 >>> 0) / 0xffffffff) * 100,
+      size: ((r3 >>> 0) / 0xffffffff) * 1.8 + 0.4,
+      delay: ((r4 >>> 0) / 0xffffffff) * 8,
+      duration: ((r5 >>> 0) / 0xffffffff) * 4 + 3,
     }
   })
 }
@@ -39,9 +39,7 @@ export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBa
   const nearRef = React.useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = React.useState(false)
 
-  const [farCount, midCount, nearCount] = variant === 'prominent'
-    ? [70, 40, 18]
-    : [40, 24, 10]
+  const [farCount, midCount, nearCount] = variant === 'prominent' ? [70, 40, 18] : [40, 24, 10]
 
   const farStars = React.useMemo(() => generateStars(farCount, 1), [farCount])
   const midStars = React.useMemo(() => generateStars(midCount, 2), [midCount])
@@ -102,10 +100,7 @@ export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBa
   }, [mounted])
 
   return (
-    <div
-      aria-hidden="true"
-      className={cn('pointer-events-none absolute inset-0 -z-10 overflow-hidden', className)}
-    >
+    <div aria-hidden="true" className={cn('pointer-events-none absolute inset-0 -z-10 overflow-hidden', className)}>
       {/* Nebula glows — large radial blurs for the "deep space" tint */}
       <div
         className="absolute -top-1/4 -left-1/4 h-3/4 w-3/4 rounded-full"

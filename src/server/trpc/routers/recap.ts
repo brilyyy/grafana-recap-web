@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { RecapValidationError, triggerRecap } from '@/lib/application/recap/trigger-recap'
-import { getAllCatalogEntries, getCatalogEntryByIdAsync } from '@/lib/domain/recap/catalog'
 import { logAuditEvent } from '@/lib/audit'
+import { getAllCatalogEntries, getCatalogEntryByIdAsync } from '@/lib/domain/recap/catalog'
 import { router, superAdminProcedure } from '../init'
 
 export const recapRouter = router({
@@ -49,5 +49,4 @@ export const recapRouter = router({
         throw e
       }
     }),
-
 })

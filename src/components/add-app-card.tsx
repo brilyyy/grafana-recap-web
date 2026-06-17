@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus } from 'lucide-react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -7,15 +8,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
-const schema = z.object({
-  app_name: z.string().trim().min(1, 'Application name is required'),
-})
-
-type FormValues = z.infer<typeof schema>
+type FormValues = { app_name: string }
 
 export default function AddAppCard() {
+  const schema = useMemo(
+    () => z.object({ app_name: z.string().trim().min(1, m.validation_app_name_required()) }),
+    [],
+  )
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { app_name: '' },
@@ -25,23 +28,23 @@ export default function AddAppCard() {
   const createApp = trpc.applications.create.useMutation({
     onSuccess: (result, vars) => {
       if (!result.success) {
-        toast.error(result.message || 'Failed to add application')
+        toast.error(result.message || m.addapp_toast_err())
         return
       }
-      toast.success(`Application "${vars.app_name}" added`)
+      toast.success(m.addapp_toast_added({ appName: vars.app_name }))
       form.reset()
       utils.applications.list.invalidate()
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to add application')
+      toast.error(error.message || m.addapp_toast_err())
     },
   })
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Add application</CardTitle>
-        <CardDescription>Register a new application to track.</CardDescription>
+        <CardTitle className="text-base font-medium">{m.addapp_title()}</CardTitle>
+        <CardDescription>{m.addapp_desc()}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -51,7 +54,7 @@ export default function AddAppCard() {
               name="app_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Application name</FormLabel>
+                  <FormLabel>{m.addapp_name_label()}</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g. BRImo" autoComplete="off" {...field} />
                   </FormControl>
@@ -61,7 +64,7 @@ export default function AddAppCard() {
             />
             <Button type="submit" disabled={createApp.isPending}>
               {createApp.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-              Add application
+              {m.addapp_title()}
             </Button>
           </form>
         </Form>

@@ -2,9 +2,10 @@
 
 This document describes how to configure the PostgreSQL server for the Dashboard Grafana platform.
 
-> **Note:** pg_cron has been removed — recap jobs run in the application via the
-> node-cron scheduler (`src/lib/scheduler.ts`), started automatically from `src/server.ts`.
-> No `shared_preload_libraries` or cron extension configuration is needed anymore.
+> **Note:** pg_cron has been removed — recap jobs run via a node-cron-based worker
+> process (`src/workers/scheduler-worker.ts`), forked automatically from `src/server.ts`
+> and driven by the `scheduler_jobs` DB table (not `src/lib/scheduler.ts`, which is dead
+> code). No `shared_preload_libraries` or cron extension configuration is needed anymore.
 
 ## PostgreSQL Requirements
 
@@ -12,8 +13,9 @@ This document describes how to configure the PostgreSQL server for the Dashboard
   transaction tables from source databases — see `pnpm db:migrate:fdw`).
 - The stored procedures deployed by `pnpm db:migrate:procedures`
   (`sp_process_*_daily`, `sp_recap_*_daily`).
-- Timezone handling is done by the app scheduler (`SCHEDULER_TIMEZONE`,
-  default `Asia/Jakarta`); the database can stay on UTC.
+- Timezone handling is per-job in the `scheduler_jobs` table (`timezone` column,
+  fallback `Asia/Jakarta`); `SCHEDULER_TIMEZONE` exists in `src/env.ts` but isn't
+  read by the worker. The database can stay on UTC.
 
 ## Application Environment
 
@@ -30,18 +32,10 @@ BETTER_AUTH_SECRET=...           # long random string
 BETTER_AUTH_URL=https://your-host # https enables secure cookies automatically
 ```
 
-Optional scheduler overrides (cron format, default `1 0 * * *`):
-
-```env
-SCHEDULER_TIMEZONE=Asia/Jakarta
-BALE_PROCESSING_SCHEDULE=1 0 * * *
-BALE_BISNIS_PROCESSING_SCHEDULE=1 0 * * *
-OLOB_PROCESSING_SCHEDULE=1 0 * * *
-CMS_PROCESSING_SCHEDULE=1 0 * * *
-BALE_KORPORA_PROCESSING_SCHEDULE=1 0 * * *
-CMS_CORP_RECAP_SCHEDULE=1 0 * * *
-BALE_KORPORA_CORP_RECAP_SCHEDULE=1 0 * * *
-```
+Scheduler jobs are **not** configured via env vars — they live in the `scheduler_jobs`
+DB table, either created live via Superadmin → Scheduler or seeded from `SEED_JOBS`
+in `src/db/seed-schedules.ts` on a fresh install. See
+[Processing Scheduler Technical Notes](processing-scheduler.md).
 
 ## FDW (postgres_fdw)
 
@@ -54,8 +48,8 @@ pnpm db:migrate:fdw
 
 ## Verify
 
-1. App startup log shows `Initializing scheduler...` and one
-   `✅ <job> scheduler configured` line per recap job.
+1. Worker startup log shows `Ready` (`{ pid, jobCount }`) and one `Job scheduled`
+   line per enabled job (see [Processing Scheduler Technical Notes](processing-scheduler.md)).
 2. `SELECT public.sp_process_bale_daily(NULL);` runs without error.
 3. Processing results land in `app_processing_log` (visible on the Summary page).
 
