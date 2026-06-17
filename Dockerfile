@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN apk add --no-cache python3 make g++ \
-    && pnpm install --frozen-lockfile
+    && pnpm install --frozen-lockfile --ignore-scripts
 
 # ── Stage 2: build ─────────────────────────────────────────────
 FROM node:20-alpine AS build
@@ -30,7 +30,7 @@ RUN corepack enable && corepack prepare pnpm@10 --activate \
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --prod \
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts \
     && pnpm store prune
 
 COPY --from=build /app/.output ./.output
