@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { loadProcedureMetas, type ProcedureMeta } from '@/db/sql-loader'
 import { normalizeAppNameToKey } from './resolve-app'
+import staticCatalog from './catalog-data.json'
 import type { RecapCatalogEntry, RecapScope } from './types'
 
 const DISPLAY_APP: Record<string, string> = {
@@ -38,11 +39,13 @@ function metaToEntry(m: ProcedureMeta): RecapCatalogEntry {
 }
 
 /**
- * Static catalog entries, parsed from the @meta frontmatter of each procedure .sql under
- * src/db/sql/03_procedures/. The .sql file is the single source of truth — no separate registry.
- * Synchronous, no DB access.
+ * Static catalog entries. In production, pre-generated from catalog-data.json
+ * (built by `scripts/generate-catalog.mjs`). In dev, falls back to reading
+ * .sql files from disk so new procedures appear without rebuilding.
  */
 export function buildRecapCatalog(): RecapCatalogEntry[] {
+  if (staticCatalog.length > 0) return staticCatalog as RecapCatalogEntry[]
+  // ponytail: dev fallback, remove if catalog-data.json is always generated
   return [...loadProcedureMetas('success_rate'), ...loadProcedureMetas('recap_models')].map(metaToEntry)
 }
 
@@ -85,12 +88,64 @@ async function getDbProcedureEntries(): Promise<RecapCatalogEntry[]> {
 }
 
 /**
- * Full catalog: static file-based entries + DB-registered custom procedures.
+ * Discover sp_* functions from pg_proc that aren't already covered by
+ * the static catalog or app_custom_procedure. Catches SPs deployed
+ * directly to the DB without a matching @meta .sql file.
+ */
+async function getUndocumentedProcedures(knownFunctions: Set<string>): Promise<RecapCatalogEntry[]> {
+  try {
+    const rows = await db.execute(sql`
+      SELECT
+        p.proname AS function_name,
+        d.description
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      LEFT JOIN pg_description d ON d.objoid = p.oid
+      WHERE n.nspname = 'public'
+        AND p.proname LIKE 'sp_%'
+        AND p.proname NOT LIKE 'sp_run_%'
+      ORDER BY p.proname
+    `)
+    return (rows as any[])
+      .filter((row) => !knownFunctions.has(row.function_name))
+      .map((row) => {
+        const fn = String(row.function_name)
+        const appKey = fn.replace(/^sp_(?:process|recap)_/, '').replace(/_daily$/, '')
+        const isRecap = fn.startsWith('sp_recap_')
+        const id = isRecap ? `rc:${appKey}` : `sr:${appKey}`
+        const title =
+          appKey
+            .split('_')
+            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ') + (isRecap ? ' — recap (daily)' : ' — success rate (daily)')
+        return {
+          id,
+          recapKind: isRecap ? 'recap_daily' : 'success_rate_daily',
+          title,
+          description: row.description ? String(row.description) : `Stored procedure: public.${fn}`,
+          briefProcessSummary: row.description ? String(row.description) : '',
+          briefQuery: `SELECT public.${fn}(p_processing_date::date)`,
+          outputTable: isRecap ? 'app_recap_output' : 'app_success_rate',
+          functionName: fn,
+          rawSqlRepoPath: '',
+          scope: { type: 'per_app' as const, appKey },
+        }
+      })
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Full catalog: static file-based entries + DB-registered custom procedures
+ * + auto-discovered sp_* functions not yet in the catalog.
  * Use this in server-side tRPC procedures and trigger-recap.
  */
 export async function getAllCatalogEntries(): Promise<RecapCatalogEntry[]> {
   const [staticEntries, dbEntries] = await Promise.all([Promise.resolve(buildRecapCatalog()), getDbProcedureEntries()])
-  return [...staticEntries, ...dbEntries]
+  const knownFunctions = new Set([...staticEntries, ...dbEntries].map((e) => e.functionName))
+  const undocumented = await getUndocumentedProcedures(knownFunctions)
+  return [...staticEntries, ...dbEntries, ...undocumented]
 }
 
 export function getCatalogEntryById(id: string): RecapCatalogEntry | undefined {

@@ -10,7 +10,7 @@
  * The CLI wrapper lives in migrate.ts; the tRPC router in routers/setup.ts.
  */
 import { randomUUID } from 'node:crypto'
-import argon2 from '@node-rs/argon2'
+import { hashPassword } from '../lib/password'
 import { type SQL, sql } from 'drizzle-orm'
 import type { Sql } from 'postgres'
 import { applyFdwConfig } from '../lib/fdw-setup'
@@ -492,8 +492,7 @@ export async function runSeeds(db: EngineDb, log: LogSink) {
       continue
     }
 
-    // argon2 hash used for both users.password_hash and account.password
-    const argon2Hash = await argon2.hash(password)
+    const passwordHash = await hashPassword(password)
     try {
       // ── Insert / upsert into `users` (application table) ──────────────────
       let userId: number | null = null
@@ -502,7 +501,7 @@ export async function runSeeds(db: EngineDb, log: LogSink) {
       if (hasBetterAuthCols) {
         rows = await execSql(sql`
           INSERT INTO "users" ("username","email","password_hash","role","name","email_verified")
-          VALUES (${username},${email},${argon2Hash},'superadmin',${username},1)
+          VALUES (${username},${email},${passwordHash},'superadmin',${username},1)
           ON CONFLICT ("username") DO UPDATE SET
             "email"="excluded"."email",
             "password_hash"="excluded"."password_hash",
@@ -512,7 +511,7 @@ export async function runSeeds(db: EngineDb, log: LogSink) {
       } else {
         rows = await execSql(sql`
           INSERT INTO "users" ("username","email","password_hash","role")
-          VALUES (${username},${email},${argon2Hash},'superadmin')
+          VALUES (${username},${email},${passwordHash},'superadmin')
           ON CONFLICT ("username") DO UPDATE SET
             "email"="excluded"."email",
             "password_hash"="excluded"."password_hash"
@@ -532,14 +531,14 @@ export async function runSeeds(db: EngineDb, log: LogSink) {
 
         if (existingAccountId) {
           await execSql(
-            sql`UPDATE "account" SET "password"=${argon2Hash},"updated_at"=NOW() WHERE "id"=${existingAccountId}`,
+            sql`UPDATE "account" SET "password"=${passwordHash},"updated_at"=NOW() WHERE "id"=${existingAccountId}`,
           )
           log(`  ✅ BetterAuth credential updated for: ${username}`)
         } else {
           const accountId = randomUUID()
           await execSql(sql`
             INSERT INTO "account" ("id","account_id","provider_id","user_id","password","created_at","updated_at")
-            VALUES (${accountId},${String(userId)},'credential',${userId},${argon2Hash},NOW(),NOW())`)
+            VALUES (${accountId},${String(userId)},'credential',${userId},${passwordHash},NOW(),NOW())`)
           log(`  ✅ BetterAuth credential account linked for: ${username}`)
         }
       } else {
@@ -551,6 +550,70 @@ export async function runSeeds(db: EngineDb, log: LogSink) {
   }
 
   log('  ✅ Phase 7 done')
+}
+
+// ─── Phase 7b: Auto-register existing DB procedures ──────────────────────────
+
+async function migrateExistingProcedures(db: EngineDb, log: LogSink) {
+  const { exec, execSql, tableExists } = bind(db)
+
+  if (!(await tableExists('app_custom_procedure'))) {
+    log('\n🔄 Skipping procedure migration (app_custom_procedure not yet created)')
+    return
+  }
+
+  log('\n🔄 Phase 7b: Auto-register existing DB procedures')
+
+  const existing = await execSql(sql`
+    SELECT p.proname AS function_name,
+           pg_get_functiondef(p.oid) AS sql_text
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname LIKE 'sp_%'
+      AND p.proname NOT IN (SELECT function_name FROM app_custom_procedure)
+    ORDER BY p.proname
+  `)
+
+  if (existing.length === 0) {
+    log('  ✅ No unregistered procedures found')
+    return
+  }
+
+  const migratedApp = await execSql(sql`
+    INSERT INTO app_identifier (app_name) VALUES ('Migrated')
+    ON CONFLICT (app_name) DO UPDATE SET updated_at = NOW()
+    RETURNING id
+  `)
+  const migratedAppId = (migratedApp[0] as Record<string, unknown>).id as number
+
+  for (const row of existing as Record<string, unknown>[]) {
+    const fn = row.function_name as string
+    const sqlText = row.sql_text as string
+
+    const appKey = fn
+      .replace(/^sp_process_/, '')
+      .replace(/^sp_recap_/, '')
+      .replace(/_daily$/, '')
+
+    const appMatch = await execSql(sql`
+      SELECT id FROM app_identifier
+      WHERE LOWER(REPLACE(app_name, ' ', '_')) = ${appKey}
+         OR LOWER(app_name) = ${appKey.replace(/_/g, ' ')}
+      LIMIT 1
+    `)
+
+    const appId = appMatch.length > 0 ? (appMatch[0] as Record<string, unknown>).id as number : migratedAppId
+
+    await execSql(sql`
+      INSERT INTO app_custom_procedure (id_app_identifier, function_name, recap_kind, output_table, sql_text)
+      VALUES (${appId}, ${fn}, 'success_rate_daily', 'app_success_rate', ${sqlText})
+      ON CONFLICT (function_name) DO NOTHING
+    `)
+    log(`  ✅ Registered: ${fn} → app_identifier id=${appId}`)
+  }
+
+  log('  ✅ Phase 7b done')
 }
 
 // ─── Phase 8: Scheduler jobs table + seed ────────────────────────────────────
@@ -604,6 +667,7 @@ export async function applyPhase(
     case 'procedures':
       await runStoredProcedures(db, log)
       await runRecapModelProcedures(db, log)
+      await migrateExistingProcedures(db, log)
       break
     case 'seed':
       await runSeeds(db, log)
@@ -616,6 +680,7 @@ export async function applyPhase(
       await runFdwSetup(db, log, client)
       await runStoredProcedures(db, log)
       await runRecapModelProcedures(db, log)
+      await migrateExistingProcedures(db, log)
       await runSeeds(db, log)
       await runCronSetup(db, log)
       break

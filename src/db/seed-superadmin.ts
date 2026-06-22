@@ -6,7 +6,7 @@
  * Supports comma-separated values for multiple superadmins.
  *
  * Upserts into `users` table with role `superadmin` and links BetterAuth
- * credential accounts with argon2 password hashing.
+ * credential accounts with scrypt password hashing.
  *
  * Idempotent — safe to re-run.
  *
@@ -19,9 +19,9 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 import { eq } from 'drizzle-orm'
-import { db } from '@/db'
-import { accounts, users } from '@/db/schema'
-import { hashPassword } from '@/lib/auth'
+import { db } from '../db'
+import { accounts, users } from '../db/schema'
+import { hashPassword } from '../lib/password'
 
 async function main() {
   const usernames = (process.env.DEFAULT_SU_USERNAME ?? '')

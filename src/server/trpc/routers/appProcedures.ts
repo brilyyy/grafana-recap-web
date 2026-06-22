@@ -19,6 +19,77 @@ export const appProceduresRouter = router({
     return { success: true, data: { procedures: result as any[] } }
   }),
 
+  listAll: superAdminProcedure.query(async () => {
+    const result = await db.execute(sql`
+        SELECT
+          acp.id, acp.function_name, acp.recap_kind, acp.output_table,
+          acp.schedule_cron, acp.description, acp.id_app_identifier,
+          ai.app_name,
+          acp.created_at, acp.updated_at
+        FROM app_custom_procedure acp
+        JOIN app_identifier ai ON ai.id = acp.id_app_identifier
+        ORDER BY acp.function_name
+      `)
+    return { success: true, data: { procedures: result as any[] } }
+  }),
+
+  reassign: superAdminProcedure
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        appId: z.number().int().positive(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const row = (
+        await db.execute(sql`SELECT function_name FROM app_custom_procedure WHERE id = ${input.id}`)
+      )[0] as { function_name: string } | undefined
+
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND', message: 'Procedure not found' })
+
+      const app = (await db.execute(sql`SELECT app_name FROM app_identifier WHERE id = ${input.appId}`))[0] as
+        | { app_name: string }
+        | undefined
+
+      if (!app) throw new TRPCError({ code: 'NOT_FOUND', message: 'Target application not found' })
+
+      await db.execute(sql`
+        UPDATE app_custom_procedure SET id_app_identifier = ${input.appId}, updated_at = NOW()
+        WHERE id = ${input.id}
+      `)
+
+      await logAuditEvent(
+        ctx.session.userId,
+        ctx.session.username,
+        'APP_PROCEDURE_REASSIGNED',
+        'app_custom_procedure',
+        String(input.id),
+        `function=${row.function_name}, new_app=${app.app_name} (id=${input.appId})`,
+      )
+
+      return { success: true, message: `${row.function_name} reassigned to ${app.app_name}` }
+    }),
+
+  duplicates: superAdminProcedure.query(async () => {
+    const dbRows = (await db.execute(sql`
+        SELECT function_name FROM app_custom_procedure
+      `)) as { function_name: string }[]
+    const dbFns = new Set(dbRows.map((r) => r.function_name))
+
+    const staticEntries = (await import('@/lib/domain/recap/catalog')).buildRecapCatalog()
+    const staticFns = staticEntries.map((e) => e.functionName).filter(Boolean)
+
+    const duplicates = staticFns.filter((fn) => dbFns.has(fn))
+    return {
+      success: true,
+      data: {
+        duplicates,
+        totalStatic: staticFns.length,
+        totalDb: dbFns.size,
+      },
+    }
+  }),
+
   register: superAdminProcedure
     .input(
       z.object({

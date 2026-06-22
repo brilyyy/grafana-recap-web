@@ -22,6 +22,8 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
   const DB_USER = process.env.DB_USER ?? 'root'
   const DB_PASSWORD = process.env.DB_PASSWORD ?? ''
   const DB_USER_TARGET = process.env.DB_USER_TARGET?.trim() || null
+  const DB_USER_DATA_VIEWER = process.env.DB_USER_DATA_VIEWER?.trim() || null
+  const targetUsers = [DB_USER_TARGET, DB_USER_DATA_VIEWER].filter(Boolean) as string[]
 
   async function exec(text: string): Promise<unknown[]> {
     return await sqlClient.unsafe(text)
@@ -43,14 +45,14 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
   }
 
   // 2. Load fdw_source_table rows
-  const pairs = new Map<string, Set<string>>()
+  const pairs = new Map<string, { tables: Set<string>; host: string }>()
   if (await tableExists('fdw_source_table')) {
     const fdwRows = (await exec(
-      `SELECT source_db_name, table_name FROM "fdw_source_table" ORDER BY source_db_name, table_name`,
-    )) as { source_db_name: string; table_name: string }[]
+      `SELECT source_db_name, table_name, host FROM "fdw_source_table" ORDER BY source_db_name, table_name`,
+    )) as { source_db_name: string; table_name: string; host: string | null }[]
     for (const r of fdwRows) {
-      if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, new Set())
-      pairs.get(r.source_db_name)!.add(r.table_name)
+      if (!pairs.has(r.source_db_name)) pairs.set(r.source_db_name, { tables: new Set(), host: r.host ?? DB_HOST })
+      pairs.get(r.source_db_name)!.tables.add(r.table_name)
     }
   }
 
@@ -58,22 +60,22 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
   const claimedViewNames = new Set<string>()
   const esc = (s: string) => s.replace(/'/g, "''")
 
-  for (const [dbName, tables] of pairs) {
+  for (const [dbName, { tables, host }] of pairs) {
     const serverName = `${dbName}_server`
     try {
       await exec(`DROP SERVER IF EXISTS "${serverName}" CASCADE`)
       await exec(`
         CREATE SERVER "${serverName}"
         FOREIGN DATA WRAPPER postgres_fdw
-        OPTIONS (host '${esc(DB_HOST)}', dbname '${esc(dbName)}', port '${esc(DB_PORT)}')
+        OPTIONS (host '${esc(host)}', dbname '${esc(dbName)}', port '${esc(DB_PORT)}')
       `)
       await exec(`
         CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER
         SERVER "${serverName}"
         OPTIONS (user '${esc(DB_USER)}', password '${esc(DB_PASSWORD)}')
       `)
-      if (DB_USER_TARGET) {
-        const targetEsc = DB_USER_TARGET.replace(/"/g, '""')
+      for (const targetUser of targetUsers) {
+        const targetEsc = targetUser.replace(/"/g, '""')
         try {
           await exec(`
             CREATE USER MAPPING IF NOT EXISTS FOR "${targetEsc}"
@@ -85,7 +87,7 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
             OPTIONS (SET user '${esc(DB_USER)}', SET password '${esc(DB_PASSWORD)}')
           `)
         } catch (e: unknown) {
-          result.errors.push(`User mapping ${DB_USER_TARGET} on ${serverName}: ${(e as Error).message}`)
+          result.errors.push(`User mapping ${targetUser} on ${serverName}: ${(e as Error).message}`)
         }
         try {
           await exec(`GRANT USAGE ON FOREIGN SERVER "${serverName}" TO "${targetEsc}"`)
@@ -110,9 +112,9 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
           await exec(`ALTER FOREIGN TABLE _fdw_import_tmp."${localFtName}" SET SCHEMA public`)
           await exec(`DROP SCHEMA _fdw_import_tmp`)
 
-          if (DB_USER_TARGET) {
+          for (const targetUser of targetUsers) {
             try {
-              await exec(`GRANT SELECT ON "${localFtName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
+              await exec(`GRANT SELECT ON "${localFtName}" TO "${targetUser.replace(/"/g, '""')}"`)
             } catch (e: unknown) {
               result.errors.push(`GRANT SELECT on ${localFtName}: ${(e as Error).message}`)
             }
@@ -121,9 +123,9 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
           if (!claimedViewNames.has(tableName)) {
             claimedViewNames.add(tableName)
             await exec(`CREATE OR REPLACE VIEW "${tableName}" AS SELECT * FROM "${localFtName}"`)
-            if (DB_USER_TARGET) {
+            for (const targetUser of targetUsers) {
               try {
-                await exec(`GRANT SELECT ON "${tableName}" TO "${DB_USER_TARGET.replace(/"/g, '""')}"`)
+                await exec(`GRANT SELECT ON "${tableName}" TO "${targetUser.replace(/"/g, '""')}"`)
               } catch (e: unknown) {
                 result.errors.push(`GRANT SELECT on view ${tableName}: ${(e as Error).message}`)
               }

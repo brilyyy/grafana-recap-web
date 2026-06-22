@@ -30,7 +30,6 @@ function getPageTitle(pathname: string): string {
     '/superadmin/processing': m.nav_processing(),
     '/superadmin/jobs': m.nav_jobs(),
     '/superadmin/scheduler': m.nav_scheduler(),
-    '/superadmin/config': m.nav_app_config(),
     '/superadmin/databases': m.nav_databases(),
     '/superadmin/housekeeping': m.nav_housekeeping(),
   }

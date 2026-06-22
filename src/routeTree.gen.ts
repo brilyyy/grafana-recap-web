@@ -32,7 +32,6 @@ import { Route as DashboardSuperadminJobsRouteImport } from './routes/_dashboard
 import { Route as DashboardSuperadminIndexAnalyzerRouteImport } from './routes/_dashboard/superadmin/index-analyzer'
 import { Route as DashboardSuperadminHousekeepingRouteImport } from './routes/_dashboard/superadmin/housekeeping'
 import { Route as DashboardSuperadminDatabasesRouteImport } from './routes/_dashboard/superadmin/databases'
-import { Route as DashboardSuperadminConfigRouteImport } from './routes/_dashboard/superadmin/config'
 import { Route as DashboardSuperadminAuditLogsRouteImport } from './routes/_dashboard/superadmin/audit-logs'
 import { Route as DashboardDocsSplatRouteImport } from './routes/_dashboard/docs/$'
 import { Route as DashboardSuperadminApplicationAppIdRouteImport } from './routes/_dashboard/superadmin/application.$appId'
@@ -158,12 +157,6 @@ const DashboardSuperadminDatabasesRoute =
     path: '/superadmin/databases',
     getParentRoute: () => DashboardRoute,
   } as any)
-const DashboardSuperadminConfigRoute =
-  DashboardSuperadminConfigRouteImport.update({
-    id: '/superadmin/config',
-    path: '/superadmin/config',
-    getParentRoute: () => DashboardRoute,
-  } as any)
 const DashboardSuperadminAuditLogsRoute =
   DashboardSuperadminAuditLogsRouteImport.update({
     id: '/superadmin/audit-logs',
@@ -196,7 +189,6 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/docs/$': typeof DashboardDocsSplatRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
-  '/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/superadmin/databases': typeof DashboardSuperadminDatabasesRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/superadmin/index-analyzer': typeof DashboardSuperadminIndexAnalyzerRoute
@@ -223,7 +215,6 @@ export interface FileRoutesByTo {
   '/': typeof DashboardIndexRoute
   '/docs/$': typeof DashboardDocsSplatRoute
   '/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
-  '/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/superadmin/databases': typeof DashboardSuperadminDatabasesRoute
   '/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/superadmin/index-analyzer': typeof DashboardSuperadminIndexAnalyzerRoute
@@ -253,7 +244,6 @@ export interface FileRoutesById {
   '/_dashboard/': typeof DashboardIndexRoute
   '/_dashboard/docs/$': typeof DashboardDocsSplatRoute
   '/_dashboard/superadmin/audit-logs': typeof DashboardSuperadminAuditLogsRoute
-  '/_dashboard/superadmin/config': typeof DashboardSuperadminConfigRoute
   '/_dashboard/superadmin/databases': typeof DashboardSuperadminDatabasesRoute
   '/_dashboard/superadmin/housekeeping': typeof DashboardSuperadminHousekeepingRoute
   '/_dashboard/superadmin/index-analyzer': typeof DashboardSuperadminIndexAnalyzerRoute
@@ -283,7 +273,6 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/docs/$'
     | '/superadmin/audit-logs'
-    | '/superadmin/config'
     | '/superadmin/databases'
     | '/superadmin/housekeeping'
     | '/superadmin/index-analyzer'
@@ -310,7 +299,6 @@ export interface FileRouteTypes {
     | '/'
     | '/docs/$'
     | '/superadmin/audit-logs'
-    | '/superadmin/config'
     | '/superadmin/databases'
     | '/superadmin/housekeeping'
     | '/superadmin/index-analyzer'
@@ -339,7 +327,6 @@ export interface FileRouteTypes {
     | '/_dashboard/'
     | '/_dashboard/docs/$'
     | '/_dashboard/superadmin/audit-logs'
-    | '/_dashboard/superadmin/config'
     | '/_dashboard/superadmin/databases'
     | '/_dashboard/superadmin/housekeeping'
     | '/_dashboard/superadmin/index-analyzer'
@@ -526,13 +513,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSuperadminDatabasesRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/_dashboard/superadmin/config': {
-      id: '/_dashboard/superadmin/config'
-      path: '/superadmin/config'
-      fullPath: '/superadmin/config'
-      preLoaderRoute: typeof DashboardSuperadminConfigRouteImport
-      parentRoute: typeof DashboardRoute
-    }
     '/_dashboard/superadmin/audit-logs': {
       id: '/_dashboard/superadmin/audit-logs'
       path: '/superadmin/audit-logs'
@@ -581,7 +561,6 @@ interface DashboardRouteChildren {
   DashboardUploadsRoute: typeof DashboardUploadsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardSuperadminAuditLogsRoute: typeof DashboardSuperadminAuditLogsRoute
-  DashboardSuperadminConfigRoute: typeof DashboardSuperadminConfigRoute
   DashboardSuperadminDatabasesRoute: typeof DashboardSuperadminDatabasesRoute
   DashboardSuperadminHousekeepingRoute: typeof DashboardSuperadminHousekeepingRoute
   DashboardSuperadminIndexAnalyzerRoute: typeof DashboardSuperadminIndexAnalyzerRoute
@@ -603,7 +582,6 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardUploadsRoute: DashboardUploadsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardSuperadminAuditLogsRoute: DashboardSuperadminAuditLogsRoute,
-  DashboardSuperadminConfigRoute: DashboardSuperadminConfigRoute,
   DashboardSuperadminDatabasesRoute: DashboardSuperadminDatabasesRoute,
   DashboardSuperadminHousekeepingRoute: DashboardSuperadminHousekeepingRoute,
   DashboardSuperadminIndexAnalyzerRoute: DashboardSuperadminIndexAnalyzerRoute,

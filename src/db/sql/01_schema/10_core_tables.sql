@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS "fdw_source_table" (
   "source_db_name"  VARCHAR(255) NOT NULL,
   "table_name"      VARCHAR(255) NOT NULL,
   "schema_name"     VARCHAR(255) DEFAULT 'public',
+  "host"            VARCHAR(255) DEFAULT NULL,
   "created_at"      TIMESTAMP DEFAULT NOW() NOT NULL,
   UNIQUE("source_db_name", "table_name")
 );

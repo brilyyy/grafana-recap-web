@@ -1,5 +1,5 @@
-import argon2 from '@node-rs/argon2'
 import { betterAuth } from 'better-auth'
+import { hashPassword, verifyPassword } from './password'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { createAuthMiddleware } from 'better-auth/api'
 import { admin, username } from 'better-auth/plugins'
@@ -42,8 +42,8 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: false,
     password: {
-      hash: async (password: string) => argon2.hash(password),
-      verify: async ({ password, hash }: { password: string; hash: string }) => argon2.verify(hash, password),
+      hash: async (password: string) => hashPassword(password),
+      verify: async ({ password, hash }: { password: string; hash: string }) => verifyPassword(hash, password),
     },
   },
 

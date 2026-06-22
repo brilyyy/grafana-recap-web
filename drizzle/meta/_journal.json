@@ -15,6 +15,13 @@
       "when": 1781334966805,
       "tag": "0001_careless_norman_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782100698614,
+      "tag": "0002_worthless_lockheed",
+      "breakpoints": true
     }
   ]
 }

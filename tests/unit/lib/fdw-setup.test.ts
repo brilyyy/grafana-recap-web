@@ -6,7 +6,7 @@ import { MockSql } from '../../helpers/mock-sql'
  * applyFdwConfig call-order for a single source row:
  *  [0] CREATE EXTENSION IF NOT EXISTS postgres_fdw
  *  [1] SELECT EXISTS … (tableExists 'fdw_source_table')
- *  [2] SELECT source_db_name, table_name FROM fdw_source_table
+ *  [2] SELECT source_db_name, table_name, host FROM fdw_source_table
  *  [3] DROP SERVER … CASCADE
  *  [4] CREATE SERVER …
  *  [5] CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER

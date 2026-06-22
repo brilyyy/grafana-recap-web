@@ -1,5 +1,7 @@
-import argon2 from '@node-rs/argon2'
 import { auth } from './better-auth'
+import { hashPassword, verifyPassword } from './password'
+
+export { hashPassword, verifyPassword }
 
 export type UserRole = 'superadmin' | 'admin' | 'user'
 
@@ -63,10 +65,4 @@ export async function requireSuperAdmin(request: Request): Promise<SessionPayloa
   return requireRole(request, 'superadmin')
 }
 
-export async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password)
-}
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return argon2.verify(hash, password)
-}

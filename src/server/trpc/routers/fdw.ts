@@ -30,7 +30,7 @@ async function runFdwApply() {
 export const fdwRouter = router({
   list: superAdminProcedure.query(async () => {
     const rows = await db.execute(
-      sql`SELECT id, source_db_name, table_name, schema_name, created_at FROM fdw_source_table ORDER BY source_db_name, table_name`,
+      sql`SELECT id, source_db_name, table_name, schema_name, host, created_at FROM fdw_source_table ORDER BY source_db_name, table_name`,
     )
     return { success: true, data: { fdwSources: rows as any[] } }
   }),
@@ -41,13 +41,14 @@ export const fdwRouter = router({
         source_db_name: z.string().min(1),
         table_name: z.string().min(1),
         schema_name: z.string().optional().default('public'),
+        host: z.string().optional().default(''),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       try {
         await db.execute(sql`
-          INSERT INTO fdw_source_table (source_db_name, table_name, schema_name)
-          VALUES (${input.source_db_name}, ${input.table_name}, ${input.schema_name ?? 'public'})
+          INSERT INTO fdw_source_table (source_db_name, table_name, schema_name, host)
+          VALUES (${input.source_db_name}, ${input.table_name}, ${input.schema_name ?? 'public'}, ${input.host || null})
         `)
         await logAuditEvent(
           ctx.session.userId,

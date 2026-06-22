@@ -2,7 +2,6 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import {
   BookOpen,
   Cog,
-  Database,
   DatabaseZap,
   FileText,
   Gauge,
@@ -52,7 +51,6 @@ const superadminNav = [
   { title: m.nav_jobs, to: '/superadmin/jobs', icon: ListChecks },
   { title: m.nav_scheduler, to: '/superadmin/scheduler', icon: Timer },
   { title: m.nav_databases, to: '/superadmin/databases', icon: Server },
-  { title: m.nav_app_config, to: '/superadmin/config', icon: Database },
   { title: m.nav_index_analyzer, to: '/superadmin/index-analyzer', icon: DatabaseZap },
   { title: m.nav_housekeeping, to: '/superadmin/housekeeping', icon: Trash2 },
 ] as const

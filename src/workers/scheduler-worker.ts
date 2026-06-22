@@ -7,7 +7,6 @@
  * Communicates with the parent via IPC messages.
  */
 
-import 'dotenv/config'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
@@ -36,6 +35,17 @@ const db = drizzle(client)
 const runningTasks = new Map<number, { stop: () => void }>()
 let currentJobs: (typeof schedulerJobs.$inferSelect)[] = []
 
+function logJobSummary(triggerJob: string) {
+  const summary = currentJobs.map((j) => ({
+    name: j.name,
+    enabled: j.enabled,
+    schedule: j.schedule,
+    lastStatus: j.lastStatus ?? 'pending',
+    lastRunAt: j.lastRunAt ?? null,
+  }))
+  log.info({ trigger: triggerJob, activeJobs: summary.length, jobs: summary }, 'Active jobs summary')
+}
+
 async function loadJobs() {
   currentJobs = await db.select().from(schedulerJobs).where(eq(schedulerJobs.enabled, true))
   return currentJobs
@@ -57,6 +67,10 @@ async function updateJobStatus(id: number, status: string, error?: string) {
       updatedAt: new Date(),
     })
     .where(eq(schedulerJobs.id, id))
+}
+
+async function refreshJobs() {
+  currentJobs = await db.select().from(schedulerJobs).where(eq(schedulerJobs.enabled, true))
 }
 
 async function startAll() {
@@ -94,6 +108,8 @@ async function startAll() {
           )
           await updateJobStatus(job.id, 'error', error.message)
         }
+        await refreshJobs()
+        logJobSummary(job.name)
       },
       { timezone: job.timezone ?? 'Asia/Jakarta' },
     )
