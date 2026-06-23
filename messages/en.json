@@ -420,6 +420,8 @@
   "jobs_col_kind": "Kind",
   "jobs_col_run": "Run",
   "jobs_run_title": "Run now (empty date = H-1)",
+  "jobs_not_deployed_badge": "Not deployed",
+  "jobs_not_deployed_title": "Stored procedure not found in this database — cannot run",
   "jobs_doc_label": "Doc:",
   "jobs_query_label": "Representative query (brief)",
   "jobs_toast_triggered": "Job triggered",

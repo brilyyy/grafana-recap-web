@@ -88,11 +88,10 @@ async function getDbProcedureEntries(): Promise<RecapCatalogEntry[]> {
 }
 
 /**
- * Discover sp_* functions from pg_proc that aren't already covered by
- * the static catalog or app_custom_procedure. Catches SPs deployed
- * directly to the DB without a matching @meta .sql file.
+ * sp_* functions currently deployed in the public schema. Single source of
+ * truth for both "is this catalog entry live" and "what's undocumented".
  */
-async function getUndocumentedProcedures(knownFunctions: Set<string>): Promise<RecapCatalogEntry[]> {
+async function getLiveSpFunctions(): Promise<{ function_name: string; description: string | null }[]> {
   try {
     const rows = await db.execute(sql`
       SELECT
@@ -106,34 +105,47 @@ async function getUndocumentedProcedures(knownFunctions: Set<string>): Promise<R
         AND p.proname NOT LIKE 'sp_run_%'
       ORDER BY p.proname
     `)
-    return (rows as any[])
-      .filter((row) => !knownFunctions.has(row.function_name))
-      .map((row) => {
-        const fn = String(row.function_name)
-        const appKey = fn.replace(/^sp_(?:process|recap)_/, '').replace(/_daily$/, '')
-        const isRecap = fn.startsWith('sp_recap_')
-        const id = isRecap ? `rc:${appKey}` : `sr:${appKey}`
-        const title =
-          appKey
-            .split('_')
-            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ') + (isRecap ? ' — recap (daily)' : ' — success rate (daily)')
-        return {
-          id,
-          recapKind: isRecap ? 'recap_daily' : 'success_rate_daily',
-          title,
-          description: row.description ? String(row.description) : `Stored procedure: public.${fn}`,
-          briefProcessSummary: row.description ? String(row.description) : '',
-          briefQuery: `SELECT public.${fn}(p_processing_date::date)`,
-          outputTable: isRecap ? 'app_recap_output' : 'app_success_rate',
-          functionName: fn,
-          rawSqlRepoPath: '',
-          scope: { type: 'per_app' as const, appKey },
-        }
-      })
+    return (rows as any[]).map((r) => ({ function_name: String(r.function_name), description: r.description ?? null }))
   } catch {
     return []
   }
+}
+
+/**
+ * Discover sp_* functions from pg_proc that aren't already covered by
+ * the static catalog or app_custom_procedure. Catches SPs deployed
+ * directly to the DB without a matching @meta .sql file.
+ */
+function getUndocumentedProcedures(
+  liveRows: { function_name: string; description: string | null }[],
+  knownFunctions: Set<string>,
+): RecapCatalogEntry[] {
+  return liveRows
+    .filter((row) => !knownFunctions.has(row.function_name))
+    .map((row) => {
+      const fn = String(row.function_name)
+      const appKey = fn.replace(/^sp_(?:process|recap)_/, '').replace(/_daily$/, '')
+      const isRecap = fn.startsWith('sp_recap_')
+      const id = isRecap ? `rc:${appKey}` : `sr:${appKey}`
+      const title =
+        appKey
+          .split('_')
+          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ') + (isRecap ? ' — recap (daily)' : ' — success rate (daily)')
+      return {
+        id,
+        recapKind: isRecap ? 'recap_daily' : 'success_rate_daily',
+        title,
+        description: row.description ? String(row.description) : `Stored procedure: public.${fn}`,
+        briefProcessSummary: row.description ? String(row.description) : '',
+        briefQuery: `SELECT public.${fn}(p_processing_date::date)`,
+        outputTable: isRecap ? 'app_recap_output' : 'app_success_rate',
+        functionName: fn,
+        rawSqlRepoPath: '',
+        scope: { type: 'per_app' as const, appKey },
+        existsInDb: true,
+      }
+    })
 }
 
 /**
@@ -142,10 +154,16 @@ async function getUndocumentedProcedures(knownFunctions: Set<string>): Promise<R
  * Use this in server-side tRPC procedures and trigger-recap.
  */
 export async function getAllCatalogEntries(): Promise<RecapCatalogEntry[]> {
-  const [staticEntries, dbEntries] = await Promise.all([Promise.resolve(buildRecapCatalog()), getDbProcedureEntries()])
+  const [staticEntries, dbEntries, liveRows] = await Promise.all([
+    Promise.resolve(buildRecapCatalog()),
+    getDbProcedureEntries(),
+    getLiveSpFunctions(),
+  ])
   const knownFunctions = new Set([...staticEntries, ...dbEntries].map((e) => e.functionName))
-  const undocumented = await getUndocumentedProcedures(knownFunctions)
-  return [...staticEntries, ...dbEntries, ...undocumented]
+  const liveSet = new Set(liveRows.map((r) => r.function_name))
+  const annotated = [...staticEntries, ...dbEntries].map((e) => ({ ...e, existsInDb: liveSet.has(e.functionName) }))
+  const undocumented = getUndocumentedProcedures(liveRows, knownFunctions)
+  return [...annotated, ...undocumented]
 }
 
 export function getCatalogEntryById(id: string): RecapCatalogEntry | undefined {

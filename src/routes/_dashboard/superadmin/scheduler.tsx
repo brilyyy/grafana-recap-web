@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { CronDescription } from '@/components/cron-description'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -187,6 +188,7 @@ function SchedulerPage() {
                         <FormControl>
                           <Input placeholder="1 0 * * *" className="font-mono" {...field} />
                         </FormControl>
+                        <CronDescription value={field.value} />
                         <FormMessage />
                       </FormItem>
                     )}

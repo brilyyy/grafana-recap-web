@@ -80,6 +80,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      cronstrue:
+        specifier: ^3.20.0
+        version: 3.20.0
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -3421,6 +3424,10 @@ packages:
 
   crelt@1.0.6:
     resolution: {integrity: sha512-VQ2MBenTq1fWZUH9DJNGti7kKv6EeAuYr3cLwxUWhIu1baTaXh4Ib5W2CqHVqib4/MqbYGJqiL3Zb8GJZr3l4g==}
+
+  cronstrue@3.20.0:
+    resolution: {integrity: sha512-2VOOE8DSemXhqEtlU23GBMoeowHnhcto+HPelhtCfM5cP+PB59UOuoeOIBQATzKSW+RfOGF7OJjcwfaUxRW6QQ==}
+    hasBin: true
 
   cross-env@7.0.3:
     resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
@@ -8782,6 +8789,8 @@ snapshots:
       readable-stream: 4.7.0
 
   crelt@1.0.6: {}
+
+  cronstrue@3.20.0: {}
 
   cross-env@7.0.3:
     dependencies:

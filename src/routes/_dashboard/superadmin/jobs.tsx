@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ChevronDown, ChevronRight, Loader2, Play } from 'lucide-react'
 import { Fragment, useState } from 'react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -76,7 +77,16 @@ function JobsPage() {
                           <ChevronRight className="size-4 text-muted-foreground" />
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{row.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {row.title}
+                          {row.existsInDb === false && (
+                            <Badge variant="destructive" title={m.jobs_not_deployed_title()}>
+                              {m.jobs_not_deployed_badge()}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="hidden font-mono text-xs text-muted-foreground md:table-cell">
                         {row.id}
                       </TableCell>
@@ -98,8 +108,8 @@ function JobsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={triggerMutation.isPending}
-                            title={m.jobs_run_title()}
+                            disabled={triggerMutation.isPending || row.existsInDb === false}
+                            title={row.existsInDb === false ? m.jobs_not_deployed_title() : m.jobs_run_title()}
                             onClick={() => {
                               const d = manualDates[row.id]?.trim()
                               triggerMutation.mutate({ catalogEntryId: row.id, date: d || undefined })

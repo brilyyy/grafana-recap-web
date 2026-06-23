@@ -41,7 +41,6 @@ const workspaceNav = [
   { title: m.nav_uploads, to: '/uploads', icon: Upload },
   { title: m.nav_transactions, to: '/transactions', icon: ReceiptText },
   { title: m.nav_docs, to: '/docs', icon: FileText },
-  { title: m.nav_settings, to: '/settings', icon: Settings },
 ] as const
 
 const superadminNav = [
@@ -120,6 +119,16 @@ export function AppSidebar({ user }: { user: SessionUser }) {
         )}
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/settings'} tooltip={m.nav_settings()}>
+              <Link to="/settings">
+                <Settings />
+                <span>{m.nav_settings()}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />

@@ -420,6 +420,8 @@
   "jobs_col_kind": "Kind",
   "jobs_col_run": "Run",
   "jobs_run_title": "Run sekarang (tanggal kosong = H-1)",
+  "jobs_not_deployed_badge": "Belum deploy",
+  "jobs_not_deployed_title": "Stored procedure-nya gak ketemu di database ini — gak bisa di-run",
   "jobs_doc_label": "Doc:",
   "jobs_query_label": "Query representatif (singkat)",
   "jobs_toast_triggered": "Job udah di-trigger",

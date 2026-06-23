@@ -1,5 +1,17 @@
-import { describe, expect, it } from 'vitest'
-import { buildRecapCatalog, catalogEntryToLogFilter, getCatalogEntryById } from '@/lib/domain/recap/catalog'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mockDb = vi.hoisted(() => ({
+  execute: vi.fn().mockResolvedValue([]),
+}))
+
+vi.mock('@/db', () => ({ db: mockDb }))
+
+import {
+  buildRecapCatalog,
+  catalogEntryToLogFilter,
+  getAllCatalogEntries,
+  getCatalogEntryById,
+} from '@/lib/domain/recap/catalog'
 
 /** Expected sr: app keys from PROCEDURE_APPS */
 const SR_KEYS = [
@@ -83,5 +95,28 @@ describe('catalogEntryToLogFilter', () => {
     const filter = catalogEntryToLogFilter(entry)
     expect(filter.appName).toBe('CMS')
     expect(filter.catalogEntryId).toBe('cms_corp_daily')
+  })
+})
+
+describe('getAllCatalogEntries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockDb.execute.mockResolvedValue([])
+  })
+
+  it('marks a static entry existsInDb: true when its function is live in pg_proc', async () => {
+    mockDb.execute
+      .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([{ function_name: 'sp_process_bale_daily', description: null }]) // getLiveSpFunctions
+    const all = await getAllCatalogEntries()
+    expect(all.find((e) => e.id === 'sr:bale')?.existsInDb).toBe(true)
+  })
+
+  it('marks a static entry existsInDb: false when its function is missing from pg_proc', async () => {
+    mockDb.execute
+      .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([]) // getLiveSpFunctions — nothing live
+    const all = await getAllCatalogEntries()
+    expect(all.find((e) => e.id === 'sr:bale')?.existsInDb).toBe(false)
   })
 })
