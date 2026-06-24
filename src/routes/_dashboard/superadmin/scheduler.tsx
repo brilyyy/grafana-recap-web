@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute } from '@tanstack/react-router'
-import { Loader2, Plus, RotateCcw, Timer, Trash2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, Plus, RotateCcw, Timer, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -9,12 +9,15 @@ import { CronDescription } from '@/components/cron-description'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDateTime } from '@/lib/i18n-format'
+import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
@@ -46,6 +49,15 @@ function SchedulerPage() {
 
   const jobsQuery = trpc.scheduler.listJobs.useQuery(undefined, { enabled: isSuperadmin })
   const rows = (jobsQuery.data?.data ?? []) as SchedulerJobRow[]
+
+  const procQuery = trpc.appProcedures.listAll.useQuery(undefined, { enabled: isSuperadmin })
+  const registeredProcedures = (procQuery.data?.data?.procedures ?? []) as {
+    function_name: string
+    app_name: string
+  }[]
+  const unregQuery = trpc.appProcedures.listUnregistered.useQuery(undefined, { enabled: isSuperadmin })
+  const unregisteredProcedures = (unregQuery.data?.data?.procedures ?? []) as { function_name: string }[]
+  const [procedurePickerOpen, setProcedurePickerOpen] = useState(false)
 
   const statusQuery = trpc.scheduler.workerStatus.useQuery(undefined, {
     enabled: isSuperadmin,
@@ -172,9 +184,74 @@ function SchedulerPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{m.scheduler_procedure_label()}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. sp_process_bale_daily" className="font-mono" {...field} />
-                        </FormControl>
+                        <Popover open={procedurePickerOpen} onOpenChange={setProcedurePickerOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={procedurePickerOpen}
+                                className="w-full justify-between font-mono"
+                              >
+                                <span className={cn('truncate', !field.value && 'text-muted-foreground')}>
+                                  {field.value || m.scheduler_procedure_placeholder()}
+                                </span>
+                                <ChevronsUpDown className="opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder={m.scheduler_procedure_placeholder()} />
+                              <CommandList>
+                                <CommandEmpty>{m.scheduler_procedure_empty()}</CommandEmpty>
+                                <CommandGroup heading={m.scheduler_procedure_group_registered()}>
+                                  {registeredProcedures.map((proc) => (
+                                    <CommandItem
+                                      key={proc.function_name}
+                                      value={proc.function_name}
+                                      onSelect={(value) => {
+                                        form.setValue('procedure', value, { shouldValidate: true })
+                                        setProcedurePickerOpen(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(field.value === proc.function_name ? 'opacity-100' : 'opacity-0')}
+                                      />
+                                      <span className="flex-1 truncate font-mono text-xs">{proc.function_name}</span>
+                                      <span className="text-xs text-muted-foreground">{proc.app_name}</span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                                {unregisteredProcedures.length > 0 && (
+                                  <CommandGroup heading={m.scheduler_procedure_group_unregistered()}>
+                                    {unregisteredProcedures.map((proc) => (
+                                      <CommandItem
+                                        key={proc.function_name}
+                                        value={proc.function_name}
+                                        onSelect={(value) => {
+                                          form.setValue('procedure', value, { shouldValidate: true })
+                                          setProcedurePickerOpen(false)
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            field.value === proc.function_name ? 'opacity-100' : 'opacity-0',
+                                          )}
+                                        />
+                                        <span className="flex-1 truncate font-mono text-xs">{proc.function_name}</span>
+                                        <Badge variant="outline" className="text-xs">
+                                          {m.scheduler_procedure_unregistered_badge()}
+                                        </Badge>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                )}
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
