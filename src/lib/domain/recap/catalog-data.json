@@ -135,6 +135,21 @@
     }
   },
   {
+    "id": "sr:qris_n8n",
+    "recapKind": "success_rate_daily",
+    "title": "QRIS N8N — success rate (daily)",
+    "description": "H-1 recap of transaction success metrics into app_success_rate for QRIS N8N.",
+    "briefProcessSummary": "Reads raw_qris_n8n, aggregates transactions, joins response_code_dictionary for rc_description and error_type, then inserts into app_success_rate.",
+    "briefQuery": "FROM raw_qris_n8n aggregate; LEFT JOIN response_code_dictionary; INSERT app_success_rate.",
+    "outputTable": "app_success_rate",
+    "functionName": "sp_process_qris_n8n_daily",
+    "rawSqlRepoPath": "src/db/sql/reference/success_rate/qris_n8n.raw.sql",
+    "scope": {
+      "type": "per_app",
+      "appKey": "qris_n8n"
+    }
+  },
+  {
     "id": "bale_korpora_corp_daily",
     "recapKind": "bale_korpora_corp_daily",
     "title": "Bale Korpora — daily recap by ACTN_BY_CUST_ID (dimensional)",

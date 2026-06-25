@@ -17,6 +17,8 @@ export type RecapCatalogEntry = {
   /** Repo-relative path to raw SQL documentation */
   rawSqlRepoPath: string
   scope: RecapScope
+  /** Whether `functionName` exists in pg_proc right now. Unset = not checked (sync paths). */
+  existsInDb?: boolean
 }
 
 export type TriggerRecapParams = {

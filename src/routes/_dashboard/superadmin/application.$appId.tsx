@@ -1,16 +1,28 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, ChevronRight, Code2, Loader2, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, ChevronsUpDown, Code2, Loader2, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { format as formatSql } from 'sql-formatter'
 import { z } from 'zod'
+import { CronDescription } from '@/components/cron-description'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SqlEditor } from '@/components/ui/sql-editor'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -159,12 +171,42 @@ function AppConfigPage() {
     },
   })
 
+  // Import-from-database picker — lists live sp_* not yet registered
+  const unregQuery = trpc.appProcedures.listUnregistered.useQuery(undefined, { enabled: showProcForm })
+  const unregisteredProcedures = (unregQuery.data?.data?.procedures ?? []) as { function_name: string }[]
+  const [importPickerOpen, setImportPickerOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+
+  async function handleImport(functionName: string) {
+    setImportPickerOpen(false)
+    setImporting(true)
+    try {
+      const res = await utils.appProcedures.getDefinition.fetch({ function_name: functionName })
+      procForm.setValue('function_name', functionName, { shouldValidate: true })
+      procForm.setValue('sql_text', res.data.sql_text, { shouldValidate: true })
+    } catch (e: any) {
+      toast.error(e.message || `Couldn't load definition for ${functionName}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  function handleFormatSql() {
+    try {
+      const formatted = formatSql(procForm.getValues('sql_text'), { language: 'postgresql' })
+      procForm.setValue('sql_text', formatted, { shouldValidate: true })
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't format SQL")
+    }
+  }
+
   const registerProcMutation = trpc.appProcedures.register.useMutation({
     onSuccess: (res) => {
       toast.success(res.message)
       procForm.reset()
       setShowProcForm(false)
       utils.appProcedures.listForApp.invalidate({ appId: appIdNum })
+      utils.appProcedures.listUnregistered.invalidate()
     },
     onError: (e) => toast.error(e.message || m.appcfg_toast_register_err()),
   })
@@ -275,229 +317,266 @@ function AppConfigPage() {
             <h2 className="text-base font-semibold">{m.appcfg_procedures_title()}</h2>
             <p className="text-sm text-muted-foreground">{m.appcfg_procedures_desc()}</p>
           </div>
-          {!showProcForm && (
-            <Button size="sm" onClick={() => setShowProcForm(true)}>
-              <Plus className="size-3.5" />
-              {m.appcfg_register_procedure()}
-            </Button>
-          )}
+          <Button size="sm" onClick={() => setShowProcForm(true)}>
+            <Plus className="size-3.5" />
+            {m.appcfg_register_procedure()}
+          </Button>
         </div>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[1fr_420px]">
-          {/* Procedures list */}
-          <Card className="py-0">
-            <CardContent className="p-0">
-              {procQuery.isLoading ? (
-                <div className="flex flex-col gap-2 p-4">
-                  {Array.from({ length: 3 }, (_, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : procedures.length === 0 ? (
-                <Empty>
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Code2 />
-                    </EmptyMedia>
-                    <EmptyTitle>{m.appcfg_empty_procedures_title()}</EmptyTitle>
-                    <EmptyDescription>{m.appcfg_empty_procedures_desc()}</EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{m.appcfg_col_function()}</TableHead>
-                      <TableHead>{m.appcfg_col_kind()}</TableHead>
-                      <TableHead>{m.appcfg_col_output_table()}</TableHead>
-                      <TableHead>{m.appcfg_col_registered()}</TableHead>
-                      <TableHead className="w-20 text-right">{m.common_actions()}</TableHead>
+        {/* Procedures list */}
+        <Card className="py-0">
+          <CardContent className="p-0">
+            {procQuery.isLoading ? (
+              <div className="flex flex-col gap-2 p-4">
+                {Array.from({ length: 3 }, (_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : procedures.length === 0 ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Code2 />
+                  </EmptyMedia>
+                  <EmptyTitle>{m.appcfg_empty_procedures_title()}</EmptyTitle>
+                  <EmptyDescription>{m.appcfg_empty_procedures_desc()}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{m.appcfg_col_function()}</TableHead>
+                    <TableHead>{m.appcfg_col_kind()}</TableHead>
+                    <TableHead>{m.appcfg_col_output_table()}</TableHead>
+                    <TableHead>{m.appcfg_col_registered()}</TableHead>
+                    <TableHead className="w-20 text-right">{m.common_actions()}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {procedures.map((row: any) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-mono text-xs">public.{row.function_name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">
+                          {row.recap_kind}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{row.output_table}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {row.created_at ? formatDate(row.created_at) : '—'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-destructive hover:text-destructive"
+                          onClick={() => removeProcMutation.mutate({ id: row.id })}
+                          disabled={removeProcMutation.isPending}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {procedures.map((row: any) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-mono text-xs">public.{row.function_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="text-xs">
-                            {row.recap_kind}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">{row.output_table}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {row.created_at ? formatDate(row.created_at) : '—'}
-                        </TableCell>
-                        <TableCell className="text-right">
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Register procedure dialog */}
+      <Dialog
+        open={showProcForm}
+        onOpenChange={(open) => {
+          setShowProcForm(open)
+          if (!open) procForm.reset()
+        }}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{m.appcfg_register_procedure()}</DialogTitle>
+            <DialogDescription>
+              {m.appcfg_register_desc_part1()}{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">CREATE OR REPLACE FUNCTION</code>{' '}
+              {m.appcfg_register_desc_part2()}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...procForm}>
+            <form
+              onSubmit={procForm.handleSubmit((values) => registerProcMutation.mutate({ appId: appIdNum, ...values }))}
+              className="flex flex-col gap-4 overflow-hidden"
+            >
+              <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+                <Popover open={importPickerOpen} onOpenChange={setImportPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" size="sm" className="w-fit gap-1.5" disabled={importing}>
+                      {importing ? <Loader2 className="size-3.5 animate-spin" /> : <Code2 className="size-3.5" />}
+                      {m.appcfg_import_from_db()}
+                      <ChevronsUpDown className="size-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={m.appcfg_import_from_db()} />
+                      <CommandList>
+                        <CommandEmpty>{m.appcfg_import_empty()}</CommandEmpty>
+                        <CommandGroup>
+                          {unregisteredProcedures.map((proc) => (
+                            <CommandItem key={proc.function_name} value={proc.function_name} onSelect={handleImport}>
+                              <Check className="opacity-0" />
+                              <span className="flex-1 truncate font-mono text-xs">{proc.function_name}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormField
+                  control={procForm.control}
+                  name="function_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{m.appcfg_function_name_label()}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="sp_process_myapp_daily" className="font-mono" {...field} />
+                      </FormControl>
+                      <FormDescription>Format: sp_[a-z0-9_]{'{2,55}'}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={procForm.control}
+                  name="recap_kind"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{m.appcfg_recap_kind_label()}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="success_rate_daily" className="font-mono" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={procForm.control}
+                  name="output_table"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{m.appcfg_output_table_label()}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="app_success_rate" className="font-mono" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={procForm.control}
+                  name="schedule_cron"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{m.appcfg_schedule_label()}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="1 0 * * *" className="font-mono" {...field} />
+                      </FormControl>
+                      <CronDescription value={field.value ?? ''} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={procForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{m.appcfg_description_label()}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={m.appcfg_description_ph()} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={procForm.control}
+                  name="sql_text"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>SQL</FormLabel>
+                        <div className="flex gap-1">
                           <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-destructive hover:text-destructive"
-                            onClick={() => removeProcMutation.mutate({ id: row.id })}
-                            disabled={removeProcMutation.isPending}
+                            className="h-6 gap-1 text-xs"
+                            onClick={handleFormatSql}
                           >
-                            <Trash2 className="size-3.5" />
+                            <Wand2 className="size-3" />
+                            {m.appcfg_format_sql()}
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Register procedure form */}
-          {showProcForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-medium">{m.appcfg_register_procedure()}</CardTitle>
-                <CardDescription>
-                  {m.appcfg_register_desc_part1()}{' '}
-                  <code className="rounded bg-muted px-1 py-0.5 text-xs">CREATE OR REPLACE FUNCTION</code>{' '}
-                  {m.appcfg_register_desc_part2()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...procForm}>
-                  <form
-                    onSubmit={procForm.handleSubmit((values) =>
-                      registerProcMutation.mutate({ appId: appIdNum, ...values }),
-                    )}
-                    className="flex flex-col gap-4"
-                  >
-                    <FormField
-                      control={procForm.control}
-                      name="function_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{m.appcfg_function_name_label()}</FormLabel>
-                          <FormControl>
-                            <Input placeholder="sp_process_myapp_daily" className="font-mono" {...field} />
-                          </FormControl>
-                          <FormDescription>Format: sp_[a-z0-9_]{'{2,55}'}</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={procForm.control}
-                      name="recap_kind"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{m.appcfg_recap_kind_label()}</FormLabel>
-                          <FormControl>
-                            <Input placeholder="success_rate_daily" className="font-mono" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={procForm.control}
-                      name="output_table"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{m.appcfg_output_table_label()}</FormLabel>
-                          <FormControl>
-                            <Input placeholder="app_success_rate" className="font-mono" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={procForm.control}
-                      name="schedule_cron"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{m.appcfg_schedule_label()}</FormLabel>
-                          <FormControl>
-                            <Input placeholder="1 0 * * *" className="font-mono" {...field} />
-                          </FormControl>
-                          <FormDescription>{m.appcfg_schedule_desc()}</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={procForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{m.appcfg_description_label()}</FormLabel>
-                          <FormControl>
-                            <Input placeholder={m.appcfg_description_ph()} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={procForm.control}
-                      name="sql_text"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel>SQL</FormLabel>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-xs"
-                              onClick={() => {
-                                const fn = procForm.getValues('function_name') || 'sp_process_myapp_daily'
-                                const appName = app?.app_name ?? ''
-                                procForm.setValue('sql_text', buildSqlTemplate(fn, appName), {
-                                  shouldValidate: true,
-                                })
-                              }}
-                            >
-                              {m.appcfg_use_template()}
-                            </Button>
-                          </div>
-                          <FormControl>
-                            <SqlEditor
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              placeholder="CREATE OR REPLACE FUNCTION public.sp_process_myapp_daily(p_processing_date DATE DEFAULT NULL) RETURNS void AS $$ ..."
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {m.appcfg_sql_desc_part1()}{' '}
-                            <code className="rounded bg-muted px-1 py-0.5 text-xs">
-                              CREATE OR REPLACE FUNCTION public.&lt;function_name&gt;(
-                            </code>{' '}
-                            {m.appcfg_sql_desc_part2()}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex gap-2">
-                      <Button type="submit" disabled={registerProcMutation.isPending}>
-                        {registerProcMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                        {m.appcfg_install_register()}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          procForm.reset()
-                          setShowProcForm(false)
-                        }}
-                      >
-                        {m.common_cancel()}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() => {
+                              const fn = procForm.getValues('function_name') || 'sp_process_myapp_daily'
+                              const appName = app?.app_name ?? ''
+                              procForm.setValue('sql_text', buildSqlTemplate(fn, appName), {
+                                shouldValidate: true,
+                              })
+                            }}
+                          >
+                            {m.appcfg_use_template()}
+                          </Button>
+                        </div>
+                      </div>
+                      <FormControl>
+                        <SqlEditor
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          placeholder="CREATE OR REPLACE FUNCTION public.sp_process_myapp_daily(p_processing_date DATE DEFAULT NULL) RETURNS void AS $$ ..."
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {m.appcfg_sql_desc_part1()}{' '}
+                        <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                          CREATE OR REPLACE FUNCTION public.&lt;function_name&gt;(
+                        </code>{' '}
+                        {m.appcfg_sql_desc_part2()}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    procForm.reset()
+                    setShowProcForm(false)
+                  }}
+                >
+                  {m.common_cancel()}
+                </Button>
+                <Button type="submit" disabled={registerProcMutation.isPending}>
+                  {registerProcMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
+                  {m.appcfg_install_register()}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

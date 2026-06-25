@@ -1,6 +1,7 @@
 import { CircleCheck, Loader2, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { TablePager } from '@/components/table-pager'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,16 +23,21 @@ const ERROR_TYPES: ErrorType[] = ['S', 'N', 'Sukses']
 export default function UnmappedRcCard() {
   const { applications } = useApplications()
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(25)
   const [selectedErrorTypes, setSelectedErrorTypes] = useState<Record<number, ErrorType>>({})
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [submittingId, setSubmittingId] = useState<number | null>(null)
 
   const utils = trpc.useUtils()
   const listQuery = trpc.unmappedRc.list.useQuery({
-    fetch_all: true,
+    page,
+    limit,
     ...(selectedAppId ? { app_id: selectedAppId } : {}),
   })
   const unmappedRcs = (listQuery.data?.data?.entries ?? []) as UnmappedRC[]
+  const totalCount = listQuery.data?.data?.total ?? 0
+  const totalPages = Math.ceil(totalCount / limit) || 1
 
   const submitMutation = trpc.unmappedRc.submit.useMutation()
   const submitBatchMutation = trpc.unmappedRc.submitBatch.useMutation()
@@ -136,6 +142,7 @@ export default function UnmappedRcCard() {
           value={selectedAppId === null ? 'all' : String(selectedAppId)}
           onValueChange={(value) => {
             setSelectedAppId(value === 'all' ? null : Number(value))
+            setPage(1)
             resetSelections()
           }}
         >
@@ -152,7 +159,7 @@ export default function UnmappedRcCard() {
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground tabular-nums">
-          {listQuery.isLoading ? m.common_loading() : m.unmapped_count({ count: unmappedRcs.length })}
+          {listQuery.isLoading ? m.common_loading() : m.unmapped_count({ count: totalCount })}
         </span>
         <Button
           variant="outline"
@@ -283,6 +290,19 @@ export default function UnmappedRcCard() {
           )}
         </CardContent>
       </Card>
+
+      <TablePager
+        page={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        limit={limit}
+        onPageChange={setPage}
+        onLimitChange={(value) => {
+          setLimit(value)
+          setPage(1)
+        }}
+        disabled={listQuery.isFetching}
+      />
     </div>
   )
 }

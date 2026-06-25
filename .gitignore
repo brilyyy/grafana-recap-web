@@ -46,3 +46,4 @@ entities.json
 .claude/settings.local.json
 
 compressed/
+.poneglyph/

@@ -33,6 +33,39 @@ export const appProceduresRouter = router({
     return { success: true, data: { procedures: result as any[] } }
   }),
 
+  // Live sp_* functions in the public schema that aren't in the registry yet.
+  listUnregistered: superAdminProcedure.query(async () => {
+    const result = await db.execute(sql`
+        SELECT p.proname AS function_name, pg_get_function_arguments(p.oid) AS args
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public'
+          AND p.proname LIKE 'sp_%'
+          AND p.proname NOT LIKE 'sp_run_%'
+          AND p.proname NOT IN (SELECT function_name FROM app_custom_procedure)
+        ORDER BY p.proname
+      `)
+    return { success: true, data: { procedures: result as any[] } }
+  }),
+
+  // Pretty-printed definition of a live function, for pre-filling the SQL editor.
+  getDefinition: superAdminProcedure
+    .input(z.object({ function_name: z.string().regex(FUNCTION_NAME_RE) }))
+    .query(async ({ input }) => {
+      const row = (
+        await db.execute(sql`
+          SELECT pg_get_functiondef(p.oid) AS sql_text
+          FROM pg_proc p
+          JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname = 'public' AND p.proname = ${input.function_name}
+        `)
+      )[0] as { sql_text: string } | undefined
+
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND', message: `Function ${input.function_name} not found` })
+
+      return { success: true, data: { function_name: input.function_name, sql_text: row.sql_text } }
+    }),
+
   reassign: superAdminProcedure
     .input(
       z.object({
@@ -41,9 +74,9 @@ export const appProceduresRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const row = (
-        await db.execute(sql`SELECT function_name FROM app_custom_procedure WHERE id = ${input.id}`)
-      )[0] as { function_name: string } | undefined
+      const row = (await db.execute(sql`SELECT function_name FROM app_custom_procedure WHERE id = ${input.id}`))[0] as
+        | { function_name: string }
+        | undefined
 
       if (!row) throw new TRPCError({ code: 'NOT_FOUND', message: 'Procedure not found' })
 

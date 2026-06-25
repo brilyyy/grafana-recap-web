@@ -49,6 +49,7 @@ BEGIN
   v_start_timestamp := v_processing_date::timestamp;
   v_end_timestamp := (v_processing_date + INTERVAL '1 day' - INTERVAL '1 second')::timestamp;
 
+
   SELECT id INTO v_app_id FROM app_identifier WHERE app_name = v_app_name LIMIT 1;
   IF v_app_id IS NULL THEN
     RAISE EXCEPTION 'Application Bale not found in app_identifier table';

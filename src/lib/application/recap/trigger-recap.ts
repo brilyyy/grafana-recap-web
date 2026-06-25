@@ -72,6 +72,13 @@ async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapRe
   const targetDate = await resolveTargetDate(dateParam)
   const dateParamForDb = dateParam || null
 
+  if (entry.existsInDb === false) {
+    throw new RecapValidationError(
+      `Stored procedure public.${entry.functionName} is not deployed to this database`,
+      'NOT_FOUND',
+    )
+  }
+
   await db.execute(sql`SELECT ${sql.raw(`public.${entry.functionName}`)}(${dateParamForDb}::date)`)
 
   const logResult = await db.execute(sql`

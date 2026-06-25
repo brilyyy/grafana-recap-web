@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS "fdw_source_table" (
   UNIQUE("source_db_name", "table_name")
 );
 
+-- ALTER TABLE fdw_source_table ADD COLUMN host VARCHAR(255) DEFAULT NULL;
+
 -- ── raw_table_housekeeping ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "raw_table_housekeeping" (
   "id"               SERIAL PRIMARY KEY,

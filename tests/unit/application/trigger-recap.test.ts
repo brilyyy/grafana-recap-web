@@ -53,6 +53,7 @@ describe('triggerRecap', () => {
     const today = new Date().toISOString().split('T')[0]
     mockDb.execute
       .mockResolvedValueOnce([]) // getDbProcedureEntries (app_custom_procedure join)
+      .mockResolvedValueOnce([]) // getLiveSpFunctions (pg_proc)
       .mockResolvedValueOnce([{ today }]) // validatePastDate → SELECT CURRENT_DATE
     await expect(triggerRecap({ catalogEntryId: 'sr:bale', date: today })).rejects.toMatchObject({
       code: 'BAD_DATE',
@@ -64,6 +65,7 @@ describe('triggerRecap', () => {
     const today = new Date().toISOString().split('T')[0]
     mockDb.execute
       .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([]) // getLiveSpFunctions
       .mockResolvedValueOnce([{ today }]) // validatePastDate
     await expect(triggerRecap({ catalogEntryId: 'sr:bale', date: future })).rejects.toMatchObject({
       code: 'BAD_DATE',
@@ -76,10 +78,26 @@ describe('triggerRecap', () => {
     const today = new Date().toISOString().split('T')[0]
     mockDb.execute
       .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([]) // getLiveSpFunctions
       .mockResolvedValueOnce([{ today }]) // validatePastDate
       .mockResolvedValueOnce([]) // app_identifier: empty → NOT_FOUND
     await expect(triggerRecap({ catalogEntryId: 'sr:bale', date: yesterday })).rejects.toMatchObject({
       code: 'NOT_FOUND',
+    })
+  })
+
+  // ── Stored procedure not deployed ───────────────────────────────────────
+  it('throws NOT_FOUND when the catalog entry function is not in pg_proc', async () => {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const today = new Date().toISOString().split('T')[0]
+    mockDb.execute
+      .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([]) // getLiveSpFunctions — sp_process_bale_daily missing
+      .mockResolvedValueOnce([{ today }]) // validatePastDate
+      .mockResolvedValueOnce([{ id: 1, app_name: 'Bale' }]) // resolveAppForEntry
+    await expect(triggerRecap({ catalogEntryId: 'sr:bale', date: yesterday })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: expect.stringContaining('not deployed'),
     })
   })
 
@@ -89,6 +107,7 @@ describe('triggerRecap', () => {
     const today = new Date().toISOString().split('T')[0]
     mockDb.execute
       .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([{ function_name: 'sp_process_bale_daily', description: null }]) // getLiveSpFunctions
       .mockResolvedValueOnce([{ today }]) // validatePastDate
       .mockResolvedValueOnce([{ id: 1, app_name: 'Bale' }]) // resolveAppForEntry
       .mockResolvedValueOnce([]) // stored proc call (SELECT public.sp_process_bale_daily)
@@ -116,6 +135,7 @@ describe('triggerRecap', () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     mockDb.execute
       .mockResolvedValueOnce([]) // getDbProcedureEntries
+      .mockResolvedValueOnce([{ function_name: 'sp_process_bale_daily', description: null }]) // getLiveSpFunctions
       .mockResolvedValueOnce([{ id: 1, app_name: 'Bale' }]) // resolveAppForEntry
       .mockResolvedValueOnce([{ d: yesterday }]) // resolveTargetDate (H-1 from DB)
       .mockResolvedValueOnce([]) // stored proc
