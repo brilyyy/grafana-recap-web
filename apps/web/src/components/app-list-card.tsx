@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuthSession } from '@/hooks/use-auth-session'
 import { useApplications } from '@/hooks/useApplications'
-import { m } from '@/paraglide/messages'
 
 export default function AppListCard() {
   const { applications, isLoading, error, refreshApplications } = useApplications()
@@ -18,14 +17,12 @@ export default function AppListCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">{m.applist_title()}</CardTitle>
-        <CardDescription>
-          {isLoading ? m.common_loading() : m.applist_count({ count: applications.length })}
-        </CardDescription>
+        <CardTitle className="text-base font-medium">{'Applications'}</CardTitle>
+        <CardDescription>{isLoading ? 'Loading…' : `${applications.length} applications`}</CardDescription>
         <CardAction>
           <Button variant="outline" size="sm" onClick={() => refreshApplications()} disabled={isLoading}>
             <RefreshCw />
-            {m.common_refresh()}
+            {'Refresh'}
           </Button>
         </CardAction>
       </CardHeader>
@@ -39,7 +36,7 @@ export default function AppListCard() {
           </div>
         ) : error ? (
           <Alert variant="destructive">
-            <AlertTitle>{m.applist_load_failed_title()}</AlertTitle>
+            <AlertTitle>{"Couldn't load the applications"}</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : applications.length === 0 ? (
@@ -48,17 +45,17 @@ export default function AppListCard() {
               <EmptyMedia variant="icon">
                 <PackageOpen />
               </EmptyMedia>
-              <EmptyTitle>{m.applist_empty_title()}</EmptyTitle>
-              <EmptyDescription>{m.applist_empty_desc()}</EmptyDescription>
+              <EmptyTitle>{'No applications yet'}</EmptyTitle>
+              <EmptyDescription>{'Register your first app using the form.'}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16">{m.applist_col_id()}</TableHead>
-                <TableHead>{m.applist_col_name()}</TableHead>
-                {isSuperadmin && <TableHead className="w-24 text-right">{m.applist_col_config()}</TableHead>}
+                <TableHead className="w-16">{'ID'}</TableHead>
+                <TableHead>{'Name'}</TableHead>
+                {isSuperadmin && <TableHead className="w-24 text-right">{'Config'}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -71,7 +68,7 @@ export default function AppListCard() {
                       <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
                         <Link to="/superadmin/application/$appId" params={{ appId: String(app.id) }}>
                           <Settings2 className="size-3" />
-                          {m.applist_col_config()}
+                          {'Config'}
                         </Link>
                       </Button>
                     </TableCell>

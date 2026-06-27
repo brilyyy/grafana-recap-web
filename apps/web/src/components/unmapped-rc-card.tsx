@@ -13,7 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApplications } from '@/hooks/useApplications'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import type { UnmappedRC } from '@/types'
 
@@ -78,7 +77,7 @@ export default function UnmappedRcCard() {
   const handleSubmitAll = async () => {
     const items = unmappedRcs.filter((rc) => selectedItems.has(rc.id) && selectedErrorTypes[rc.id])
     if (items.length === 0) {
-      toast.error(m.unmapped_select_error_type_batch())
+      toast.error('Select at least one RC with an error type')
       return
     }
     try {
@@ -91,19 +90,19 @@ export default function UnmappedRcCard() {
           error_type: selectedErrorTypes[rc.id],
         })),
       })
-      if (!result.success) throw new Error(result.message || m.unmapped_submit_batch_failed())
-      toast.success(result.message || m.unmapped_toast_mapped({ count: items.length }))
+      if (!result.success) throw new Error(result.message || 'Failed to submit mappings')
+      toast.success(result.message || `Mapped ${items.length} RC(s) ✅`)
       resetSelections()
       afterSubmit()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : m.unmapped_submit_batch_failed())
+      toast.error(err instanceof Error ? err.message : 'Failed to submit mappings')
     }
   }
 
   const handleSubmit = async (rc: UnmappedRC) => {
     const errorType = selectedErrorTypes[rc.id]
     if (!errorType) {
-      toast.error(m.unmapped_select_error_type_single())
+      toast.error('Pick an error type (S/N/Sukses) first')
       return
     }
     try {
@@ -115,7 +114,7 @@ export default function UnmappedRcCard() {
         rc: rc.rc ?? '',
         error_type: errorType,
       })
-      if (!result.success) throw new Error(result.message || m.unmapped_submit_failed())
+      if (!result.success) throw new Error(result.message || 'Failed to submit mapping')
       toast.success(result.message)
       setSelectedErrorTypes((prev) => {
         const next = { ...prev }
@@ -129,7 +128,7 @@ export default function UnmappedRcCard() {
       })
       afterSubmit()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : m.unmapped_submit_failed())
+      toast.error(err instanceof Error ? err.message : 'Failed to submit mapping')
     } finally {
       setSubmittingId(null)
     }
@@ -147,10 +146,10 @@ export default function UnmappedRcCard() {
           }}
         >
           <SelectTrigger size="sm" className="w-56">
-            <SelectValue placeholder={m.unmapped_all_apps()} />
+            <SelectValue placeholder={'All apps'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{m.unmapped_all_apps()}</SelectItem>
+            <SelectItem value="all">{'All apps'}</SelectItem>
             {applications.map((app) => (
               <SelectItem key={app.id} value={String(app.id)}>
                 {app.app_name}
@@ -159,7 +158,7 @@ export default function UnmappedRcCard() {
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground tabular-nums">
-          {listQuery.isLoading ? m.common_loading() : m.unmapped_count({ count: totalCount })}
+          {listQuery.isLoading ? 'Loading…' : `${totalCount} unmapped`}
         </span>
         <Button
           variant="outline"
@@ -169,14 +168,14 @@ export default function UnmappedRcCard() {
           disabled={listQuery.isFetching}
         >
           <RefreshCw className={cn(listQuery.isFetching && 'animate-spin')} />
-          {m.common_refresh()}
+          {'Refresh'}
         </Button>
       </div>
 
       {selectedItems.size > 0 && (
         <div className="flex items-center gap-3 rounded-lg border bg-muted px-3 py-2">
           <span className="text-sm tabular-nums">
-            {m.unmapped_selected_ready({ selected: selectedItems.size, ready: readyCount })}
+            {`${selectedItems.size} selected, ${readyCount} ready to submit`}
           </span>
           <Button
             size="sm"
@@ -185,10 +184,10 @@ export default function UnmappedRcCard() {
             disabled={submitBatchMutation.isPending || readyCount === 0}
           >
             {submitBatchMutation.isPending ? <Loader2 className="animate-spin" /> : <CircleCheck />}
-            {readyCount > 0 ? m.unmapped_submit_with_count({ count: readyCount }) : m.unmapped_submit()}
+            {readyCount > 0 ? `Submit (${readyCount})` : 'Submit'}
           </Button>
           <Button variant="ghost" size="sm" onClick={resetSelections}>
-            {m.common_clear()}
+            {'Clear'}
           </Button>
         </div>
       )}
@@ -205,7 +204,7 @@ export default function UnmappedRcCard() {
           ) : listQuery.error ? (
             <div className="p-4">
               <Alert variant="destructive">
-                <AlertTitle>{m.unmapped_load_failed_title()}</AlertTitle>
+                <AlertTitle>{"Couldn't load unmapped RCs"}</AlertTitle>
                 <AlertDescription>{listQuery.error.message}</AlertDescription>
               </Alert>
             </div>
@@ -215,8 +214,8 @@ export default function UnmappedRcCard() {
                 <EmptyMedia variant="icon">
                   <CircleCheck />
                 </EmptyMedia>
-                <EmptyTitle>{m.unmapped_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.unmapped_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'All RCs mapped! 🎉'}</EmptyTitle>
+                <EmptyDescription>{'New unmapped response codes will show up here after uploads.'}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -227,15 +226,15 @@ export default function UnmappedRcCard() {
                     <Checkbox
                       checked={selectedItems.size === unmappedRcs.length && unmappedRcs.length > 0}
                       onCheckedChange={toggleAll}
-                      aria-label={m.common_select_all()}
+                      aria-label={'Select all'}
                     />
                   </TableHead>
-                  <TableHead>{m.dict_app()}</TableHead>
+                  <TableHead>{'App'}</TableHead>
                   <TableHead>RC</TableHead>
                   <TableHead>Jenis Transaksi</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.dict_col_description()}</TableHead>
-                  <TableHead>{m.unmapped_col_classification()}</TableHead>
-                  <TableHead className="w-28 text-right">{m.common_action()}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Description'}</TableHead>
+                  <TableHead>{'Classification'}</TableHead>
+                  <TableHead className="w-28 text-right">{'Action'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -245,7 +244,7 @@ export default function UnmappedRcCard() {
                       <Checkbox
                         checked={selectedItems.has(rc.id)}
                         onCheckedChange={() => toggleItem(rc.id)}
-                        aria-label={m.unmapped_select_rc({ rc: rc.rc ?? '' })}
+                        aria-label={`Select RC ${rc.rc ?? ''}`}
                       />
                     </TableCell>
                     <TableCell>
@@ -254,7 +253,7 @@ export default function UnmappedRcCard() {
                     <TableCell className="font-mono text-xs">{rc.rc}</TableCell>
                     <TableCell className="text-sm">{rc.jenis_transaksi || '—'}</TableCell>
                     <TableCell className="hidden max-w-64 truncate text-sm text-muted-foreground md:table-cell">
-                      {rc.rc_description || m.unmapped_no_description()}
+                      {rc.rc_description || 'No description'}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -280,7 +279,7 @@ export default function UnmappedRcCard() {
                         disabled={!selectedErrorTypes[rc.id] || submittingId === rc.id || submitBatchMutation.isPending}
                       >
                         {submittingId === rc.id ? <Loader2 className="animate-spin" /> : null}
-                        {m.unmapped_submit()}
+                        {'Submit'}
                       </Button>
                     </TableCell>
                   </TableRow>

@@ -19,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { formatDate, type PendingUserRequest, RoleBadge, type User, useSuperadminGuard } from './-shared'
 
@@ -73,12 +72,12 @@ function UsersPage() {
         id: selectedRequest.id,
         approvedRole: approvedRole as (typeof ROLES)[number],
       })
-      toast.success(m.toast_user_approved({ username: selectedRequest.username, role: approvedRole }))
+      toast.success(`Approved ${selectedRequest.username} as ${approvedRole} ✅`)
       closeRequestDialog()
       utils.users.list.invalidate()
       utils.auth.pendingRequests.invalidate()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : m.toast_user_approve_err())
+      toast.error(error instanceof Error ? error.message : "Couldn't approve the request")
     }
   }
 
@@ -89,11 +88,11 @@ function UsersPage() {
         id: selectedRequest.id,
         rejectionReason: rejectionReason || undefined,
       })
-      toast.success(m.toast_user_rejected({ username: selectedRequest.username }))
+      toast.success(`Rejected the request from ${selectedRequest.username}`)
       closeRequestDialog()
       utils.auth.pendingRequests.invalidate()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : m.toast_user_reject_err())
+      toast.error(error instanceof Error ? error.message : "Couldn't reject the request")
     }
   }
 
@@ -101,37 +100,37 @@ function UsersPage() {
     if (!selectedUser) return
     try {
       await updateUserMutation.mutateAsync({ id: selectedUser.id, role: newRole as (typeof ROLES)[number] })
-      toast.success(m.toast_user_role_updated({ username: selectedUser.username, role: newRole }))
+      toast.success(`Updated ${selectedUser.username} to ${newRole} ✅`)
       setSelectedUser(null)
       utils.users.list.invalidate()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : m.toast_user_role_err())
+      toast.error(error instanceof Error ? error.message : "Couldn't update the role")
     }
   }
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">{m.users_title()}</h1>
-        <p className="text-sm text-muted-foreground">{m.users_subtitle()}</p>
+        <h1 className="text-lg font-semibold tracking-tight">{'Users'}</h1>
+        <p className="text-sm text-muted-foreground">{'Manage accounts, roles, and registration requests here.'}</p>
       </header>
 
       {pendingRequests.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">{m.users_pending_title()}</CardTitle>
-            <CardDescription>{m.users_pending_desc({ count: pendingRequests.length })}</CardDescription>
+            <CardTitle className="text-base font-medium">{'Pending requests'}</CardTitle>
+            <CardDescription>{`${pendingRequests.length} registration request(s) waiting for review.`}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.common_username()}</TableHead>
-                  <TableHead>{m.common_email()}</TableHead>
-                  <TableHead>{m.users_requested_role()}</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.users_requested_by()}</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.common_date()}</TableHead>
-                  <TableHead className="text-right">{m.common_actions()}</TableHead>
+                  <TableHead>{'Username'}</TableHead>
+                  <TableHead>{'Email'}</TableHead>
+                  <TableHead>{'Requested role'}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Requested by'}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Date'}</TableHead>
+                  <TableHead className="text-right">{'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,7 +158,7 @@ function UsersPage() {
                             setDialogMode('approve')
                           }}
                         >
-                          {m.users_approve()}
+                          {'Approve'}
                         </Button>
                         <Button
                           variant="outline"
@@ -171,7 +170,7 @@ function UsersPage() {
                             setDialogMode('reject')
                           }}
                         >
-                          {m.users_reject()}
+                          {'Reject'}
                         </Button>
                       </div>
                     </TableCell>
@@ -187,7 +186,7 @@ function UsersPage() {
         <div className="relative">
           <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder={m.users_search_ph()}
+            placeholder={'Search users…'}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -204,10 +203,10 @@ function UsersPage() {
           }}
         >
           <SelectTrigger size="sm" className="w-40">
-            <SelectValue placeholder={m.common_all_roles()} />
+            <SelectValue placeholder={'All roles'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{m.common_all_roles()}</SelectItem>
+            <SelectItem value="all">{'All roles'}</SelectItem>
             {ROLES.map((role) => (
               <SelectItem key={role} value={role}>
                 {role}
@@ -232,19 +231,19 @@ function UsersPage() {
                 <EmptyMedia variant="icon">
                   <UsersRound />
                 </EmptyMedia>
-                <EmptyTitle>{m.users_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.users_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'No users yet'}</EmptyTitle>
+                <EmptyDescription>{'Try tweaking the search or role filter.'}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.common_username()}</TableHead>
-                  <TableHead>{m.common_email()}</TableHead>
-                  <TableHead>{m.common_role()}</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.common_created()}</TableHead>
-                  <TableHead className="text-right">{m.common_actions()}</TableHead>
+                  <TableHead>{'Username'}</TableHead>
+                  <TableHead>{'Email'}</TableHead>
+                  <TableHead>{'Role'}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Created'}</TableHead>
+                  <TableHead className="text-right">{'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -268,7 +267,7 @@ function UsersPage() {
                           setNewRole(user.role)
                         }}
                       >
-                        {m.users_edit_role()}
+                        {'Edit role'}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -282,18 +281,16 @@ function UsersPage() {
       {usersTotalPages > 1 && (
         <div className="flex items-center justify-between">
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-            {m.common_previous()}
+            {'Previous'}
           </Button>
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {m.pagination_page({ page, total: usersTotalPages })}
-          </span>
+          <span className="text-sm text-muted-foreground tabular-nums">{`Page ${page} of ${usersTotalPages}`}</span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setPage((p) => Math.min(usersTotalPages, p + 1))}
             disabled={page === usersTotalPages}
           >
-            {m.common_next()}
+            {'Next'}
           </Button>
         </div>
       )}
@@ -304,11 +301,11 @@ function UsersPage() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{m.users_approve_title()}</DialogTitle>
-            <DialogDescription>{m.users_approve_desc({ username: selectedRequest?.username ?? '' })}</DialogDescription>
+            <DialogTitle>{'Approve request'}</DialogTitle>
+            <DialogDescription>{`Approve the registration request for ${selectedRequest?.username ?? ''}?`}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <Label>{m.users_assign_role()}</Label>
+            <Label>{'Assign role'}</Label>
             <Select value={approvedRole} onValueChange={setApprovedRole}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -324,11 +321,11 @@ function UsersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeRequestDialog}>
-              {m.common_cancel()}
+              {'Cancel'}
             </Button>
             <Button onClick={handleApprove} disabled={approveRequestMutation.isPending}>
               {approveRequestMutation.isPending && <Loader2 className="animate-spin" />}
-              {m.users_approve()}
+              {'Approve'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -340,25 +337,25 @@ function UsersPage() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{m.users_reject_title()}</DialogTitle>
-            <DialogDescription>{m.users_reject_desc({ username: selectedRequest?.username ?? '' })}</DialogDescription>
+            <DialogTitle>{'Reject request'}</DialogTitle>
+            <DialogDescription>{`Reject the registration request from ${selectedRequest?.username ?? ''}?`}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <Label>{m.users_reject_reason()}</Label>
+            <Label>{'Rejection reason (optional)'}</Label>
             <Textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder={m.users_reject_reason_ph()}
+              placeholder={'Enter a rejection reason…'}
               rows={3}
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeRequestDialog}>
-              {m.common_cancel()}
+              {'Cancel'}
             </Button>
             <Button variant="destructive" onClick={handleReject} disabled={rejectRequestMutation.isPending}>
               {rejectRequestMutation.isPending && <Loader2 className="animate-spin" />}
-              {m.users_reject()}
+              {'Reject'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -367,13 +364,13 @@ function UsersPage() {
       <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{m.users_edit_title()}</DialogTitle>
+            <DialogTitle>{'Edit user role'}</DialogTitle>
             <DialogDescription>
-              {m.users_edit_desc({ username: selectedUser?.username ?? '', role: selectedUser?.role ?? '' })}
+              {`Change the role for ${selectedUser?.username ?? ''} (currently ${selectedUser?.role ?? ''}).`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <Label>{m.users_new_role()}</Label>
+            <Label>{'New role'}</Label>
             <Select value={newRole} onValueChange={setNewRole}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -389,14 +386,14 @@ function UsersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedUser(null)}>
-              {m.common_cancel()}
+              {'Cancel'}
             </Button>
             <Button
               onClick={handleUpdateRole}
               disabled={updateUserMutation.isPending || newRole === selectedUser?.role}
             >
               {updateUserMutation.isPending && <Loader2 className="animate-spin" />}
-              {m.users_update_role()}
+              {'Update role'}
             </Button>
           </DialogFooter>
         </DialogContent>

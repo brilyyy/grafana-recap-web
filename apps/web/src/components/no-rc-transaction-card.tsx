@@ -13,7 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApplications } from '@/hooks/useApplications'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import type { SuccessRateEntry } from '@/types'
 
@@ -78,7 +77,7 @@ export default function NoRcTransactionCard() {
     if (id === undefined) return
     const rc = editingRc[id]?.trim() || ''
     if (!rc) {
-      toast.error(m.norc_toast_rc_required())
+      toast.error('RC is required')
       return
     }
     try {
@@ -88,8 +87,8 @@ export default function NoRcTransactionCard() {
         rc,
         rc_description: editingRcDescription[id]?.trim() || null,
       })
-      if (!result.success) throw new Error(result.message || m.norc_toast_assign_err())
-      toast.success(result.message || m.norc_toast_assign_success())
+      if (!result.success) throw new Error(result.message || "Couldn't assign the RC")
+      toast.success(result.message || 'RC assigned ✅')
       setEditingRc((prev) => {
         const next = { ...prev }
         delete next[id]
@@ -102,7 +101,7 @@ export default function NoRcTransactionCard() {
       })
       afterSubmit()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : m.norc_toast_assign_err())
+      toast.error(err instanceof Error ? err.message : "Couldn't assign the RC")
     } finally {
       setSubmittingId(null)
     }
@@ -110,7 +109,7 @@ export default function NoRcTransactionCard() {
 
   const handleSubmitAll = async () => {
     if (selectedItems.size === 0 || !bulkRc.trim()) {
-      toast.error(m.norc_toast_bulk_required())
+      toast.error('Select at least one transaction and provide an RC')
       return
     }
     try {
@@ -121,12 +120,12 @@ export default function NoRcTransactionCard() {
           rc_description: bulkRcDescription.trim() || null,
         })),
       })
-      if (!result.success) throw new Error(result.message || m.norc_toast_bulk_err())
-      toast.success(result.message || m.norc_toast_bulk_success({ count: selectedItems.size }))
+      if (!result.success) throw new Error(result.message || "Couldn't assign the RCs")
+      toast.success(result.message || `Assigned RC to ${selectedItems.size} transaction(s) ✅`)
       resetSelections()
       afterSubmit()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : m.norc_toast_bulk_err())
+      toast.error(err instanceof Error ? err.message : "Couldn't assign the RCs")
     }
   }
 
@@ -142,10 +141,10 @@ export default function NoRcTransactionCard() {
           }}
         >
           <SelectTrigger size="sm" className="w-56">
-            <SelectValue placeholder={m.norc_filter_all_apps()} />
+            <SelectValue placeholder={'All applications'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{m.norc_filter_all_apps()}</SelectItem>
+            <SelectItem value="all">{'All applications'}</SelectItem>
             {applications.map((app) => (
               <SelectItem key={app.id} value={String(app.id)}>
                 {app.app_name}
@@ -161,21 +160,21 @@ export default function NoRcTransactionCard() {
           disabled={listQuery.isFetching}
         >
           <RefreshCw className={cn(listQuery.isFetching && 'animate-spin')} />
-          {m.common_refresh()}
+          {'Refresh'}
         </Button>
       </div>
 
       {selectedItems.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted px-3 py-2">
-          <span className="text-sm tabular-nums">{m.dict_selected_count({ count: selectedItems.size })}</span>
+          <span className="text-sm tabular-nums">{`${selectedItems.size} selected`}</span>
           <Input
-            placeholder={m.norc_rc_ph()}
+            placeholder={'RC (required)'}
             value={bulkRc}
             onChange={(e) => setBulkRc(e.target.value)}
             className="h-8 w-40"
           />
           <Input
-            placeholder={m.norc_rc_desc_ph()}
+            placeholder={'RC description (optional)'}
             value={bulkRcDescription}
             onChange={(e) => setBulkRcDescription(e.target.value)}
             className="h-8 w-56"
@@ -187,10 +186,10 @@ export default function NoRcTransactionCard() {
             disabled={submitBatchMutation.isPending || !bulkRc.trim()}
           >
             {submitBatchMutation.isPending ? <Loader2 className="animate-spin" /> : <CircleCheck />}
-            {m.dict_update_all({ count: selectedItems.size })}
+            {`Assign all (${selectedItems.size})`}
           </Button>
           <Button variant="ghost" size="sm" onClick={resetSelections}>
-            {m.common_clear()}
+            {'Clear'}
           </Button>
         </div>
       )}
@@ -207,7 +206,7 @@ export default function NoRcTransactionCard() {
           ) : listQuery.error ? (
             <div className="p-4">
               <Alert variant="destructive">
-                <AlertTitle>{m.norc_load_error_title()}</AlertTitle>
+                <AlertTitle>{"Couldn't load the transactions"}</AlertTitle>
                 <AlertDescription>{listQuery.error.message}</AlertDescription>
               </Alert>
             </div>
@@ -217,8 +216,8 @@ export default function NoRcTransactionCard() {
                 <EmptyMedia variant="icon">
                   <CircleCheck />
                 </EmptyMedia>
-                <EmptyTitle>{m.norc_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.norc_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'No transactions without RC'}</EmptyTitle>
+                <EmptyDescription>{'Every transaction already has a response code assigned 🎉'}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -229,16 +228,16 @@ export default function NoRcTransactionCard() {
                     <Checkbox
                       checked={selectedItems.size === transactions.length && transactions.length > 0}
                       onCheckedChange={toggleAll}
-                      aria-label={m.common_select_all()}
+                      aria-label={'Select all'}
                     />
                   </TableHead>
-                  <TableHead>{m.common_date()}</TableHead>
+                  <TableHead>{'Date'}</TableHead>
                   <TableHead>Jenis Transaksi</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.norc_col_status()}</TableHead>
-                  <TableHead className="hidden text-right md:table-cell">{m.norc_col_total()}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Status'}</TableHead>
+                  <TableHead className="hidden text-right md:table-cell">{'Total'}</TableHead>
                   <TableHead>RC</TableHead>
-                  <TableHead className="hidden lg:table-cell">{m.norc_col_rc_description()}</TableHead>
-                  <TableHead className="w-28 text-right">{m.common_action()}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{'RC description'}</TableHead>
+                  <TableHead className="w-28 text-right">{'Action'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,7 +251,7 @@ export default function NoRcTransactionCard() {
                         <Checkbox
                           checked={selectedItems.has(id)}
                           onCheckedChange={() => toggleItem(id)}
-                          aria-label={m.norc_select_transaction()}
+                          aria-label={'Select transaction'}
                         />
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
@@ -275,7 +274,7 @@ export default function NoRcTransactionCard() {
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <Input
-                          placeholder={m.appcfg_description_label()}
+                          placeholder={'Description (optional)'}
                           value={editingRcDescription[id] ?? ''}
                           onChange={(e) => setEditingRcDescription((prev) => ({ ...prev, [id]: e.target.value }))}
                           className="h-8 w-full min-w-40"
@@ -290,7 +289,7 @@ export default function NoRcTransactionCard() {
                           disabled={!rcValue.trim() || submittingId === id || submitBatchMutation.isPending}
                         >
                           {submittingId === id ? <Loader2 className="animate-spin" /> : null}
-                          {m.common_update()}
+                          {'Update'}
                         </Button>
                       </TableCell>
                     </TableRow>

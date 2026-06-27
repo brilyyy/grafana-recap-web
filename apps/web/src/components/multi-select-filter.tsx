@@ -13,7 +13,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 
 interface MultiSelectFilterProps {
   label: string
@@ -28,7 +27,7 @@ export default function MultiSelectFilter({
   options,
   selectedValues,
   onChange,
-  searchPlaceholder = m.common_search_ph(),
+  searchPlaceholder = 'Search…',
 }: MultiSelectFilterProps) {
   const selected = new Set(selectedValues)
 
@@ -57,7 +56,7 @@ export default function MultiSelectFilter({
               <div className="hidden gap-1 lg:flex">
                 {selected.size > 2 ? (
                   <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                    {m.dict_selected_count({ count: selected.size })}
+                    {`${selected.size} selected`}
                   </Badge>
                 ) : (
                   options
@@ -77,7 +76,7 @@ export default function MultiSelectFilter({
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
-            <CommandEmpty>{m.multiselect_no_results()}</CommandEmpty>
+            <CommandEmpty>{'No results found.'}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selected.has(option.value)
@@ -103,7 +102,7 @@ export default function MultiSelectFilter({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem onSelect={() => onChange([])} className="justify-center text-center">
-                    {m.multiselect_clear()}
+                    {'Clear filters'}
                   </CommandItem>
                 </CommandGroup>
               </>

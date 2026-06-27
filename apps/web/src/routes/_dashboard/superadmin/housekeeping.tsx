@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
 
@@ -49,14 +48,14 @@ function HousekeepingPage() {
   const addRowSchema = useMemo(
     () =>
       z.object({
-        db_name: z.string().trim().min(1, m.validation_db_name_field_required()),
-        table_name: z.string().trim().min(1, m.validation_table_name_field_required()),
+        db_name: z.string().trim().min(1, 'db_name is required'),
+        table_name: z.string().trim().min(1, 'table_name is required'),
         date_column: z.string().trim(),
         date_column_type: z.enum(['timestamp', 'int_1yymmdd']),
         retention_days: z
           .string()
           .trim()
-          .refine((v) => v === '' || (Number.isInteger(Number(v)) && Number(v) > 0), m.validation_positive_integer()),
+          .refine((v) => v === '' || (Number.isInteger(Number(v)) && Number(v) > 0), 'Must be a positive integer'),
         notes: z.string().trim(),
       }),
     [],
@@ -76,22 +75,22 @@ function HousekeepingPage() {
 
   const updateConfigMutation = trpc.housekeeping.updateConfig.useMutation({
     onSuccess: () => listQuery.refetch(),
-    onError: (error) => toast.error(error.message || m.hk_toast_config_err()),
+    onError: (error) => toast.error(error.message || "Couldn't update the config"),
   })
   const upsertMutation = trpc.housekeeping.upsertRow.useMutation({
     onSuccess: () => {
-      toast.success(m.hk_toast_row_saved())
+      toast.success('Housekeeping row saved ✅')
       form.reset()
       listQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.hk_toast_save_err()),
+    onError: (error) => toast.error(error.message || "Couldn't save the row"),
   })
   const deleteMutation = trpc.housekeeping.deleteRow.useMutation({
     onSuccess: () => {
-      toast.success(m.hk_toast_row_removed())
+      toast.success('Housekeeping row removed')
       listQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.hk_toast_delete_err()),
+    onError: (error) => toast.error(error.message || "Couldn't delete the row"),
   })
   const runMutation = trpc.housekeeping.run.useMutation()
 
@@ -125,7 +124,7 @@ function HousekeepingPage() {
       const result = await runMutation.mutateAsync({ id: row.id })
       toast.success(result.message)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : m.hk_toast_run_err())
+      toast.error(error instanceof Error ? error.message : 'Error running housekeeping')
     } finally {
       setRunningId(null)
     }
@@ -134,28 +133,33 @@ function HousekeepingPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">{m.nav_housekeeping()}</h1>
-        <p className="text-sm text-muted-foreground">{m.hk_subtitle()}</p>
+        <h1 className="text-lg font-semibold tracking-tight">{'Housekeeping'}</h1>
+        <p className="text-sm text-muted-foreground">
+          {
+            'Configure retention per raw table. Shared raw tables (e.g. itm_db tables used by EDC Agen, EDC Merchant, and EDC Merchant Ancol) appear as a single row. Running housekeeping deletes rows older than the configured retention period directly from the raw table.'
+          }
+        </p>
       </header>
 
       <Alert>
         <Clock />
         <AlertTitle>
-          {m.hk_schedule_label()}{' '}
-          <code className="font-mono text-xs">{scheduleQuery.data?.data?.schedule ?? '0 2 * * *'}</code>
+          {'Schedule:'} <code className="font-mono text-xs">{scheduleQuery.data?.data?.schedule ?? '0 2 * * *'}</code>
         </AlertTitle>
         <AlertDescription>
-          {m.hk_schedule_desc_part1()} <code className="font-mono">HOUSEKEEPING_SCHEDULE</code>{' '}
-          {m.hk_schedule_desc_part2()} <code className="font-mono">.env</code> {m.hk_schedule_desc_part3()}
+          {'Housekeeping runs via node-cron on the app server. To change the schedule, set'}{' '}
+          <code className="font-mono">HOUSEKEEPING_SCHEDULE</code> {'in'} <code className="font-mono">.env</code>{' '}
+          {'and restart the app.'}
         </AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">{m.hk_add_table_title()}</CardTitle>
+          <CardTitle className="text-base font-medium">{'Add raw table'}</CardTitle>
           <CardDescription>
-            {m.hk_add_table_desc_part1()} <code className="font-mono text-xs">bale_db_raw_bale</code>
-            {m.hk_add_table_desc_part2()}
+            {'Use the platform relation name (prefixed FDW foreign table when applicable, e.g.'}{' '}
+            <code className="font-mono text-xs">bale_db_raw_bale</code>
+            {'), not only the short view name.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -193,7 +197,7 @@ function HousekeepingPage() {
                   name="date_column"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.hk_date_column_label()}</FormLabel>
+                      <FormLabel>{'date_column (optional)'}</FormLabel>
                       <FormControl>
                         <Input className="font-mono" {...field} />
                       </FormControl>
@@ -206,7 +210,7 @@ function HousekeepingPage() {
                   name="date_column_type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.hk_date_column_type_label()}</FormLabel>
+                      <FormLabel>{'Date column type'}</FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
                           <SelectTrigger className="w-full">
@@ -214,8 +218,8 @@ function HousekeepingPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="timestamp">{m.hk_date_type_timestamp()}</SelectItem>
-                          <SelectItem value="int_1yymmdd">{m.hk_date_type_int()}</SelectItem>
+                          <SelectItem value="timestamp">{'timestamp / date'}</SelectItem>
+                          <SelectItem value="int_1yymmdd">{'integer 1YYMMDD (e.g. TRXMDT)'}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -227,7 +231,7 @@ function HousekeepingPage() {
                   name="retention_days"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.hk_retention_label()}</FormLabel>
+                      <FormLabel>{'Retention days (optional)'}</FormLabel>
                       <FormControl>
                         <Input type="number" min={1} {...field} />
                       </FormControl>
@@ -240,7 +244,7 @@ function HousekeepingPage() {
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.hk_notes_label()}</FormLabel>
+                      <FormLabel>{'Notes (optional)'}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -251,7 +255,7 @@ function HousekeepingPage() {
               </div>
               <Button type="submit" className="self-start" disabled={upsertMutation.isPending}>
                 {upsertMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                {m.hk_save_row()}
+                {'Save row'}
               </Button>
             </form>
           </Form>
@@ -273,19 +277,19 @@ function HousekeepingPage() {
                 <EmptyMedia variant="icon">
                   <Trash2 />
                 </EmptyMedia>
-                <EmptyTitle>{m.hk_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.hk_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'No raw tables configured'}</EmptyTitle>
+                <EmptyDescription>{'Run migration to seed from apps, or add a row above.'}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.db_col_database()}</TableHead>
-                  <TableHead>{m.hk_col_table()}</TableHead>
-                  <TableHead>{m.hk_col_date_column()}</TableHead>
-                  <TableHead>{m.hk_col_retention()}</TableHead>
-                  <TableHead className="text-right">{m.common_actions()}</TableHead>
+                  <TableHead>{'Database'}</TableHead>
+                  <TableHead>{'Table'}</TableHead>
+                  <TableHead>{'Date column'}</TableHead>
+                  <TableHead>{'Retention'}</TableHead>
+                  <TableHead className="text-right">{'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -305,7 +309,7 @@ function HousekeepingPage() {
                               onChange={(e) =>
                                 setEditingDateConfig((p) => (p ? { ...p, date_column: e.target.value } : null))
                               }
-                              placeholder={m.hk_date_col_ph()}
+                              placeholder={'column_name'}
                               className="h-8 font-mono text-xs"
                             />
                             <Select
@@ -320,8 +324,8 @@ function HousekeepingPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="timestamp">{m.hk_date_type_timestamp()}</SelectItem>
-                                <SelectItem value="int_1yymmdd">{m.hk_date_type_int_short()}</SelectItem>
+                                <SelectItem value="timestamp">{'timestamp / date'}</SelectItem>
+                                <SelectItem value="int_1yymmdd">{'integer 1YYMMDD'}</SelectItem>
                               </SelectContent>
                             </Select>
                             <div className="flex gap-1">
@@ -344,7 +348,7 @@ function HousekeepingPage() {
                                 }}
                               >
                                 <Check className="size-3.5" />
-                                {m.common_save()}
+                                {'Save'}
                               </Button>
                               <Button
                                 variant="ghost"
@@ -353,7 +357,7 @@ function HousekeepingPage() {
                                 onClick={() => setEditingDateConfig(null)}
                               >
                                 <X className="size-3.5" />
-                                {m.common_cancel()}
+                                {'Cancel'}
                               </Button>
                             </div>
                           </div>
@@ -367,7 +371,7 @@ function HousekeepingPage() {
                               variant="ghost"
                               size="icon"
                               className="size-6"
-                              title={m.hk_edit_date_column_title()}
+                              title={'Edit date column'}
                               onClick={() =>
                                 setEditingDateConfig({
                                   id: row.id,
@@ -383,7 +387,7 @@ function HousekeepingPage() {
                         ) : isRefNoDate ? (
                           <div className="flex flex-col gap-0.5">
                             <Badge variant="outline" title={row.notes ?? ''}>
-                              {m.hk_not_applicable()}
+                              {'Not applicable'}
                             </Badge>
                             {row.notes && <p className="max-w-52 text-xs text-muted-foreground">{row.notes}</p>}
                           </div>
@@ -391,7 +395,7 @@ function HousekeepingPage() {
                           <div className="flex flex-col items-start gap-1">
                             <Badge variant="outline">
                               <Clock />
-                              {m.hk_pending_setup()}
+                              {'Pending setup'}
                             </Badge>
                             {row.notes && <p className="max-w-52 text-xs text-muted-foreground">{row.notes}</p>}
                             <Button
@@ -402,7 +406,7 @@ function HousekeepingPage() {
                                 setEditingDateConfig({ id: row.id, date_column: '', date_column_type: 'timestamp' })
                               }
                             >
-                              {m.hk_set_date_column()}
+                              {'Set date column'}
                             </Button>
                           </div>
                         )}
@@ -416,14 +420,14 @@ function HousekeepingPage() {
                               min={1}
                               value={editingRetention.value}
                               onChange={(e) => setEditingRetention((p) => (p ? { ...p, value: e.target.value } : null))}
-                              placeholder={m.hk_days_ph()}
+                              placeholder={'days'}
                               className="h-8 w-24"
                             />
                             <Button
                               variant="ghost"
                               size="icon"
                               className="size-7"
-                              title={m.common_save()}
+                              title={'Save'}
                               disabled={updateConfigMutation.isPending}
                               onClick={() => {
                                 const days = Number.parseInt(editingRetention.value, 10)
@@ -445,7 +449,7 @@ function HousekeepingPage() {
                               variant="ghost"
                               size="icon"
                               className="size-7"
-                              title={m.common_cancel()}
+                              title={'Cancel'}
                               onClick={() => setEditingRetention(null)}
                             >
                               <X className="size-3.5" />
@@ -458,15 +462,13 @@ function HousekeepingPage() {
                                 row.retention_days ? 'text-sm tabular-nums' : 'text-sm text-muted-foreground italic'
                               }
                             >
-                              {row.retention_days
-                                ? m.hk_retention_days_value({ days: row.retention_days })
-                                : m.hk_not_set()}
+                              {row.retention_days ? `${row.retention_days} days` : 'Not set'}
                             </span>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="size-6"
-                              title={m.hk_edit_retention_title()}
+                              title={'Edit retention'}
                               disabled={isRefNoDate}
                               onClick={() =>
                                 setEditingRetention({ id: row.id, value: String(row.retention_days ?? '') })
@@ -489,15 +491,15 @@ function HousekeepingPage() {
                             disabled={!canRun || runningId === row.id}
                             title={
                               !row.date_column
-                                ? m.hk_run_title_configure_first()
+                                ? 'Configure date column and retention first'
                                 : !row.retention_days
-                                  ? m.hk_run_title_set_retention()
-                                  : m.hk_run_title_run()
+                                  ? 'Set retention days first'
+                                  : 'Run housekeeping'
                             }
                             onClick={() => handleRun(row)}
                           >
                             {runningId === row.id ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                            {m.hk_run()}
+                            {'Run'}
                           </Button>
                           <Button
                             variant="ghost"
@@ -505,14 +507,12 @@ function HousekeepingPage() {
                             className="h-7 text-destructive hover:text-destructive"
                             disabled={deleteMutation.isPending}
                             onClick={() => {
-                              if (
-                                !window.confirm(m.hk_confirm_delete({ dbName: row.db_name, tableName: row.table_name }))
-                              )
+                              if (!window.confirm(`Delete housekeeping row for ${row.db_name}.${row.table_name}?`))
                                 return
                               deleteMutation.mutate({ id: row.id })
                             }}
                           >
-                            {m.hk_delete()}
+                            {'Delete'}
                           </Button>
                         </div>
                       </TableCell>

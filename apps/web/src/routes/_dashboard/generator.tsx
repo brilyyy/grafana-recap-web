@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/_dashboard/generator')({
@@ -221,9 +220,9 @@ function GeneratorPage() {
       <header>
         <div className="flex items-center gap-2">
           <Presentation className="size-5" />
-          <h1 className="text-lg font-semibold tracking-tight">{m.gen_title()}</h1>
+          <h1 className="text-lg font-semibold tracking-tight">{'Report Generator'}</h1>
         </div>
-        <p className="text-sm text-muted-foreground">{m.gen_subtitle()}</p>
+        <p className="text-sm text-muted-foreground">{'Generate success-rate reports from database or Excel data.'}</p>
       </header>
 
       {/* Health status */}
@@ -231,23 +230,23 @@ function GeneratorPage() {
         <Skeleton className="h-9 w-48" />
       ) : (
         <Badge variant={isHealthy ? 'secondary' : 'destructive'}>
-          {isHealthy ? m.gen_health_ok() : m.gen_health_offline()}
+          {isHealthy ? 'Generator service online' : 'Generator service offline'}
         </Badge>
       )}
 
       {/* Generate section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">{m.gen_title()}</CardTitle>
-          <CardDescription>{m.gen_subtitle()}</CardDescription>
+          <CardTitle className="text-base font-medium">{'Report Generator'}</CardTitle>
+          <CardDescription>{'Generate success-rate reports from database or Excel data.'}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {/* App selector */}
           <div className="flex flex-col gap-2">
-            <Label>{m.gen_select_app()}</Label>
+            <Label>{'Select application'}</Label>
             <Select value={selectedAppId} onValueChange={setSelectedAppId}>
               <SelectTrigger>
-                <SelectValue placeholder={m.gen_select_app()} />
+                <SelectValue placeholder={'Select application'} />
               </SelectTrigger>
               <SelectContent>
                 {apps.map((appItem) => (
@@ -263,11 +262,11 @@ function GeneratorPage() {
           {selectedAppId && (
             <div className="flex items-center gap-2">
               <Badge variant={currentMapping ? 'secondary' : 'outline'}>
-                {currentMapping ? m.gen_mapping_configured() : m.gen_mapping_not_configured()}
+                {currentMapping ? 'Configured' : 'Not configured'}
               </Badge>
               <Button variant="ghost" size="sm" className="h-7 gap-1" onClick={openMappingDialog}>
                 <Settings2 className="size-3" />
-                {m.gen_configure_mapping()}
+                {'Configure Mapping'}
               </Button>
             </div>
           )}
@@ -275,11 +274,11 @@ function GeneratorPage() {
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.gen_date_from()}</Label>
+              <Label className="text-xs">{'Date from'}</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.gen_date_to()}</Label>
+              <Label className="text-xs">{'Date to'}</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
           </div>
@@ -288,7 +287,7 @@ function GeneratorPage() {
           <div className="flex gap-2">
             <Button onClick={handleGenerateDb} disabled={!selectedAppId || isGenerating} className="gap-1.5">
               {isGenerating ? <Loader2 className="animate-spin" /> : <Play className="size-3.5" />}
-              {m.gen_generate_db()}
+              {'Generate from Database'}
             </Button>
             <div className="flex items-center gap-2">
               <input
@@ -305,14 +304,14 @@ function GeneratorPage() {
                 className="gap-1.5"
               >
                 <Upload className="size-3.5" />
-                {m.gen_upload_excel()}
+                {'Upload Excel'}
               </Button>
               {selectedFile && <span className="text-xs text-muted-foreground">{selectedFile.name}</span>}
             </div>
             {selectedFile && (
               <Button onClick={handleGenerateExcel} disabled={!selectedAppId || isGenerating} className="gap-1.5">
                 {isGenerating ? <Loader2 className="animate-spin" /> : <Play className="size-3.5" />}
-                {m.gen_generate_excel()}
+                {'Generate from Excel'}
               </Button>
             )}
           </div>
@@ -322,7 +321,7 @@ function GeneratorPage() {
       {/* Reports list */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">{m.gen_reports_title()}</CardTitle>
+          <CardTitle className="text-base font-medium">{'Generated Reports'}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {reportsQuery.isLoading ? (
@@ -338,16 +337,16 @@ function GeneratorPage() {
                 <EmptyMedia variant="icon">
                   <Presentation />
                 </EmptyMedia>
-                <EmptyTitle>{m.gen_reports_empty()}</EmptyTitle>
+                <EmptyTitle>{'No reports generated yet'}</EmptyTitle>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.gen_col_filename()}</TableHead>
-                  <TableHead>{m.gen_col_generated()}</TableHead>
-                  <TableHead>{m.gen_col_size()}</TableHead>
+                  <TableHead>{'Filename'}</TableHead>
+                  <TableHead>{'Generated'}</TableHead>
+                  <TableHead>{'Size'}</TableHead>
                   <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
@@ -380,7 +379,7 @@ function GeneratorPage() {
       <Dialog open={mappingDialogOpen} onOpenChange={setMappingDialogOpen}>
         <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{m.gen_configure_mapping()}</DialogTitle>
+            <DialogTitle>{'Configure Mapping'}</DialogTitle>
             <DialogDescription>
               Configure how sr-generator reads data for {selectedApp?.app_name ?? 'this app'}.
             </DialogDescription>
@@ -388,7 +387,7 @@ function GeneratorPage() {
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
             {/* generate_from */}
             <div className="flex flex-col gap-1">
-              <Label>{m.appcfg_generate_from_label()}</Label>
+              <Label>{'Data source'}</Label>
               <Select
                 value={mappingFormValues.generate_from}
                 onValueChange={(v) => {
@@ -409,7 +408,7 @@ function GeneratorPage() {
 
             {/* Fields */}
             <div className="flex flex-col gap-2">
-              <Label>{m.appcfg_fields_title()}</Label>
+              <Label>{'Field Mapping'}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {(
                   ['date', 'response_code', 'response_code_desc', 'error_type', 'trx_count', 'trx_feature'] as const
@@ -433,7 +432,7 @@ function GeneratorPage() {
 
             {/* Success type format */}
             <div className="flex flex-col gap-1">
-              <Label>{m.appcfg_success_type_label()}</Label>
+              <Label>{'Success types'}</Label>
               <div className="flex flex-wrap gap-1">
                 {mappingFormValues.success_type_format.map((val) => (
                   <Badge key={val} variant="secondary" className="gap-1">
@@ -474,7 +473,7 @@ function GeneratorPage() {
 
             {/* Ignore errors */}
             <div className="flex flex-col gap-1">
-              <Label>{m.appcfg_ignore_errors_label()}</Label>
+              <Label>{'Ignored response codes'}</Label>
               <div className="flex flex-wrap gap-1">
                 {mappingFormValues.ignore_errors.map((val) => (
                   <Badge key={val} variant="secondary" className="gap-1">
@@ -515,7 +514,7 @@ function GeneratorPage() {
 
             {/* Ignore features */}
             <div className="flex flex-col gap-1">
-              <Label>{m.appcfg_ignore_features_label()}</Label>
+              <Label>{'Ignored transaction features'}</Label>
               <div className="flex flex-wrap gap-1">
                 {mappingFormValues.ignore_features.map((val) => (
                   <Badge key={val} variant="secondary" className="gap-1">
@@ -567,7 +566,7 @@ function GeneratorPage() {
               </Button>
               {showAdvanced && (
                 <div className="mt-2 flex flex-col gap-2 rounded border p-3">
-                  <Label>{m.appcfg_error_type_label()}</Label>
+                  <Label>{'Error type format'}</Label>
                   {Object.entries(mappingFormValues.error_type_format).map(([key, values]) => (
                     <div key={key} className="flex items-center gap-2">
                       <span className="w-32 text-xs text-muted-foreground">{key}</span>
@@ -593,11 +592,11 @@ function GeneratorPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMappingDialogOpen(false)}>
-              {m.common_cancel()}
+              {'Cancel'}
             </Button>
             <Button onClick={handleSaveMapping} disabled={upsertMappingMutation.isPending}>
               {upsertMappingMutation.isPending && <Loader2 className="animate-spin" />}
-              {m.common_save()}
+              {'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>

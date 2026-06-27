@@ -1,22 +1,12 @@
 /**
- * Locale-aware formatting helpers. Map the active Paraglide locale to a BCP-47 tag so
- * dates/numbers follow the user's chosen language instead of a hardcoded 'id-ID'.
+ * Locale-aware formatting helpers. Uses en-US as the fixed locale.
  */
-import { getLocale } from '@/paraglide/runtime'
 
-const BCP47: Record<string, string> = {
-  id: 'id-ID',
-  en: 'en-US',
-}
+const LOCALE = 'en-US'
 
-/** Active locale as a BCP-47 tag for Intl APIs. */
-export function localeTag(): string {
-  return BCP47[getLocale()] ?? 'en-US'
-}
-
-/** Date + time, medium style (e.g. "16 Jun 2026, 14.05"). */
+/** Date + time, medium style (e.g. "Jun 16, 2026, 02:05 PM"). */
 export function formatDateTime(value: string | number | Date): string {
-  return new Date(value).toLocaleString(localeTag(), {
+  return new Date(value).toLocaleString(LOCALE, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -25,17 +15,17 @@ export function formatDateTime(value: string | number | Date): string {
   })
 }
 
-/** Short day + month (e.g. "16 Jun"). */
+/** Short day + month (e.g. "Jun 16"). */
 export function formatDayMonth(value: string | number | Date): string {
-  return new Date(value).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })
+  return new Date(value).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })
 }
 
-/** Month + year (e.g. "Juni 2026" / "June 2026"). */
+/** Month + year (e.g. "June 2026"). */
 export function formatMonthYear(value: Date): string {
-  return value.toLocaleDateString(localeTag(), { month: 'long', year: 'numeric' })
+  return value.toLocaleDateString(LOCALE, { month: 'long', year: 'numeric' })
 }
 
-/** Full month name for a 1-12 month index (e.g. "June" / "Juni"). */
+/** Full month name for a 1-12 month index (e.g. "June"). */
 export function formatMonthName(month: number): string {
-  return new Date(2000, month - 1, 1).toLocaleDateString(localeTag(), { month: 'long' })
+  return new Date(2000, month - 1, 1).toLocaleDateString(LOCALE, { month: 'long' })
 }

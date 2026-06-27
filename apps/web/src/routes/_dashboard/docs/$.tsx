@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { MarkdownDoc } from '@/components/markdown-doc'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { getDoc } from '@/lib/docs-manifest'
-import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/_dashboard/docs/$')({
   ssr: false,
@@ -21,8 +20,8 @@ function DocPage() {
     return (
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>{m.docs_not_found_title()}</EmptyTitle>
-          <EmptyDescription>{m.docs_not_found_desc()}</EmptyDescription>
+          <EmptyTitle>{'Doc not found'}</EmptyTitle>
+          <EmptyDescription>{'No document matches this path.'}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )

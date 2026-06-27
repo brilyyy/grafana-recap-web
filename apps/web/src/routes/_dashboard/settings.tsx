@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { MonitorIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-import { LanguageRadioGroup } from '@/components/language-toggle'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -11,7 +10,6 @@ import { Switch } from '@/components/ui/switch'
 import { useAuthSession } from '@/hooks/use-auth-session'
 import { useBackgroundMode } from '@/hooks/use-background-mode'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 import { AppSetupPanel } from './-components/app-setup-panel'
 
 export const Route = createFileRoute('/_dashboard/settings')({
@@ -23,7 +21,7 @@ const FLAVORS = [
   {
     value: 'latte',
     label: 'Latte',
-    description: m.settings_flavor_latte_desc,
+    description: 'Light, warm pastels',
     swatch: '#8839ef',
     bg: '#eff1f5',
     accent: '#ccd0da',
@@ -31,7 +29,7 @@ const FLAVORS = [
   {
     value: 'frappe',
     label: 'Frappé',
-    description: m.settings_flavor_frappe_desc,
+    description: 'Muted dark, cool tones',
     swatch: '#ca9ee6',
     bg: '#303446',
     accent: '#414559',
@@ -39,7 +37,7 @@ const FLAVORS = [
   {
     value: 'macchiato',
     label: 'Macchiato',
-    description: m.settings_flavor_macchiato_desc,
+    description: 'Deeper dark, vivid accents',
     swatch: '#c6a0f6',
     bg: '#24273a',
     accent: '#363a4f',
@@ -47,7 +45,7 @@ const FLAVORS = [
   {
     value: 'mocha',
     label: 'Mocha',
-    description: m.settings_flavor_mocha_desc,
+    description: 'Darkest, richest contrast',
     swatch: '#cba6f7',
     bg: '#1e1e2e',
     accent: '#313244',
@@ -82,19 +80,19 @@ function SettingsPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold">{m.settings_title()}</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{m.settings_subtitle()}</p>
+        <h1 className="text-lg font-semibold">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Set up your workspace to match your vibe.</p>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle>{m.settings_appearance()}</CardTitle>
-          <CardDescription>{m.settings_appearance_desc()}</CardDescription>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Pick your color theme and background style.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          {/* ── Theme flavor ──────────────────────────────────────── */}
+          {/* Theme flavor */}
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium">{m.settings_theme()}</p>
+            <p className="text-sm font-medium">Theme</p>
             <RadioGroup value={activeTheme} onValueChange={setTheme} className="grid gap-2">
               {/* System */}
               <div
@@ -110,8 +108,8 @@ function SettingsPage() {
                   <MonitorIcon className="size-4 text-muted-foreground" />
                 </span>
                 <Label htmlFor="theme-system" className="cursor-pointer flex-col items-start gap-0">
-                  <span className="text-sm font-medium">{m.settings_theme_system()}</span>
-                  <span className="text-xs text-muted-foreground">{m.settings_theme_system_desc()}</span>
+                  <span className="text-sm font-medium">System</span>
+                  <span className="text-xs text-muted-foreground">Follows your OS — Latte / Mocha</span>
                 </Label>
               </div>
 
@@ -130,7 +128,7 @@ function SettingsPage() {
                   <ThemeSwatch bg={f.bg} accent={f.accent} swatch={f.swatch} />
                   <Label htmlFor={`theme-${f.value}`} className="cursor-pointer flex-col items-start gap-0">
                     <span className="text-sm font-medium">{f.label}</span>
-                    <span className="text-xs text-muted-foreground">{f.description()}</span>
+                    <span className="text-xs text-muted-foreground">{f.description}</span>
                   </Label>
                 </div>
               ))}
@@ -139,27 +137,18 @@ function SettingsPage() {
 
           <Separator />
 
-          {/* ── Language ──────────────────────────────────────────── */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-medium">{m.settings_language_title()}</p>
-              <p className="text-xs text-muted-foreground">{m.settings_language_desc()}</p>
-            </div>
-            <LanguageRadioGroup />
-          </div>
-
-          <Separator />
-
-          {/* ── Background ────────────────────────────────────────── */}
+          {/* Background */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium">{m.settings_bg_title()}</p>
-              <p className="text-xs text-muted-foreground">{m.settings_bg_desc()}</p>
+              <p className="text-sm font-medium">Animated background</p>
+              <p className="text-xs text-muted-foreground">
+                Show a moving starfield behind the dashboard. Auto-off when your OS asks for reduced motion.
+              </p>
             </div>
             <Switch
               checked={bgMode === 'animated'}
               onCheckedChange={(checked) => setBgMode(checked ? 'animated' : 'solid')}
-              aria-label={m.settings_bg_title()}
+              aria-label="Animated background"
             />
           </div>
         </CardContent>

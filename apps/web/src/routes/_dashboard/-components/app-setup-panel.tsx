@@ -18,7 +18,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 // Kept local (string union) so this client component never imports the server-only engine module.
@@ -33,23 +32,23 @@ interface DiagnoseRow {
 
 function getPhases(): { key: Phase; label: string; desc: string }[] {
   return [
-    { key: 'all', label: m.setup_phase_all_label(), desc: m.setup_phase_all_desc() },
-    { key: 'schema', label: m.setup_phase_schema_label(), desc: m.setup_phase_schema_desc() },
-    { key: 'fdw', label: m.setup_phase_fdw_label(), desc: m.setup_phase_fdw_desc() },
-    { key: 'procedures', label: m.setup_phase_procedures_label(), desc: m.setup_phase_procedures_desc() },
-    { key: 'seed', label: m.setup_phase_seed_label(), desc: m.setup_phase_seed_desc() },
-    { key: 'cron', label: m.setup_phase_cron_label(), desc: m.setup_phase_cron_desc() },
+    { key: 'all', label: 'Run all', desc: 'Schema, FDW, procedures, seeds, scheduler' },
+    { key: 'schema', label: 'Schema', desc: 'Tables, columns, indexes, enums' },
+    { key: 'fdw', label: 'FDW', desc: 'postgres_fdw foreign servers + tables' },
+    { key: 'procedures', label: 'Procedures', desc: 'Stored procedures + recap models' },
+    { key: 'seed', label: 'Seed', desc: 'Superadmin user(s)' },
+    { key: 'cron', label: 'Scheduler', desc: 'scheduler_jobs table + seeded jobs' },
   ]
 }
 
 function getCategoryLabel(category: string): string {
   const labels: Record<string, string> = {
-    enum: m.setup_category_enum(),
-    table: m.setup_category_table(),
-    column: m.setup_category_column(),
-    index: m.setup_category_index(),
-    function: m.setup_category_function(),
-    seed: m.setup_category_seed(),
+    enum: 'Enums',
+    table: 'Tables',
+    column: 'Columns',
+    index: 'Indexes',
+    function: 'Functions',
+    seed: 'Seeds',
   }
   return labels[category] ?? category
 }
@@ -59,19 +58,19 @@ function StatusBadge({ status }: { status: DiagnoseStatus }) {
     case 'ok':
       return (
         <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
-          {m.setup_badge_ok()}
+          {'OK'}
         </Badge>
       )
     case 'drift':
       return (
         <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
-          {m.setup_badge_drift()}
+          {'DRIFT'}
         </Badge>
       )
     case 'missing':
-      return <Badge variant="destructive">{m.setup_badge_missing()}</Badge>
+      return <Badge variant="destructive">{'MISSING'}</Badge>
     default:
-      return <Badge variant="destructive">{m.setup_badge_error()}</Badge>
+      return <Badge variant="destructive">{'ERROR'}</Badge>
   }
 }
 
@@ -90,22 +89,15 @@ function DiagnoseTab() {
         <div className="text-xs text-muted-foreground">
           {report ? (
             <span>
-              {m.analyzer_subtitle_db_label()}{' '}
-              <span className="font-mono font-medium text-foreground">{report.dbName}</span> ·{' '}
-              <span className="text-emerald-600 dark:text-emerald-400">
-                {m.setup_summary_ok({ count: report.summary.ok })}
-              </span>{' '}
-              ·{' '}
-              <span className="text-amber-600 dark:text-amber-400">
-                {m.setup_summary_drift({ count: report.summary.drift })}
-              </span>{' '}
-              ·{' '}
+              {'Database'} <span className="font-mono font-medium text-foreground">{report.dbName}</span> ·{' '}
+              <span className="text-emerald-600 dark:text-emerald-400">{`${report.summary.ok} OK`}</span> ·{' '}
+              <span className="text-amber-600 dark:text-amber-400">{`${report.summary.drift} drift`}</span> ·{' '}
               <span className="text-destructive">
-                {m.setup_summary_missing({ count: report.summary.missing + report.summary.error })}
+                {`${report.summary.missing + report.summary.error} missing/error`}
               </span>
             </span>
           ) : (
-            m.setup_diagnose_readonly_hint()
+            'Read-only health check — executes no DDL.'
           )}
         </div>
         <Button
@@ -116,13 +108,13 @@ function DiagnoseTab() {
           disabled={query.isFetching}
         >
           {query.isFetching ? <Spinner className="size-3" /> : <RefreshCwIcon className="size-3" />}
-          {m.analyzer_rerun()}
+          {'Re-run'}
         </Button>
       </div>
 
       {query.isLoading ? (
         <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
-          <Spinner className="size-4" /> {m.setup_diagnose_running()}
+          <Spinner className="size-4" /> {'Running diagnostics…'}
         </div>
       ) : query.isError ? (
         <p className="py-4 text-xs text-destructive">{query.error.message}</p>
@@ -180,12 +172,12 @@ function MigrateTab() {
       utils.setup.preflight.invalidate()
     },
     onError: (err) => {
-      toast.error(err.message || m.setup_migrate_error_fallback())
-      setSteps((prev) => [...prev, m.setup_migrate_error_log({ message: err.message })])
+      toast.error(err.message || 'Migration failed')
+      setSteps((prev) => [...prev, `Error: ${err.message}`])
     },
   })
 
-  const dbName = utils.setup.diagnose.getData()?.data.dbName ?? m.setup_db_fallback()
+  const dbName = utils.setup.diagnose.getData()?.data.dbName ?? 'the connected database'
   const runningPhase = apply.isPending ? (apply.variables?.phase as Phase | undefined) : undefined
 
   // Conflicts only matter for the schema-touching phases.
@@ -207,12 +199,16 @@ function MigrateTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-muted-foreground">{m.setup_migrate_desc()}</p>
+      <p className="text-xs text-muted-foreground">
+        {
+          'Each action runs the matching idempotent setup phase on the connected DB. Safe to re-run — existing objects get skipped.'
+        }
+      </p>
 
       {conflicts.length > 0 && (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-amber-700 dark:text-amber-400">
-          {m.setup_conflicts_banner_p1({ count: conflicts.length })} <span className="font-medium">Null</span>{' '}
-          {m.setup_conflicts_banner_or()} <span className="font-medium">Random</span> {m.setup_conflicts_banner_p2()}
+          {`${conflicts.length} conflicts found. Choose`} <span className="font-medium">Null</span> {'or'}{' '}
+          <span className="font-medium">Random</span> {'for each.'}
         </div>
       )}
 
@@ -231,7 +227,7 @@ function MigrateTab() {
               onClick={() => setConfirmPhase(p.key)}
             >
               {runningPhase === p.key ? <Spinner className="size-3" /> : <PlayIcon className="size-3" />}
-              {m.hk_run()}
+              {'Run'}
             </Button>
           </div>
         ))}
@@ -246,16 +242,16 @@ function MigrateTab() {
       <Dialog open={confirmPhase !== null} onOpenChange={(open) => !open && setConfirmPhase(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{m.setup_dialog_title({ phase: confirmPhase ?? '' })}</DialogTitle>
+            <DialogTitle>{`Run "${confirmPhase ?? ''}" phase`}</DialogTitle>
             <DialogDescription>
-              {m.setup_dialog_desc_p1()} <span className="font-mono font-medium text-foreground">{dbName}</span>
-              {m.setup_dialog_desc_p2()}
+              {'This executes DDL on'} <span className="font-mono font-medium text-foreground">{dbName}</span>
+              {'. The phase is idempotent, but it does write to the database.'}
             </DialogDescription>
           </DialogHeader>
 
           {showConflicts && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-medium">{m.setup_conflicts_need_value({ count: conflicts.length })}</p>
+              <p className="text-xs font-medium">{`${conflicts.length} conflicts require a resolution value`}</p>
               <ScrollArea className="max-h-56">
                 <div className="flex flex-col gap-2 pr-3">
                   {conflicts.map((c) => (
@@ -263,7 +259,7 @@ function MigrateTab() {
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono text-xs">{c.key}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
-                          {m.setup_conflict_rows({ count: c.rowCount.toLocaleString(), type: c.type })}
+                          {`${c.rowCount.toLocaleString()} ${c.type} rows`}
                         </span>
                       </div>
                       <RadioGroup
@@ -293,9 +289,9 @@ function MigrateTab() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmPhase(null)}>
-              {m.common_cancel()}
+              {'Cancel'}
             </Button>
-            <Button onClick={runConfirmed}>{m.setup_run_migration()}</Button>
+            <Button onClick={runConfirmed}>{'Run migration'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -309,15 +305,17 @@ export function AppSetupPanel({ className }: { className?: string }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <StethoscopeIcon className="size-4" />
-          {m.setup_title()}
+          {'App Setup'}
         </CardTitle>
-        <CardDescription>{m.setup_subtitle()}</CardDescription>
+        <CardDescription>
+          {'Diagnose schema/config drift and run idempotent database migrations. Superadmin only.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="diagnose">
           <TabsList>
-            <TabsTrigger value="diagnose">{m.setup_tab_diagnose()}</TabsTrigger>
-            <TabsTrigger value="migrate">{m.setup_tab_migrate()}</TabsTrigger>
+            <TabsTrigger value="diagnose">{'Diagnose'}</TabsTrigger>
+            <TabsTrigger value="migrate">{'Migrate'}</TabsTrigger>
           </TabsList>
           <TabsContent value="diagnose" className="pt-4">
             <DiagnoseTab />

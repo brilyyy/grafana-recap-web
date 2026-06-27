@@ -9,7 +9,6 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuthSession } from '@/hooks/use-auth-session'
 import { useBackgroundMode } from '@/hooks/use-background-mode'
-import { m } from '@/paraglide/messages'
 
 export const Route = createFileRoute('/_dashboard')({
   ssr: false,
@@ -18,27 +17,27 @@ export const Route = createFileRoute('/_dashboard')({
 
 function getPageTitle(pathname: string): string {
   const pageTitles: Record<string, string> = {
-    '/': m.nav_summary(),
-    '/application': m.nav_applications(),
-    '/dictionary': m.nav_dictionary(),
-    '/generator': m.nav_generator(),
-    '/uploads': m.nav_uploads(),
-    '/unmapped-rc': m.dict_unmapped_title(),
-    '/transactions': m.nav_transactions(),
-    '/settings': m.nav_settings(),
-    '/superadmin/users': m.nav_users(),
-    '/superadmin/audit-logs': m.nav_audit_logs(),
-    '/superadmin/processing': m.nav_processing(),
-    '/superadmin/jobs': m.nav_jobs(),
-    '/superadmin/scheduler': m.nav_scheduler(),
-    '/superadmin/databases': m.nav_databases(),
-    '/superadmin/housekeeping': m.nav_housekeeping(),
+    '/': 'Summary',
+    '/application': 'Applications',
+    '/dictionary': 'Dictionary',
+    '/generator': 'Generator',
+    '/uploads': 'Uploads',
+    '/unmapped-rc': 'Unmapped RC',
+    '/transactions': 'Transactions',
+    '/settings': 'Settings',
+    '/superadmin/users': 'Users',
+    '/superadmin/audit-logs': 'Audit logs',
+    '/superadmin/processing': 'Processing',
+    '/superadmin/jobs': 'Jobs',
+    '/superadmin/scheduler': 'Scheduler',
+    '/superadmin/databases': 'Databases',
+    '/superadmin/housekeeping': 'Housekeeping',
   }
   if (pageTitles[pathname]) return pageTitles[pathname]
-  if (pathname.startsWith('/superadmin/application/')) return m.nav_app_config()
-  if (pathname.startsWith('/docs/')) return m.nav_docs()
-  if (pathname.startsWith('/superadmin/')) return m.nav_group_superadmin()
-  return m.nav_dashboard_fallback()
+  if (pathname.startsWith('/superadmin/application/')) return 'App config'
+  if (pathname.startsWith('/docs/')) return 'Docs'
+  if (pathname.startsWith('/superadmin/')) return 'Superadmin'
+  return 'Dashboard'
 }
 
 function DashboardLayout() {

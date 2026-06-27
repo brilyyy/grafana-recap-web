@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/_dashboard/')({
@@ -57,7 +56,7 @@ function StatCard({ title, value, description, to, icon: Icon, attention, accent
           ) : (
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold tabular-nums">{value}</span>
-              {attention && value > 0 && <Badge variant="destructive">{m.summary_needs_review_badge()}</Badge>}
+              {attention && value > 0 && <Badge variant="destructive">{'needs review'}</Badge>}
             </div>
           )}
           <p className="mt-1 text-xs text-muted-foreground">{description}</p>
@@ -93,40 +92,40 @@ function SummaryPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">{m.summary_title()}</h1>
-        <p className="text-sm text-muted-foreground">{m.summary_subtitle()}</p>
+        <h1 className="text-lg font-semibold tracking-tight">{'Summary'}</h1>
+        <p className="text-sm text-muted-foreground">{'Overview of success-rate data across apps.'}</p>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title={m.summary_stat_applications_title()}
+          title={'Applications'}
           value={counts?.applications}
-          description={m.summary_stat_applications_desc()}
+          description={'Registered apps'}
           to="/application"
           icon={LayoutGrid}
           accent="chart-1"
         />
         <StatCard
-          title={m.summary_stat_dictionary_title()}
+          title={'Dictionary entries'}
           value={counts?.dictionaryEntries}
-          description={m.summary_stat_dictionary_desc()}
+          description={'Response-code mappings'}
           to="/dictionary"
           icon={BookOpen}
           accent="chart-2"
         />
         <StatCard
-          title={m.summary_stat_unmapped_title()}
+          title={'Unmapped RCs'}
           value={counts?.unmappedRcs}
-          description={m.summary_stat_unmapped_desc()}
+          description={'Response codes awaiting classification'}
           to="/unmapped-rc"
           icon={Unlink}
           accent="chart-5"
           attention
         />
         <StatCard
-          title={m.summary_stat_norc_title()}
+          title={'No-RC transactions'}
           value={counts?.noRcTransactions}
-          description={m.summary_stat_norc_desc()}
+          description={'Transactions without a response code'}
           to="/transactions"
           icon={ReceiptText}
           accent="chart-4"
@@ -136,8 +135,8 @@ function SummaryPage() {
 
       <Card className="py-0">
         <CardHeader className="px-4 pt-4">
-          <CardTitle className="text-base font-medium">{m.summary_recent_title()}</CardTitle>
-          <CardDescription>{m.summary_recent_desc()}</CardDescription>
+          <CardTitle className="text-base font-medium">{'Recent processing'}</CardTitle>
+          <CardDescription>{'Latest recap runs across all apps.'}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {summaryQuery.isLoading ? (
@@ -153,19 +152,19 @@ function SummaryPage() {
                 <EmptyMedia variant="icon">
                   <ReceiptText />
                 </EmptyMedia>
-                <EmptyTitle>{m.summary_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.summary_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'No processing runs yet'}</EmptyTitle>
+                <EmptyDescription>{'Recap jobs will show up here once the scheduler runs.'}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.summary_col_app()}</TableHead>
-                  <TableHead>{m.summary_col_processing_date()}</TableHead>
-                  <TableHead>{m.summary_col_status()}</TableHead>
-                  <TableHead className="hidden text-right md:table-cell">{m.summary_col_processed()}</TableHead>
-                  <TableHead className="hidden text-right md:table-cell">{m.summary_col_inserted()}</TableHead>
+                  <TableHead>{'App'}</TableHead>
+                  <TableHead>{'Processing date'}</TableHead>
+                  <TableHead>{'Status'}</TableHead>
+                  <TableHead className="hidden text-right md:table-cell">{'Processed'}</TableHead>
+                  <TableHead className="hidden text-right md:table-cell">{'Inserted'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

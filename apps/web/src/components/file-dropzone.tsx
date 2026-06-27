@@ -2,7 +2,6 @@ import { FileSpreadsheet, Upload, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 
 interface FileDropzoneProps {
   value: File | null | undefined
@@ -57,23 +56,17 @@ export function FileDropzone({ value, onChange, accept = '.xlsx,.csv', disabled,
             <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
               {formatSize(value.size)}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 shrink-0"
-              onClick={clear}
-              title={m.dropzone_remove_file()}
-            >
+            <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={clear} title={'Remove file'}>
               <X className="size-3.5" />
-              <span className="sr-only">{m.dropzone_remove_file()}</span>
+              <span className="sr-only">{'Remove file'}</span>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">{m.dropzone_change_hint()}</p>
+          <p className="text-xs text-muted-foreground">{'Click to choose a different file'}</p>
         </>
       ) : (
         <>
           <Upload className="size-6 text-muted-foreground" />
-          <p className="text-sm font-medium">{m.dropzone_browse_hint()}</p>
+          <p className="text-sm font-medium">{'Drag & drop or click to browse'}</p>
           {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
         </>
       )}

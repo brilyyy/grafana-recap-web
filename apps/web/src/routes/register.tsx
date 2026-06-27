@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/register')({
@@ -42,13 +41,13 @@ function RegisterPage() {
     () =>
       z
         .object({
-          username: z.string().min(1, m.validation_username_required()),
-          email: z.string().email(m.validation_email_invalid()),
-          password: z.string().min(8, m.validation_password_min8()),
-          confirmPassword: z.string().min(1, m.validation_confirm_password_required()),
+          username: z.string().min(1, 'Username is required'),
+          email: z.string().email('Enter a valid email address'),
+          password: z.string().min(8, 'Password must be at least 8 characters'),
+          confirmPassword: z.string().min(1, 'Please confirm your password'),
         })
         .refine((values) => values.password === values.confirmPassword, {
-          message: m.validation_passwords_mismatch(),
+          message: "Passwords don't match",
           path: ['confirmPassword'],
         }),
     [],
@@ -69,18 +68,18 @@ function RegisterPage() {
       })
       if (data.success) {
         if ((data.data as { status?: string } | undefined)?.status === 'pending') {
-          setSuccess(m.register_success_pending())
+          setSuccess('Registration request sent! Hang tight for superadmin approval before you can log in.')
           form.reset()
         } else {
-          setSuccess(m.register_success_created())
+          setSuccess('Admin account created! Redirecting you to login…')
           setTimeout(() => navigate({ to: '/login' }), 2000)
         }
       } else {
-        form.setError('root', { message: (data as { message?: string }).message || m.register_error_failed() })
+        form.setError('root', { message: (data as { message?: string }).message || 'Registration failed' })
       }
     } catch (error) {
       form.setError('root', {
-        message: error instanceof Error ? error.message : m.register_error_generic(),
+        message: error instanceof Error ? error.message : 'Something went wrong. Try again.',
       })
     }
   }
@@ -100,18 +99,24 @@ function RegisterPage() {
         <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Gauge className="size-4" />
         </div>
-        {m.common_app_name()}
+        {'Grafana Recap'}
       </div>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle>{adminExists ? m.register_title_request() : m.register_title_first()}</CardTitle>
-          <CardDescription>{adminExists ? m.register_desc_request() : m.register_desc_first()}</CardDescription>
+          <CardTitle>{adminExists ? 'Request admin account' : 'Create first admin account'}</CardTitle>
+          <CardDescription>
+            {adminExists
+              ? 'Submit a request for an admin account. Superadmin approval required.'
+              : 'Set up your first admin account to access the dashboard.'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {adminExists && (
             <Alert>
               <Info />
-              <AlertDescription>{m.register_info_review()}</AlertDescription>
+              <AlertDescription>
+                {'Your request will be reviewed by a superadmin before you can log in.'}
+              </AlertDescription>
             </Alert>
           )}
           <Form {...form}>
@@ -121,7 +126,7 @@ function RegisterPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m.register_username()}</FormLabel>
+                    <FormLabel>{'Username'}</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
@@ -134,7 +139,7 @@ function RegisterPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m.register_email()}</FormLabel>
+                    <FormLabel>{'Email'}</FormLabel>
                     <FormControl>
                       <Input type="email" autoComplete="email" {...field} />
                     </FormControl>
@@ -147,14 +152,9 @@ function RegisterPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m.register_password()}</FormLabel>
+                    <FormLabel>{'Password'}</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder={m.register_password_ph()}
-                        {...field}
-                      />
+                      <Input type="password" autoComplete="new-password" placeholder={'Min. 8 characters'} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -165,7 +165,7 @@ function RegisterPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m.register_confirm_password()}</FormLabel>
+                    <FormLabel>{'Confirm password'}</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="new-password" {...field} />
                     </FormControl>
@@ -187,15 +187,15 @@ function RegisterPage() {
               )}
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                {adminExists ? m.register_submit_request() : m.register_submit_create()}
+                {adminExists ? 'Submit admin request' : 'Create admin account'}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="justify-center text-sm text-muted-foreground">
-          {m.register_have_account()}
+          {'Already have an account?'}
           <Link to="/login" className="ml-1 text-foreground underline-offset-4 hover:underline">
-            {m.register_signin()}
+            {'Sign in'}
           </Link>
         </CardFooter>
       </Card>

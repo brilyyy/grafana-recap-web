@@ -12,7 +12,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useApplications } from '@/hooks/useApplications'
 import { validateCsvColumns } from '@/lib/csv-columns'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 const REQUIRED_COLUMNS = [
@@ -43,15 +42,15 @@ export default function AddSuccessRateCard() {
   const schema = useMemo(
     () =>
       z.object({
-        appId: z.string().min(1, m.upload_select_app_required()),
+        appId: z.string().min(1, 'Please select an app'),
         file: z
-          .custom<File>((f) => f instanceof File, m.upload_file_required())
-          .refine((f) => /\.(xlsx|csv)$/i.test(f.name), m.upload_file_type_invalid())
+          .custom<File>((f) => f instanceof File, 'Please select a file to upload')
+          .refine((f) => /\.(xlsx|csv)$/i.test(f.name), 'Only Excel (.xlsx) or CSV (.csv) files are allowed')
           .superRefine(async (f, ctx) => {
             if (!/\.(xlsx|csv)$/i.test(f.name)) return
             const result = await validateCsvColumns(f, REQUIRED_COLUMNS, OPTIONAL_COLUMNS)
             if (!result.isValid) {
-              ctx.addIssue({ code: 'custom', message: result.error ?? m.upload_file_format_invalid() })
+              ctx.addIssue({ code: 'custom', message: result.error ?? 'Invalid file format' })
             }
           }),
       }),
@@ -72,7 +71,7 @@ export default function AddSuccessRateCard() {
       const result = await uploadMutation.mutateAsync(formData)
 
       if (result.success) {
-        toast.success(result.message || m.successrate_toast_uploaded())
+        toast.success(result.message || 'Success-rate document uploaded ✅')
         form.reset()
         utils.invalidate()
       } else if (result.data?.skippedRows) {
@@ -82,20 +81,18 @@ export default function AddSuccessRateCard() {
           totalProcessed: result.data.totalProcessed || 0,
         })
       } else {
-        toast.error(result.message || m.upload_failed_fallback())
+        toast.error(result.message || 'Upload failed')
       }
     } catch (error) {
-      toast.error(
-        m.upload_failed_with_error({ error: error instanceof Error ? error.message : m.proc_unknown_error() }),
-      )
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">{m.successrate_title()}</CardTitle>
-        <CardDescription>{m.successrate_desc()}</CardDescription>
+        <CardTitle className="text-base font-medium">{'Success-rate document'}</CardTitle>
+        <CardDescription>{'Upload transaction success-rate data for an app.'}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -105,11 +102,11 @@ export default function AddSuccessRateCard() {
               name="appId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{m.upload_app_label()}</FormLabel>
+                  <FormLabel>{'Application'}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={m.upload_app_ph()} />
+                        <SelectValue placeholder={'Select app'} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -129,7 +126,7 @@ export default function AddSuccessRateCard() {
               name="file"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{m.upload_file_label()}</FormLabel>
+                  <FormLabel>{'File'}</FormLabel>
                   <FormControl>
                     <FileDropzone
                       value={field.value ?? null}
@@ -137,9 +134,9 @@ export default function AddSuccessRateCard() {
                       disabled={form.formState.isSubmitting}
                       hint={
                         <div>
-                          <p>{m.upload_file_hint_type()}</p>
-                          <p>{m.upload_file_hint_required({ columns: REQUIRED_COLUMNS.join(', ') })}</p>
-                          <p>{m.upload_file_hint_optional({ columns: OPTIONAL_COLUMNS.join(', ') })}</p>
+                          <p>{'Excel (.xlsx) or CSV (.csv) file'}</p>
+                          <p>{`Required columns: ${REQUIRED_COLUMNS.join(', ')}`}</p>
+                          <p>{`Optional columns: ${OPTIONAL_COLUMNS.join(', ')}`}</p>
                         </div>
                       }
                     />
@@ -150,7 +147,7 @@ export default function AddSuccessRateCard() {
             />
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Upload />}
-              {m.successrate_submit()}
+              {'Upload success rate'}
             </Button>
           </form>
         </Form>

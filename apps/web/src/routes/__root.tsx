@@ -4,7 +4,6 @@ import { ThemeProvider } from 'next-themes'
 import type { ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { BackgroundModeProvider } from '@/hooks/use-background-mode'
-import { getLocale } from '@/paraglide/runtime'
 import { queryClient, trpc, trpcClient } from '@/router'
 import '@/styles/app.css'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -55,7 +54,7 @@ function RootComponent() {
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang={getLocale()} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

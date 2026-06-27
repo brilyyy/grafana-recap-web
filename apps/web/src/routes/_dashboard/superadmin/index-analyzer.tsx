@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import type { IndexAnalyzerReport } from '@/server/trpc/routers/indexAnalyzer'
 import { useSuperadminGuard } from './-shared'
@@ -39,7 +38,7 @@ function Reco({ sql }: { sql: string }) {
     <button
       type="button"
       onClick={() => navigator.clipboard?.writeText(sql)}
-      title={m.analyzer_copy_hint()}
+      title={'Click to copy'}
       className="w-full truncate text-left font-mono text-xs text-muted-foreground hover:text-foreground"
     >
       {sql}
@@ -68,20 +67,22 @@ function IndexAnalyzerPage() {
     <div className="flex flex-col gap-6 p-6">
       <header className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">{m.analyzer_title()}</h1>
+          <h1 className="text-lg font-semibold tracking-tight">{'Index analyzer'}</h1>
           <p className="text-sm text-muted-foreground">
-            {m.analyzer_subtitle()}
+            {
+              'Read-only index health from PostgreSQL runtime stats. Recommendations are copyable SQL — nothing gets executed.'
+            }
             {report ? (
               <>
                 {' '}
-                {m.analyzer_subtitle_db_label()} <span className="font-mono text-foreground">{report.dbName}</span>.
+                {'Database'} <span className="font-mono text-foreground">{report.dbName}</span>.
               </>
             ) : null}
           </p>
         </div>
         <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => query.refetch()}>
           {query.isFetching ? <Skeleton className="size-3 rounded-full" /> : <RefreshCw className="size-3" />}
-          {m.analyzer_rerun()}
+          {'Re-run'}
         </Button>
       </header>
 
@@ -93,8 +94,8 @@ function IndexAnalyzerPage() {
             <EmptyMedia variant="icon">
               <DatabaseZap />
             </EmptyMedia>
-            <EmptyTitle>{m.analyzer_fail_title()}</EmptyTitle>
-            <EmptyDescription>{query.error?.message ?? m.analyzer_fail_desc_fallback()}</EmptyDescription>
+            <EmptyTitle>{'Analysis failed'}</EmptyTitle>
+            <EmptyDescription>{query.error?.message ?? "Couldn't read index statistics."}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       )}
@@ -102,44 +103,31 @@ function IndexAnalyzerPage() {
       {report && (
         <>
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+            <StatCard label={'Unused indexes'} value={String(report.summary.unused)} hint={'0 scans, droppable'} />
+            <StatCard label={'Seq-scan tables'} value={String(report.summary.missing)} hint={'index candidates'} />
+            <StatCard label={'Redundant'} value={String(report.summary.redundant)} hint={'prefix-covered'} />
             <StatCard
-              label={m.analyzer_stat_unused_label()}
-              value={String(report.summary.unused)}
-              hint={m.analyzer_stat_unused_hint()}
-            />
-            <StatCard
-              label={m.analyzer_stat_missing_label()}
-              value={String(report.summary.missing)}
-              hint={m.analyzer_stat_missing_hint()}
-            />
-            <StatCard
-              label={m.analyzer_stat_redundant_label()}
-              value={String(report.summary.redundant)}
-              hint={m.analyzer_stat_redundant_hint()}
-            />
-            <StatCard
-              label={m.analyzer_stat_drift_missing_label()}
+              label={'Drift: missing'}
               value={String(report.summary.driftMissing)}
-              hint={m.analyzer_stat_drift_missing_hint()}
+              hint={'defined, not in DB'}
             />
-            <StatCard
-              label={m.analyzer_stat_drift_extra_label()}
-              value={String(report.summary.driftExtra)}
-              hint={m.analyzer_stat_drift_extra_hint()}
-            />
+            <StatCard label={'Drift: extra'} value={String(report.summary.driftExtra)} hint={'in DB, not in source'} />
           </div>
 
-          <SectionCard title={m.analyzer_unused_title()} description={m.analyzer_unused_desc()}>
+          <SectionCard
+            title={'Unused indexes'}
+            description={'idx_scan = 0 since the stats reset. Excludes primary/unique. Safe to drop.'}
+          >
             {report.unused.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">{m.analyzer_unused_empty()}</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">{'No unused indexes. 🎉'}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.analyzer_col_index()}</TableHead>
-                    <TableHead>{m.analyzer_col_table()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_size()}</TableHead>
-                    <TableHead>{m.analyzer_col_recommendation()}</TableHead>
+                    <TableHead>{'Index'}</TableHead>
+                    <TableHead>{'Table'}</TableHead>
+                    <TableHead className="text-right">{'Size'}</TableHead>
+                    <TableHead>{'Recommendation'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -158,19 +146,22 @@ function IndexAnalyzerPage() {
             )}
           </SectionCard>
 
-          <SectionCard title={m.analyzer_missing_title()} description={m.analyzer_missing_desc()}>
+          <SectionCard
+            title={'Missing indexes (sequential scans)'}
+            description={'Tables with seq scans ≥ index scans on > 1000 rows. Candidates for a new index.'}
+          >
             {report.missing.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">{m.analyzer_missing_empty()}</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">{'No seq-scan-heavy tables.'}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.analyzer_col_table()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_seq_scans()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_idx_scans()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_rows()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_size()}</TableHead>
-                    <TableHead>{m.analyzer_col_recommendation()}</TableHead>
+                    <TableHead>{'Table'}</TableHead>
+                    <TableHead className="text-right">{'Seq scans'}</TableHead>
+                    <TableHead className="text-right">{'Idx scans'}</TableHead>
+                    <TableHead className="text-right">{'Rows'}</TableHead>
+                    <TableHead className="text-right">{'Size'}</TableHead>
+                    <TableHead>{'Recommendation'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -191,19 +182,22 @@ function IndexAnalyzerPage() {
             )}
           </SectionCard>
 
-          <SectionCard title={m.analyzer_sizes_title()} description={m.analyzer_sizes_desc()}>
+          <SectionCard
+            title={'Sizes & bloat'}
+            description={"Largest relations. Dead-tuple % ≥ 20 means it's time for a VACUUM."}
+          >
             {report.sizes.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">{m.analyzer_sizes_empty()}</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">{'No tables.'}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.analyzer_col_table()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_total()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_table()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_indexes()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_rows()}</TableHead>
-                    <TableHead className="text-right">{m.analyzer_col_dead()}</TableHead>
+                    <TableHead>{'Table'}</TableHead>
+                    <TableHead className="text-right">{'Total'}</TableHead>
+                    <TableHead className="text-right">{'Table'}</TableHead>
+                    <TableHead className="text-right">{'Indexes'}</TableHead>
+                    <TableHead className="text-right">{'Rows'}</TableHead>
+                    <TableHead className="text-right">{'Dead'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -230,17 +224,20 @@ function IndexAnalyzerPage() {
             )}
           </SectionCard>
 
-          <SectionCard title={m.analyzer_redundant_title()} description={m.analyzer_redundant_desc()}>
+          <SectionCard
+            title={'Redundant indexes'}
+            description={'Non-unique indexes whose columns are a leading prefix of another index on the same table.'}
+          >
             {report.redundant.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">{m.analyzer_redundant_empty()}</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">{'No redundant indexes.'}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.analyzer_col_index()}</TableHead>
-                    <TableHead>{m.analyzer_col_columns()}</TableHead>
-                    <TableHead>{m.analyzer_col_covered_by()}</TableHead>
-                    <TableHead>{m.analyzer_col_recommendation()}</TableHead>
+                    <TableHead>{'Index'}</TableHead>
+                    <TableHead>{'Columns'}</TableHead>
+                    <TableHead>{'Covered by'}</TableHead>
+                    <TableHead>{'Recommendation'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -259,17 +256,22 @@ function IndexAnalyzerPage() {
             )}
           </SectionCard>
 
-          <SectionCard title={m.analyzer_drift_title()} description={m.analyzer_drift_desc()}>
+          <SectionCard
+            title={'Drift vs source'}
+            description={
+              'Indexes defined in src/db/sql/02_indexes but missing in the DB, or present in the DB but not in source.'
+            }
+          >
             {report.drift.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">{m.analyzer_drift_empty()}</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">{'No drift — DB matches src/db/sql/.'}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.analyzer_col_index()}</TableHead>
-                    <TableHead>{m.analyzer_col_table()}</TableHead>
-                    <TableHead>{m.analyzer_col_status()}</TableHead>
-                    <TableHead>{m.analyzer_col_recommendation()}</TableHead>
+                    <TableHead>{'Index'}</TableHead>
+                    <TableHead>{'Table'}</TableHead>
+                    <TableHead>{'Status'}</TableHead>
+                    <TableHead>{'Recommendation'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -279,10 +281,10 @@ function IndexAnalyzerPage() {
                       <TableCell className="text-xs">{r.table}</TableCell>
                       <TableCell>
                         {r.status === 'missing' ? (
-                          <Badge variant="destructive">{m.analyzer_badge_missing()}</Badge>
+                          <Badge variant="destructive">{'MISSING'}</Badge>
                         ) : (
                           <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
-                            {m.analyzer_badge_extra()}
+                            {'EXTRA'}
                           </Badge>
                         )}
                       </TableCell>

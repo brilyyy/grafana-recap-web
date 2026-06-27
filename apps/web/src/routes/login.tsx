@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth-client'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/login')({
@@ -36,8 +35,8 @@ function LoginPage() {
   const schema = useMemo(
     () =>
       z.object({
-        username: z.string().min(1, m.validation_username_required()),
-        password: z.string().min(1, m.validation_password_required()),
+        username: z.string().min(1, 'Username is required'),
+        password: z.string().min(1, 'Password is required'),
       }),
     [],
   )
@@ -51,13 +50,13 @@ function LoginPage() {
     try {
       const { data, error } = await authClient.signIn.username(values)
       if (error) {
-        form.setError('root', { message: error.message || m.login_error_invalid() })
+        form.setError('root', { message: error.message || 'Invalid username or password' })
       } else if (data) {
         await utils.auth.check.invalidate()
         navigate({ to: '/' })
       }
     } catch {
-      form.setError('root', { message: m.login_error_generic() })
+      form.setError('root', { message: 'Something went wrong. Try again.' })
     }
   }
 
@@ -67,12 +66,12 @@ function LoginPage() {
         <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Gauge className="size-4" />
         </div>
-        {m.common_app_name()}
+        {'Grafana Recap'}
       </div>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle>{m.login_title()}</CardTitle>
-          <CardDescription>{m.login_desc()}</CardDescription>
+          <CardTitle>{'Sign in'}</CardTitle>
+          <CardDescription>{'Enter your username and password to hop into the dashboard.'}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -82,7 +81,7 @@ function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m.login_username()}</FormLabel>
+                    <FormLabel>{'Username'}</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
@@ -95,7 +94,7 @@ function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{m.login_password()}</FormLabel>
+                    <FormLabel>{'Password'}</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="current-password" {...field} />
                     </FormControl>
@@ -111,15 +110,15 @@ function LoginPage() {
               )}
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-                {m.login_submit()}
+                {'Sign in'}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="justify-center text-sm text-muted-foreground">
-          {m.login_need_account()}
+          {'Need an account?'}
           <Link to="/register" className="ml-1 text-foreground underline-offset-4 hover:underline">
-            {m.login_create_account()}
+            {'Create admin account'}
           </Link>
         </CardFooter>
       </Card>

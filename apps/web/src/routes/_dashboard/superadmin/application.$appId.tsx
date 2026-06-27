@@ -26,7 +26,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Skeleton } from '@/components/ui/skeleton'
 import { SqlEditor } from '@/components/ui/sql-editor'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { formatDate, useSuperadminGuard } from './-shared'
 
@@ -120,8 +119,8 @@ function AppConfigPage() {
   const rawTableSchema = useMemo(
     () =>
       z.object({
-        db_name: z.string().trim().min(1, m.validation_db_name_required()),
-        raw_table_name: z.string().trim().min(1, m.validation_raw_table_name_required()),
+        db_name: z.string().trim().min(1, 'DB name is required'),
+        raw_table_name: z.string().trim().min(1, 'Raw table name is required'),
       }),
     [],
   )
@@ -137,11 +136,11 @@ function AppConfigPage() {
 
   const updateConfigMutation = trpc.applications.updateConfig.useMutation({
     onSuccess: () => {
-      toast.success(m.appcfg_toast_config_saved())
+      toast.success('App config saved ✅')
       utils.applications.get.invalidate({ id: appIdNum })
       utils.applications.list.invalidate()
     },
-    onError: (e) => toast.error(e.message || m.appcfg_toast_config_err()),
+    onError: (e) => toast.error(e.message || "Couldn't save the config"),
   })
 
   const procedureSchema = useMemo(
@@ -151,11 +150,11 @@ function AppConfigPage() {
           .string()
           .trim()
           .regex(/^sp_[a-z0-9_]{2,55}$/, 'Must match sp_[a-z0-9_]{2,55}'),
-        recap_kind: z.string().trim().min(1, m.validation_required()),
-        output_table: z.string().trim().min(1, m.validation_required()),
+        recap_kind: z.string().trim().min(1, 'Required'),
+        output_table: z.string().trim().min(1, 'Required'),
         schedule_cron: z.string().trim().optional(),
         description: z.string().trim().max(500).optional(),
-        sql_text: z.string().min(50, m.validation_sql_required()),
+        sql_text: z.string().min(50, 'SQL is required'),
       }),
     [],
   )
@@ -223,7 +222,7 @@ function AppConfigPage() {
       utils.appProcedures.listForApp.invalidate({ appId: appIdNum })
       utils.appProcedures.listUnregistered.invalidate()
     },
-    onError: (e) => toast.error(e.message || m.appcfg_toast_register_err()),
+    onError: (e) => toast.error(e.message || "Couldn't register the procedure"),
   })
 
   const removeProcMutation = trpc.appProcedures.remove.useMutation({
@@ -231,13 +230,13 @@ function AppConfigPage() {
       toast.success(res.message)
       utils.appProcedures.listForApp.invalidate({ appId: appIdNum })
     },
-    onError: (e) => toast.error(e.message || m.appcfg_toast_remove_err()),
+    onError: (e) => toast.error(e.message || "Couldn't remove the procedure"),
   })
 
   if (Number.isNaN(appIdNum)) {
     return (
       <div className="p-6">
-        <p className="text-sm text-destructive">{m.appcfg_invalid_app_id()}</p>
+        <p className="text-sm text-destructive">{'Invalid app ID.'}</p>
       </div>
     )
   }
@@ -249,29 +248,33 @@ function AppConfigPage() {
         <Button variant="ghost" size="sm" className="-ml-1 h-7" asChild>
           <Link to="/application">
             <ArrowLeft className="size-3.5" />
-            {m.nav_applications()}
+            {'Applications'}
           </Link>
         </Button>
         <ChevronRight className="size-3.5 text-muted-foreground" />
         {appQuery.isLoading ? (
           <Skeleton className="h-5 w-32" />
         ) : (
-          <span className="text-sm font-medium">{app?.app_name ?? m.appcfg_app_fallback({ id: appIdNum })}</span>
+          <span className="text-sm font-medium">{app?.app_name ?? `App #${appIdNum}`}</span>
         )}
       </div>
 
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">
-          {app ? m.appcfg_title_with_app({ appName: app.app_name }) : m.nav_app_config()}
-        </h1>
-        <p className="text-sm text-muted-foreground">{m.appcfg_subtitle()}</p>
+        <h1 className="text-lg font-semibold tracking-tight">{app ? `App config — ${app.app_name}` : 'App config'}</h1>
+        <p className="text-sm text-muted-foreground">
+          {'Raw table mapping and stored-procedure registration for this application.'}
+        </p>
       </header>
 
       {/* Raw table mapping */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">{m.appcfg_raw_table_title()}</CardTitle>
-          <CardDescription>{m.appcfg_raw_table_desc()}</CardDescription>
+          <CardTitle className="text-base font-medium">{'Raw table mapping'}</CardTitle>
+          <CardDescription>
+            {
+              'Maps this application to its source database and raw transaction table. Physical table provisioning is done separately (migration / FDW).'
+            }
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {appQuery.isLoading ? (
@@ -290,11 +293,11 @@ function AppConfigPage() {
                   name="db_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_db_name_label()}</FormLabel>
+                      <FormLabel>{'DB name'}</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. bale_db" className="font-mono" {...field} />
                       </FormControl>
-                      <FormDescription>{m.appcfg_db_name_desc()}</FormDescription>
+                      <FormDescription>{'The Postgres database where the raw table lives.'}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -304,11 +307,11 @@ function AppConfigPage() {
                   name="raw_table_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_raw_table_name_label()}</FormLabel>
+                      <FormLabel>{'Raw table name'}</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. raw_bale" className="font-mono" {...field} />
                       </FormControl>
-                      <FormDescription>{m.appcfg_raw_table_name_desc()}</FormDescription>
+                      <FormDescription>{'Source transaction table name in the target DB.'}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -316,7 +319,7 @@ function AppConfigPage() {
                 <div>
                   <Button type="submit" disabled={updateConfigMutation.isPending}>
                     {updateConfigMutation.isPending && <Loader2 className="animate-spin" />}
-                    {m.common_save()}
+                    {'Save'}
                   </Button>
                 </div>
               </form>
@@ -329,12 +332,16 @@ function AppConfigPage() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">{m.appcfg_procedures_title()}</h2>
-            <p className="text-sm text-muted-foreground">{m.appcfg_procedures_desc()}</p>
+            <h2 className="text-base font-semibold">{'Stored procedures'}</h2>
+            <p className="text-sm text-muted-foreground">
+              {
+                'Custom success-rate recap procedures installed directly into Postgres. They show up on the Processing page once registered.'
+              }
+            </p>
           </div>
           <Button size="sm" onClick={() => setShowProcForm(true)}>
             <Plus className="size-3.5" />
-            {m.appcfg_register_procedure()}
+            {'Register procedure'}
           </Button>
         </div>
 
@@ -354,19 +361,19 @@ function AppConfigPage() {
                   <EmptyMedia variant="icon">
                     <Code2 />
                   </EmptyMedia>
-                  <EmptyTitle>{m.appcfg_empty_procedures_title()}</EmptyTitle>
-                  <EmptyDescription>{m.appcfg_empty_procedures_desc()}</EmptyDescription>
+                  <EmptyTitle>{'No procedures registered yet'}</EmptyTitle>
+                  <EmptyDescription>{'Register a stored procedure to turn on recap processing.'}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.appcfg_col_function()}</TableHead>
-                    <TableHead>{m.appcfg_col_kind()}</TableHead>
-                    <TableHead>{m.appcfg_col_output_table()}</TableHead>
-                    <TableHead>{m.appcfg_col_registered()}</TableHead>
-                    <TableHead className="w-20 text-right">{m.common_actions()}</TableHead>
+                    <TableHead>{'Function'}</TableHead>
+                    <TableHead>{'Kind'}</TableHead>
+                    <TableHead>{'Output table'}</TableHead>
+                    <TableHead>{'Registered'}</TableHead>
+                    <TableHead className="w-20 text-right">{'Actions'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -412,11 +419,10 @@ function AppConfigPage() {
       >
         <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{m.appcfg_register_procedure()}</DialogTitle>
+            <DialogTitle>{'Register procedure'}</DialogTitle>
             <DialogDescription>
-              {m.appcfg_register_desc_part1()}{' '}
-              <code className="rounded bg-muted px-1 py-0.5 text-xs">CREATE OR REPLACE FUNCTION</code>{' '}
-              {m.appcfg_register_desc_part2()}
+              {'Paste a'} <code className="rounded bg-muted px-1 py-0.5 text-xs">CREATE OR REPLACE FUNCTION</code>{' '}
+              {'body. It gets installed immediately.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...procForm}>
@@ -429,15 +435,15 @@ function AppConfigPage() {
                   <PopoverTrigger asChild>
                     <Button type="button" variant="outline" size="sm" className="w-fit gap-1.5" disabled={importing}>
                       {importing ? <Loader2 className="size-3.5 animate-spin" /> : <Code2 className="size-3.5" />}
-                      {m.appcfg_import_from_db()}
+                      {'Import from database'}
                       <ChevronsUpDown className="size-3.5 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
                     <Command>
-                      <CommandInput placeholder={m.appcfg_import_from_db()} />
+                      <CommandInput placeholder={'Import from database'} />
                       <CommandList>
-                        <CommandEmpty>{m.appcfg_import_empty()}</CommandEmpty>
+                        <CommandEmpty>{'No unregistered procedures found.'}</CommandEmpty>
                         <CommandGroup>
                           {unregisteredProcedures.map((proc) => (
                             <CommandItem key={proc.function_name} value={proc.function_name} onSelect={handleImport}>
@@ -455,7 +461,7 @@ function AppConfigPage() {
                   name="function_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_function_name_label()}</FormLabel>
+                      <FormLabel>{'Function name'}</FormLabel>
                       <FormControl>
                         <Input placeholder="sp_process_myapp_daily" className="font-mono" {...field} />
                       </FormControl>
@@ -469,7 +475,7 @@ function AppConfigPage() {
                   name="recap_kind"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_recap_kind_label()}</FormLabel>
+                      <FormLabel>{'Recap kind'}</FormLabel>
                       <FormControl>
                         <Input placeholder="success_rate_daily" className="font-mono" {...field} />
                       </FormControl>
@@ -482,7 +488,7 @@ function AppConfigPage() {
                   name="output_table"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_output_table_label()}</FormLabel>
+                      <FormLabel>{'Output table'}</FormLabel>
                       <FormControl>
                         <Input placeholder="app_success_rate" className="font-mono" {...field} />
                       </FormControl>
@@ -495,7 +501,7 @@ function AppConfigPage() {
                   name="schedule_cron"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_schedule_label()}</FormLabel>
+                      <FormLabel>{'Schedule (cron, optional)'}</FormLabel>
                       <FormControl>
                         <Input placeholder="1 0 * * *" className="font-mono" {...field} />
                       </FormControl>
@@ -509,9 +515,9 @@ function AppConfigPage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.appcfg_description_label()}</FormLabel>
+                      <FormLabel>{'Description (optional)'}</FormLabel>
                       <FormControl>
-                        <Input placeholder={m.appcfg_description_ph()} {...field} />
+                        <Input placeholder={'Short human-readable description'} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -533,7 +539,7 @@ function AppConfigPage() {
                             onClick={handleFormatSql}
                           >
                             <Wand2 className="size-3" />
-                            {m.appcfg_format_sql()}
+                            {'Format'}
                           </Button>
                           <Button
                             type="button"
@@ -548,7 +554,7 @@ function AppConfigPage() {
                               })
                             }}
                           >
-                            {m.appcfg_use_template()}
+                            {'Use template'}
                           </Button>
                         </div>
                       </div>
@@ -561,11 +567,11 @@ function AppConfigPage() {
                         />
                       </FormControl>
                       <FormDescription>
-                        {m.appcfg_sql_desc_part1()}{' '}
+                        {'Must start with'}{' '}
                         <code className="rounded bg-muted px-1 py-0.5 text-xs">
                           CREATE OR REPLACE FUNCTION public.&lt;function_name&gt;(
                         </code>{' '}
-                        {m.appcfg_sql_desc_part2()}
+                        {'The function runs immediately — Postgres compile errors show up right here.'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -581,11 +587,11 @@ function AppConfigPage() {
                     setShowProcForm(false)
                   }}
                 >
-                  {m.common_cancel()}
+                  {'Cancel'}
                 </Button>
                 <Button type="submit" disabled={registerProcMutation.isPending}>
                   {registerProcMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                  {m.appcfg_install_register()}
+                  {'Install & register'}
                 </Button>
               </DialogFooter>
             </form>

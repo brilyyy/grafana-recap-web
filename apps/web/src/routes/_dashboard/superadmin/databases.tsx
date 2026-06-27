@@ -14,7 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
 
@@ -42,9 +41,9 @@ interface FdwSource {
 }
 
 const fdwSchema = z.object({
-  source_db_name: z.string().trim().min(1, m.validation_source_db_required()),
-  table_name: z.string().trim().min(1, m.validation_table_name_required()),
-  schema_name: z.string().trim().min(1, m.validation_schema_required()),
+  source_db_name: z.string().trim().min(1, 'Source DB is required'),
+  table_name: z.string().trim().min(1, 'Table name is required'),
+  schema_name: z.string().trim().min(1, 'Schema is required'),
   host: z.string(),
 })
 
@@ -65,24 +64,24 @@ function RegisterFdwDialog({
 
   const addMutation = trpc.fdw.add.useMutation({
     onSuccess: (_res, vars) => {
-      toast.success(m.db_toast_fdw_added({ sourceDbName: vars.source_db_name, tableName: vars.table_name }))
+      toast.success(`FDW source added from ${vars.source_db_name} → ${vars.table_name}`)
       form.reset({ source_db_name: initialDbName, table_name: '', schema_name: 'public', host: '' })
       onOpenChange(false)
       utils.databases.list.invalidate()
       utils.fdw.list.invalidate()
     },
-    onError: (error) => toast.error(error.message || m.db_toast_fdw_add_err()),
+    onError: (error) => toast.error(error.message || "Couldn't add the FDW source"),
   })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{m.db_register_fdw()}</DialogTitle>
+          <DialogTitle>{'Register FDW source'}</DialogTitle>
           <DialogDescription>
-            {m.db_register_fdw_desc_part1()} <span className="font-mono font-medium">{initialDbName}</span>{' '}
-            {m.db_register_fdw_desc_part2()} <code className="rounded bg-muted px-1 py-0.5 text-xs">postgres_fdw</code>
-            {m.db_register_fdw_desc_part3()}{' '}
+            {'Add a foreign table from'} <span className="font-mono font-medium">{initialDbName}</span> {'via'}{' '}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">postgres_fdw</code>
+            {'. Run migration after to provision:'}{' '}
             <code className="rounded bg-muted px-1 py-0.5 text-xs">DB_NAME=platform_db npm run db:migrate</code>
           </DialogDescription>
         </DialogHeader>
@@ -93,7 +92,7 @@ function RegisterFdwDialog({
               name="source_db_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{m.db_source_db_label()}</FormLabel>
+                  <FormLabel>{'Source DB'}</FormLabel>
                   <FormControl>
                     <Input className="font-mono" {...field} />
                   </FormControl>
@@ -106,7 +105,7 @@ function RegisterFdwDialog({
               name="table_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{m.db_table_name_label()}</FormLabel>
+                  <FormLabel>{'Table name'}</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g. raw_bale" className="font-mono" {...field} />
                   </FormControl>
@@ -119,7 +118,7 @@ function RegisterFdwDialog({
               name="schema_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{m.db_schema_label()}</FormLabel>
+                  <FormLabel>{'Schema'}</FormLabel>
                   <FormControl>
                     <Input className="font-mono" {...field} />
                   </FormControl>
@@ -132,9 +131,9 @@ function RegisterFdwDialog({
               name="host"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{m.db_host_label()}</FormLabel>
+                  <FormLabel>{'Host IP'}</FormLabel>
                   <FormControl>
-                    <Input placeholder={m.db_host_placeholder()} className="font-mono" {...field} />
+                    <Input placeholder={'e.g. 192.168.1.100 (empty = DB_HOST)'} className="font-mono" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -142,11 +141,11 @@ function RegisterFdwDialog({
             />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {m.common_cancel()}
+                {'Cancel'}
               </Button>
               <Button type="submit" disabled={addMutation.isPending}>
                 {addMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                {m.db_add_fdw_source()}
+                {'Add FDW source'}
               </Button>
             </div>
           </form>
@@ -173,29 +172,29 @@ function DatabasesPage() {
 
   const addMutation = trpc.fdw.add.useMutation({
     onSuccess: (_res, vars) => {
-      toast.success(m.db_toast_fdw_added({ sourceDbName: vars.source_db_name, tableName: vars.table_name }))
+      toast.success(`FDW source added from ${vars.source_db_name} → ${vars.table_name}`)
       form.reset()
       fdwQuery.refetch()
       dbQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.db_toast_fdw_add_err()),
+    onError: (error) => toast.error(error.message || "Couldn't add the FDW source"),
   })
   const removeMutation = trpc.fdw.remove.useMutation({
     onSuccess: () => {
-      toast.success(m.config_toast_fdw_removed())
+      toast.success('FDW source removed')
       fdwQuery.refetch()
       dbQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.config_toast_fdw_remove_err()),
+    onError: (error) => toast.error(error.message || "Couldn't remove the FDW source"),
   })
 
   const applyMutation = trpc.fdw.applyFdw.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || m.config_toast_fdw_reapplied())
+      toast.success(res.message || 'FDW re-applied ✅')
       fdwQuery.refetch()
       dbQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.config_toast_fdw_reapply_err()),
+    onError: (error) => toast.error(error.message || "Couldn't re-apply FDW"),
   })
 
   return (
@@ -203,15 +202,17 @@ function DatabasesPage() {
       <header>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">{m.nav_databases()}</h1>
+            <h1 className="text-lg font-semibold tracking-tight">{'Databases'}</h1>
             <p className="text-sm text-muted-foreground">
-              {m.db_subtitle_part1()} <code className="rounded bg-muted px-1 py-0.5 text-xs">&lt;db&gt;_server</code>{' '}
-              {m.db_subtitle_part2()} <code className="rounded bg-muted px-1 py-0.5 text-xs">fdw_source_table</code>.
+              {'All databases on this PostgreSQL server. A database is FDW-ed when a foreign server'}{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">&lt;db&gt;_server</code>{' '}
+              {'is provisioned or source tables are registered in'}{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">fdw_source_table</code>.
             </p>
           </div>
           <Button variant="outline" size="sm" disabled={applyMutation.isPending} onClick={() => applyMutation.mutate()}>
             {applyMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-            {m.config_reapply_fdw()}
+            {'Re-apply FDW'}
           </Button>
         </div>
       </header>
@@ -232,17 +233,17 @@ function DatabasesPage() {
                 <EmptyMedia variant="icon">
                   <Server />
                 </EmptyMedia>
-                <EmptyTitle>{m.db_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.db_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'No databases found'}</EmptyTitle>
+                <EmptyDescription>{"Couldn't query pg_database. Check the connection."}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.db_col_database()}</TableHead>
-                  <TableHead>{m.db_col_fdw_status()}</TableHead>
-                  <TableHead className="w-44 text-right">{m.common_actions()}</TableHead>
+                  <TableHead>{'Database'}</TableHead>
+                  <TableHead>{'FDW status'}</TableHead>
+                  <TableHead className="w-44 text-right">{'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,7 +253,7 @@ function DatabasesPage() {
                       <span className="font-mono text-sm">{row.datname}</span>
                       {row.isCurrent && (
                         <Badge variant="secondary" className="ml-2 text-xs">
-                          {m.db_badge_current()}
+                          {'current'}
                         </Badge>
                       )}
                     </TableCell>
@@ -260,14 +261,14 @@ function DatabasesPage() {
                       {row.isFdwed ? (
                         <Badge className="gap-1">
                           <Database className="size-3" />
-                          {m.db_badge_fdwed()}
+                          {'FDW-ed'}
                           {row.sourceTableCount > 0 && (
-                            <span className="opacity-75">· {m.db_tables_count({ count: row.sourceTableCount })}</span>
+                            <span className="opacity-75">· {`${row.sourceTableCount} tables`}</span>
                           )}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-muted-foreground">
-                          {m.db_badge_not_fdwed()}
+                          {'Not FDW-ed'}
                         </Badge>
                       )}
                     </TableCell>
@@ -279,7 +280,7 @@ function DatabasesPage() {
                         onClick={() => setDialogDb(row.datname)}
                       >
                         <Plus className="size-3" />
-                        {m.db_register_fdw()}
+                        {'Register FDW source'}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -307,19 +308,19 @@ function DatabasesPage() {
                   <EmptyMedia variant="icon">
                     <Database />
                   </EmptyMedia>
-                  <EmptyTitle>{m.config_empty_title()}</EmptyTitle>
-                  <EmptyDescription>{m.config_empty_desc()}</EmptyDescription>
+                  <EmptyTitle>{'No FDW sources configured'}</EmptyTitle>
+                  <EmptyDescription>{'Add a source table using the form.'}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{m.db_source_db_label()}</TableHead>
-                    <TableHead>{m.db_table_name_label()}</TableHead>
-                    <TableHead>{m.db_schema_label()}</TableHead>
-                    <TableHead>{m.db_host_label()}</TableHead>
-                    <TableHead className="w-24 text-right">{m.common_actions()}</TableHead>
+                    <TableHead>{'Source DB'}</TableHead>
+                    <TableHead>{'Table name'}</TableHead>
+                    <TableHead>{'Schema'}</TableHead>
+                    <TableHead>{'Host IP'}</TableHead>
+                    <TableHead className="w-24 text-right">{'Actions'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -330,9 +331,7 @@ function DatabasesPage() {
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {row.schema_name || 'public'}
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {row.host || m.db_host_default()}
-                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{row.host || 'DB_HOST'}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
@@ -342,7 +341,7 @@ function DatabasesPage() {
                           disabled={removeMutation.isPending}
                         >
                           <Trash2 className="size-3.5" />
-                          {m.config_remove()}
+                          {'Remove'}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -355,8 +354,8 @@ function DatabasesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">{m.db_add_fdw_source()}</CardTitle>
-            <CardDescription>{m.config_add_card_desc()}</CardDescription>
+            <CardTitle className="text-base font-medium">{'Add FDW source'}</CardTitle>
+            <CardDescription>{'Import a source table via postgres_fdw.'}</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -369,7 +368,7 @@ function DatabasesPage() {
                   name="source_db_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.db_source_db_label()}</FormLabel>
+                      <FormLabel>{'Source DB'}</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. itm_db" className="font-mono" {...field} />
                       </FormControl>
@@ -382,7 +381,7 @@ function DatabasesPage() {
                   name="table_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.db_table_name_label()}</FormLabel>
+                      <FormLabel>{'Table name'}</FormLabel>
                       <FormControl>
                         <Input className="font-mono" {...field} />
                       </FormControl>
@@ -395,7 +394,7 @@ function DatabasesPage() {
                   name="schema_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.db_schema_label()}</FormLabel>
+                      <FormLabel>{'Schema'}</FormLabel>
                       <FormControl>
                         <Input className="font-mono" {...field} />
                       </FormControl>
@@ -408,9 +407,9 @@ function DatabasesPage() {
                   name="host"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{m.db_host_label()}</FormLabel>
+                      <FormLabel>{'Host IP'}</FormLabel>
                       <FormControl>
-                        <Input placeholder={m.db_host_placeholder()} className="font-mono" {...field} />
+                        <Input placeholder={'e.g. 192.168.1.100 (empty = DB_HOST)'} className="font-mono" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -418,7 +417,7 @@ function DatabasesPage() {
                 />
                 <Button type="submit" disabled={addMutation.isPending}>
                   {addMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                  {m.db_add_fdw_source()}
+                  {'Add FDW source'}
                 </Button>
               </form>
             </Form>

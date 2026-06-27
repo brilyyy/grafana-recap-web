@@ -18,7 +18,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDateTime } from '@/lib/i18n-format'
 import { cn } from '@/lib/utils'
-import { m } from '@/paraglide/messages'
 import { trpc } from '@/router'
 import { useSuperadminGuard } from './-shared'
 
@@ -68,10 +67,10 @@ function SchedulerPage() {
   const jobSchema = useMemo(
     () =>
       z.object({
-        name: z.string().trim().min(1, m.validation_name_required()),
-        procedure: z.string().trim().min(1, m.validation_procedure_required()),
-        schedule: z.string().trim().min(1, m.validation_schedule_required()),
-        timezone: z.string().trim().min(1, m.validation_timezone_required()),
+        name: z.string().trim().min(1, 'Name is required'),
+        procedure: z.string().trim().min(1, 'Procedure is required'),
+        schedule: z.string().trim().min(1, 'Schedule is required'),
+        timezone: z.string().trim().min(1, 'Timezone is required'),
       }),
     [],
   )
@@ -83,33 +82,33 @@ function SchedulerPage() {
 
   const createMutation = trpc.scheduler.createJob.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || m.scheduler_toast_job_created())
+      toast.success(res.message || 'Job created ✅')
       form.reset()
       setShowAddForm(false)
       jobsQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.scheduler_toast_create_err()),
+    onError: (error) => toast.error(error.message || "Couldn't create the job"),
   })
 
   const updateMutation = trpc.scheduler.updateJob.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || m.scheduler_toast_job_updated())
+      toast.success(res.message || 'Job updated ✅')
       jobsQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.scheduler_toast_update_err()),
+    onError: (error) => toast.error(error.message || "Couldn't update the job"),
   })
 
   const deleteMutation = trpc.scheduler.deleteJob.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || m.scheduler_toast_job_deleted())
+      toast.success(res.message || 'Job deleted')
       jobsQuery.refetch()
     },
-    onError: (error) => toast.error(error.message || m.scheduler_toast_delete_err()),
+    onError: (error) => toast.error(error.message || "Couldn't delete the job"),
   })
 
   const restartMutation = trpc.scheduler.restartWorker.useMutation({
-    onSuccess: (res) => toast.success(res.message || m.scheduler_toast_restart_sent()),
-    onError: (error) => toast.error(error.message || m.scheduler_toast_restart_err()),
+    onSuccess: (res) => toast.success(res.message || 'Worker restart signal sent'),
+    onError: (error) => toast.error(error.message || "Couldn't restart the worker"),
   })
 
   return (
@@ -117,18 +116,20 @@ function SchedulerPage() {
       <header>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">{m.nav_scheduler()}</h1>
-            <p className="text-sm text-muted-foreground">{m.scheduler_subtitle()}</p>
+            <h1 className="text-lg font-semibold tracking-tight">{'Scheduler'}</h1>
+            <p className="text-sm text-muted-foreground">
+              {'Manage database-driven cron jobs. The isolated scheduler worker picks them up on restart.'}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{m.scheduler_worker_label()}</span>
+              <span className="text-xs text-muted-foreground">{'Worker:'}</span>
               {workerData?.connected ? (
                 <Badge variant="default" className="bg-green-600 hover:bg-green-600">
-                  {m.scheduler_worker_pid({ pid: workerData.pid })}
+                  {`PID ${workerData.pid}`}
                 </Badge>
               ) : (
-                <Badge variant="destructive">{m.scheduler_worker_disconnected()}</Badge>
+                <Badge variant="destructive">{'Disconnected'}</Badge>
               )}
             </div>
             <Button
@@ -138,25 +139,25 @@ function SchedulerPage() {
               onClick={() => restartMutation.mutate()}
             >
               {restartMutation.isPending ? <Loader2 className="animate-spin" /> : <RotateCcw />}
-              {m.scheduler_restart_worker()}
+              {'Restart worker'}
             </Button>
           </div>
         </div>
       </header>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">{m.scheduler_jobs_configured({ count: rows.length })}</div>
+        <div className="text-sm text-muted-foreground">{`${rows.length} job(s) configured`}</div>
         <Button variant="outline" size="sm" onClick={() => setShowAddForm((v) => !v)}>
           <Plus />
-          {m.scheduler_add_job()}
+          {'Add job'}
         </Button>
       </div>
 
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">{m.scheduler_add_job_title()}</CardTitle>
-            <CardDescription>{m.scheduler_add_job_desc()}</CardDescription>
+            <CardTitle className="text-base font-medium">{'Add scheduler job'}</CardTitle>
+            <CardDescription>{'Create a new scheduled job. The worker picks it up on restart.'}</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -170,7 +171,7 @@ function SchedulerPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{m.scheduler_name_label()}</FormLabel>
+                        <FormLabel>{'Name'}</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g. BALE processing" {...field} />
                         </FormControl>
@@ -183,7 +184,7 @@ function SchedulerPage() {
                     name="procedure"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{m.scheduler_procedure_label()}</FormLabel>
+                        <FormLabel>{'Procedure'}</FormLabel>
                         <Popover open={procedurePickerOpen} onOpenChange={setProcedurePickerOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -195,7 +196,7 @@ function SchedulerPage() {
                                 className="w-full justify-between font-mono"
                               >
                                 <span className={cn('truncate', !field.value && 'text-muted-foreground')}>
-                                  {field.value || m.scheduler_procedure_placeholder()}
+                                  {field.value || 'Select a procedure...'}
                                 </span>
                                 <ChevronsUpDown className="opacity-50" />
                               </Button>
@@ -203,10 +204,12 @@ function SchedulerPage() {
                           </PopoverTrigger>
                           <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
                             <Command>
-                              <CommandInput placeholder={m.scheduler_procedure_placeholder()} />
+                              <CommandInput placeholder={'Select a procedure...'} />
                               <CommandList>
-                                <CommandEmpty>{m.scheduler_procedure_empty()}</CommandEmpty>
-                                <CommandGroup heading={m.scheduler_procedure_group_registered()}>
+                                <CommandEmpty>
+                                  {'No procedures found. Register one from the Application page first.'}
+                                </CommandEmpty>
+                                <CommandGroup heading={'Registered'}>
                                   {registeredProcedures.map((proc) => (
                                     <CommandItem
                                       key={proc.function_name}
@@ -225,7 +228,7 @@ function SchedulerPage() {
                                   ))}
                                 </CommandGroup>
                                 {unregisteredProcedures.length > 0 && (
-                                  <CommandGroup heading={m.scheduler_procedure_group_unregistered()}>
+                                  <CommandGroup heading={'Not yet registered'}>
                                     {unregisteredProcedures.map((proc) => (
                                       <CommandItem
                                         key={proc.function_name}
@@ -242,7 +245,7 @@ function SchedulerPage() {
                                         />
                                         <span className="flex-1 truncate font-mono text-xs">{proc.function_name}</span>
                                         <Badge variant="outline" className="text-xs">
-                                          {m.scheduler_procedure_unregistered_badge()}
+                                          {'unregistered'}
                                         </Badge>
                                       </CommandItem>
                                     ))}
@@ -261,7 +264,7 @@ function SchedulerPage() {
                     name="schedule"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{m.scheduler_cron_label()}</FormLabel>
+                        <FormLabel>{'Cron schedule'}</FormLabel>
                         <FormControl>
                           <Input placeholder="1 0 * * *" className="font-mono" {...field} />
                         </FormControl>
@@ -275,7 +278,7 @@ function SchedulerPage() {
                     name="timezone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{m.scheduler_timezone_label()}</FormLabel>
+                        <FormLabel>{'Timezone'}</FormLabel>
                         <FormControl>
                           <Input placeholder="Asia/Jakarta" className="font-mono" {...field} />
                         </FormControl>
@@ -287,10 +290,10 @@ function SchedulerPage() {
                 <div className="flex gap-2">
                   <Button type="submit" size="sm" disabled={createMutation.isPending}>
                     {createMutation.isPending ? <Loader2 className="animate-spin" /> : <Plus />}
-                    {m.scheduler_create_job()}
+                    {'Create job'}
                   </Button>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>
-                    {m.common_cancel()}
+                    {'Cancel'}
                   </Button>
                 </div>
               </form>
@@ -314,22 +317,22 @@ function SchedulerPage() {
                 <EmptyMedia variant="icon">
                   <Timer />
                 </EmptyMedia>
-                <EmptyTitle>{m.scheduler_empty_title()}</EmptyTitle>
-                <EmptyDescription>{m.scheduler_empty_desc()}</EmptyDescription>
+                <EmptyTitle>{'No scheduler jobs yet'}</EmptyTitle>
+                <EmptyDescription>{'Add a job using the form above.'}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{m.scheduler_col_name()}</TableHead>
-                  <TableHead className="font-mono">{m.scheduler_col_procedure()}</TableHead>
-                  <TableHead className="font-mono">{m.scheduler_col_schedule()}</TableHead>
-                  <TableHead className="hidden lg:table-cell">{m.scheduler_col_timezone()}</TableHead>
-                  <TableHead>{m.scheduler_col_enabled()}</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.scheduler_col_last_run()}</TableHead>
-                  <TableHead className="hidden md:table-cell">{m.scheduler_col_status()}</TableHead>
-                  <TableHead className="text-right">{m.common_actions()}</TableHead>
+                  <TableHead>{'Name'}</TableHead>
+                  <TableHead className="font-mono">{'Procedure'}</TableHead>
+                  <TableHead className="font-mono">{'Schedule'}</TableHead>
+                  <TableHead className="hidden lg:table-cell">{'Timezone'}</TableHead>
+                  <TableHead>{'Enabled'}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Last run'}</TableHead>
+                  <TableHead className="hidden md:table-cell">{'Status'}</TableHead>
+                  <TableHead className="text-right">{'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -359,7 +362,7 @@ function SchedulerPage() {
                         className="h-7 w-16 text-xs"
                         onClick={() => updateMutation.mutate({ id: row.id, enabled: !row.enabled })}
                       >
-                        {row.enabled ? m.scheduler_on() : m.scheduler_off()}
+                        {row.enabled ? 'ON' : 'OFF'}
                       </Button>
                     </TableCell>
                     <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
