@@ -1,0 +1,43 @@
+{
+  "name": "EDC Merchant",
+  "success_type_format": ["A"],
+  "ignore_errors": [],
+  "fields": {
+    "date": "Date",
+    "response_code": "RC",
+    "response_code_desc": "RC DESCRIPTION",
+    "error_type": "ERROR TYPE",
+    "trx_count": "COUNT",
+    "trx_feature": ""
+  },
+  "error_type_format": {
+    "system_error": ["SE", "#N/A"],
+    "business_error": ["BE"]
+  },
+  "date_range": {
+    "from": "2026-04-01",
+    "to": "2026-04-16"
+  },
+  "weekly_periods": [
+    {
+      "from": "2026-03-13",
+      "to": "2026-03-19"
+    },
+    {
+      "from": "2026-03-20",
+      "to": "2026-03-26"
+    },
+    {
+      "from": "2026-03-27",
+      "to": "2026-04-02"
+    },
+    {
+      "from": "2026-04-03",
+      "to": "2026-04-09"
+    },
+    {
+      "from": "2026-04-10",
+      "to": "2026-04-16"
+    }
+  ]
+}

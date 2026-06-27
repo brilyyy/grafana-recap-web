@@ -1,0 +1,48 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# API env files (use .env.example / .env.api.example as templates)
+.env
+.env.api
+.env.db
+
+# Virtual environments
+.venv
+.DS_Store
+
+# Generated report outputs
+data/output.pptx
+data/output_dup.pptx
+data/template_test.pptx
+data/SuccessRate_*.pptx
+data/~$*
+data/chart/
+data/examples/
+
+# Source data files
+
+# Runtime logs
+logs/
+scheduler.json
+
+# graphify knowledge graph outputs
+graphify-out/
+
+# Old mapping locations (moved to data/)
+src/*_mapping.toml
+
+# claude settings
+.claude/
+
+generated/
+
+.ruff_cache/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json

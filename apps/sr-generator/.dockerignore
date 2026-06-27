@@ -1,0 +1,29 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+
+# Build outputs
+dist/
+build/
+
+# data/ is copied wholesale in Dockerfile — exclude generated / scratch only
+data/chart/
+data/.DS_Store
+data/~$*
+data/output*.pptx
+data/SuccessRate_*.pptx
+
+# Dev / tooling
+.ruff_cache/
+.rtk/
+.claude/
+notebooks/
+reference/
+graphify-out/
+
+# Editor / OS
+.DS_Store
+*.swp

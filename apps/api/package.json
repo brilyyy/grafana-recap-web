@@ -1,0 +1,13 @@
+{
+  "name": "@repo/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript bindings for sr-gen API (polyrpc)",
+  "scripts": {
+    "generate-api": "polyrpc generate",
+    "watch": "polyrpc watch"
+  },
+  "devDependencies": {
+    "polyrpc": "^0.4.0"
+  }
+}

@@ -34,6 +34,25 @@ services:
       timeout: 5s
       retries: 5
 
+  sr-gen-api:
+    build:
+      context: apps/
+      dockerfile: sr-generator/Dockerfile
+    container_name: sr-gen-api
+    restart: unless-stopped
+    ports:
+      - "8321:8321"
+    environment:
+      - SR_GEN_ENV=production
+      # Point at the same Postgres used by the web app
+      - SR_GEN_DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-grafana_recap}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - sr-gen-generated:/app/generated
+
 volumes:
   pgdata:
   app-logs:
+  sr-gen-generated:

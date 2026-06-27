@@ -1,0 +1,9 @@
+{
+  "name": "sr-generator",
+  "private": true,
+  "scripts": {
+    "sync": "uv sync --extra api",
+    "lint": "uv sync --extra api --quiet && uv run ruff check src/",
+    "test": "uv sync --extra api --quiet && uv run pytest tests/"
+  }
+}

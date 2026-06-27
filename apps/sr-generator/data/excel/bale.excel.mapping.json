@@ -1,0 +1,55 @@
+{
+  "name": "Bale",
+  "success_type_format": [
+    "Sukses"
+  ],
+  "ignore_errors": [],
+  "ignore_features": [
+    "OPENING_ACCOUNT",
+    "EDEPOSITO_WITHDRAWAL",
+    "MONEY_CHANGER"
+  ],
+  "fields": {
+    "date": "Tanggal Transaksi",
+    "response_code": "RC",
+    "response_code_desc": "RC Description",
+    "error_type": "Error Type",
+    "trx_count": "Total Transaksi",
+    "trx_feature": "Jenis Transaksi"
+  },
+  "error_type_format": {
+    "system_error": [
+      "S",
+      "#N/A"
+    ],
+    "business_error": [
+      "N"
+    ]
+  },
+  "date_range": {
+    "from": "2026-04-01",
+    "to": "2026-04-24"
+  },
+  "weekly_periods": [
+    {
+      "from": "2026-03-20",
+      "to": "2026-03-26"
+    },
+    {
+      "from": "2026-03-27",
+      "to": "2026-04-02"
+    },
+    {
+      "from": "2026-04-03",
+      "to": "2026-04-09"
+    },
+    {
+      "from": "2026-04-10",
+      "to": "2026-04-16"
+    },
+    {
+      "from": "2026-04-17",
+      "to": "2026-04-24"
+    }
+  ]
+}
