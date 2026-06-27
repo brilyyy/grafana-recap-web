@@ -390,3 +390,17 @@ def _to_response(result: GenerateResult) -> GenerateResponse:
         success=result.success,
         message=result.message,
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    _host = os.environ.get("HOST", "0.0.0.0")
+    _port = int(os.environ.get("PORT", "8321"))
+    try:
+        uvicorn.run("api:app", host=_host, port=_port, log_level="info")
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        input("Press Enter to exit...")

@@ -14,8 +14,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from matplotlib import font_manager as _fm
-
 from bptx import TableStyle, TextStyle
 from bptx._framework import BPTX
 from constants import DATA_DIR
@@ -35,10 +33,6 @@ from lib.utils import (
 
 log = get_logger(__name__)
 
-# Register bundled Poppins fonts and set as global default
-for _ttf in (DATA_DIR / "fonts" / "Poppins").glob("*.ttf"):
-    _fm.fontManager.addfont(str(_ttf))
-plt.rcParams["font.family"] = "Poppins"
 
 
 def _chart_monthly_sr_trx(

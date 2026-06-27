@@ -2,16 +2,10 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from lib.data_processing import AppMapping, TransactionRecord, read_excel
-from lib.utils import format_date_range_auto
-
-
-def sanitize_for_filename(text: str) -> str:
-    s = text.replace(" - ", "-").replace(" ", "_")
-    return re.sub(r"[^\w\-.]", "", s)
+from lib.utils import format_date_range_auto, sanitize_for_filename
 
 
 def report_pptx_basename_for_preloaded(

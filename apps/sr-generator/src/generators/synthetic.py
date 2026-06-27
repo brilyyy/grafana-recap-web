@@ -15,8 +15,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from matplotlib import font_manager as _fm
-
 from bptx import BPTX, TableData, TableStyle, TextStyle, template
 from constants import DATA_DIR
 from lib.chart import save_fig as save
@@ -66,9 +64,6 @@ _TOP_FAILED_HEADERS = ["Feature Name", "Failed", ""]
 _ACTION_NAME_DISPLAY_MAX = 26
 _FEATURE_NAME_DISPLAY_MAX = 28
 
-for _ttf in (DATA_DIR / "fonts" / "Poppins").glob("*.ttf"):
-    _fm.fontManager.addfont(str(_ttf))
-plt.rcParams["font.family"] = "Poppins"
 plt.rcParams.update(
     {
         "text.antialiased": True,

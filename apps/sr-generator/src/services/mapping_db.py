@@ -41,32 +41,6 @@ def fetch_mapping(settings: DatabaseSettings, app_id: str) -> dict[str, Any] | N
     return _row_to_dict(row)
 
 
-def fetch_mapping_by_name(settings: DatabaseSettings, app_name: str) -> dict[str, Any] | None:
-    """Fetch mapping by app_name (case-insensitive)."""
-    q = """
-        SELECT
-            ai.app_name,
-            am.id_app_identifier,
-            am.generate_from,
-            am.fields,
-            am.success_type_format,
-            am.error_type_format,
-            am.ignore_errors,
-            am.ignore_features
-        FROM app_mappings am
-        JOIN app_identifier ai ON ai.id = am.id_app_identifier
-        WHERE LOWER(ai.app_name) = LOWER(%s)
-        LIMIT 1
-    """
-    with _connect(settings) as conn:
-        with conn.cursor() as cur:
-            cur.execute(q, (app_name,))
-            row = cur.fetchone()
-    if not row:
-        return None
-    return _row_to_dict(row)
-
-
 def fetch_all_mappings(settings: DatabaseSettings) -> list[dict[str, Any]]:
     """List all mappings for the /apps/mappings endpoint."""
     q = """
