@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from lib.db.postgres import list_apps
-from lib.jumphost_db_settings import get_database_settings
+from lib.settings import get_database_settings
 
 
 def get_db_apps() -> list[dict[str, str]]:

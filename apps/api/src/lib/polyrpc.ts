@@ -2,21 +2,6 @@
 // Type-safe Python API client
 // https://polyrpc.vercel.app
 
-// ============ Enums ============
-
-export enum ContentType {
-  TEXT = "auto()",
-  IMAGE = "auto()",
-  TABLE = "auto()",
-}
-
-export enum TextAlign {
-  LEFT = "PP_ALIGN.LEFT",
-  CENTER = "PP_ALIGN.CENTER",
-  RIGHT = "PP_ALIGN.RIGHT",
-  JUSTIFY = "PP_ALIGN.JUSTIFY",
-}
-
 // ============ Models ============
 
 export interface DbApp {

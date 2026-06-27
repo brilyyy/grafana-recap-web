@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ..logger import get_logger
+from ..logging import get_logger
 from ._excel import _is_blank
 from ._mapping import _coerce_date
 

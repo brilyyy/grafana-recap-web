@@ -1,49 +1,27 @@
+"""API server entrypoint.
+
+Usage:
+    uv run python src/main.py          # dev with reload
+    uv run uvicorn api:app             # production (via Docker)
+"""
+
 from __future__ import annotations
 
-import argparse
-import sys
+import os
 
-from bptx import template
-from constants import MAPPING, OUTPUT, TEMPLATE, XLSX
-from lib.data_processing import AppMapping, read_excel
-from lib.report_helpers import (
-    format_date_range_auto,
-)
-from lib.utils import reopen_in_powerpoint, sanitize_for_filename
-from process_template import process_template
+import uvicorn
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--no-open", action="store_true", help="skip opening in PowerPoint"
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "8321"))
+    reload_val = os.environ.get("UVICORN_RELOAD", "true").lower() == "true"
+    uvicorn.run(
+        "api:app",
+        host=host,
+        port=port,
+        reload=reload_val,
     )
-    args = parser.parse_args()
-    mapping = AppMapping.from_file(MAPPING)
-    records = read_excel(XLSX, mapping)
-    if mapping.ignore_errors or mapping.ignore_features:
-        records = [r for r in records if not r.is_ignored(mapping)]
-    records = mapping.filter_by_date(records)
-    date_str = format_date_range_auto([r.date for r in records])
-
-    output = (
-        TEMPLATE.parent
-        / f"SuccessRate_{sanitize_for_filename(mapping.name)}_{sanitize_for_filename(date_str)}.pptx"
-    )
-
-    with template(TEMPLATE) as ppt:
-        process_template(ppt)
-        ppt.save(output)
-
-        print(f"Saved → {output}")
-        for result in ppt.log():
-            status = "✓" if result.success else "✗"
-            print(
-                f"  {status} [{result.operation}] {result.placeholder}: {result.message}"
-            )
-
-    if not args.no_open and not getattr(sys, "frozen", False):
-        reopen_in_powerpoint(OUTPUT)
 
 
 if __name__ == "__main__":

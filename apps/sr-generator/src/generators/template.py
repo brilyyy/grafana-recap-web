@@ -1,3 +1,9 @@
+"""Template-based report generation for PowerPoint.
+
+The main entry point is :func:`process_template`, which fills a BPTX presentation
+with transaction data, charts, and tables.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -12,10 +18,10 @@ from matplotlib import font_manager as _fm
 
 from bptx import TableStyle, TextStyle
 from bptx._framework import BPTX
-from constants import DATA_DIR, MAPPING, XLSX
+from constants import DATA_DIR
 from lib.chart import save_fig as save
 from lib.data_processing import AppMapping, TransactionRecord, read_excel
-from lib.logger import get_logger
+from lib.logging import get_logger
 from lib.report_helpers import (
     aggregate_by_period,
     get_distinct_colors,
@@ -115,7 +121,6 @@ def _chart_monthly_sr_trx(
             color="black",
             horizontalalignment="center",
             fontsize=base_fontsize * 0.55,
-            # rotation=30,
         )
     ax1.tick_params(axis="y", rotation=45, labelsize=base_fontsize * 0.55)
     ax2.tick_params(axis="y", rotation=45, labelsize=base_fontsize * 0.55)
@@ -251,8 +256,8 @@ def _chart_trx_breakdown(
     shadow_kw = dict(
         color="#cccccc", width=bar_width + 0.04, edgecolor="none", zorder=1
     )
-    ax.bar(x1, MAX_H, **shadow_kw, bottom=0)  # type: ignore
-    ax.bar(x2, MAX_H, **shadow_kw, bottom=0)  # type: ignore
+    ax.bar(x1, MAX_H, **shadow_kw)  # type: ignore
+    ax.bar(x2, MAX_H, **shadow_kw)  # type: ignore
 
     ax.bar(
         x1,
@@ -670,7 +675,7 @@ def _chart_top_five_errors(
 def process_template(
     ppt: BPTX,
     *,
-    mapping_path: Path = MAPPING,
+    mapping_path: Path,
     xlsx_path: Path | None = None,
     records_preloaded: list[TransactionRecord] | None = None,
 ) -> None:
@@ -679,7 +684,9 @@ def process_template(
     if records_preloaded is not None:
         all_records = list(records_preloaded)
     else:
-        all_records = read_excel(xlsx_path if xlsx_path is not None else XLSX, mapping)
+        if xlsx_path is None:
+            raise ValueError("xlsx_path required when records_preloaded not given")
+        all_records = read_excel(xlsx_path, mapping)
 
     if mapping.ignore_errors or mapping.ignore_features:
         before = len(all_records)

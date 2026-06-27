@@ -1,3 +1,9 @@
+"""Synthetic monitoring report generation for PowerPoint.
+
+The main entry point is :func:`process_synthetic_template`, which fills a BPTX
+presentation with synthetic run data, charts, and tables.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -77,8 +83,8 @@ def _ellipsis_truncate(s: str, max_chars: int) -> str:
     if len(t) <= max_chars:
         return t
     if max_chars < 2:
-        return "…"[:max_chars]
-    return t[: max_chars - 1] + "…"
+        return "\u2026"[:max_chars]
+    return t[: max_chars - 1] + "\u2026"
 
 
 def _chart_daily_sr_action(
@@ -174,7 +180,7 @@ def _synthetic_action_breakdown_rows(
     by_action: dict[str, list[SyntheticRunRecord]] = defaultdict(list)
     for r in records:
         name = (r.feature_name or "").strip()
-        key = name if name else "—"
+        key = name if name else "\u2014"
         by_action[key].append(r)
 
     keyed: list[tuple[int, str, list[str]]] = []
@@ -186,7 +192,7 @@ def _synthetic_action_breakdown_rows(
             1 for r in subset if not mapping.is_skipped(r) and not mapping.is_success(r)
         )
         exec_n = ok + fail
-        sr_pct = f"{(ok / exec_n * 100):.2f}%" if exec_n else "—"
+        sr_pct = f"{(ok / exec_n * 100):.2f}%" if exec_n else "\u2014"
         avg_form = round(sum((r.form_duration_ms or 0) for r in subset) / n) if n else 0
         avg_inq = (
             round(sum((r.inquiry_duration_ms or 0) for r in subset) / n) if n else 0
@@ -236,7 +242,7 @@ def _top_failed_features_table(
     by_action: dict[str, list[SyntheticRunRecord]] = defaultdict(list)
     for r in records:
         name = (r.feature_name or "").strip()
-        key = name if name else "—"
+        key = name if name else "\u2014"
         by_action[key].append(r)
 
     scored: list[tuple[str, int]] = []
@@ -538,17 +544,7 @@ def process_synthetic_template(
     data_path: Path,
     records_preloaded: list[SyntheticRunRecord] | None = None,
 ) -> None:
-    """
-    Fill ``template_synthetic_monitoring.pptx`` text placeholders, daily chart ``img_dialy_sr_run``,
-    and slides 5–11: two per-feature panels (``img_chart_feature1_trends``, ``img_chart_feature2_trends``).
-
-    All date bucketing and ``date_range`` use :attr:`~lib.data_processing.SyntheticRunRecord.date`:
-    the optional mapping field ``trx_date`` (sheet column) when set and parseable, otherwise
-    ``start_time.date()``.
-
-    Slides 12–13: per-action breakdown (``tbl_feature_breakdown``). Slide 14: top 10
-    failed features (``tbl_top_10_failed_features``).
-    """
+    """Fill template_synthetic_monitoring.pptx with synthetic monitoring data."""
     mapping = SyntheticAppMapping.from_file(mapping_path)
     if records_preloaded is not None:
         raw = list(records_preloaded)
@@ -586,7 +582,6 @@ def process_synthetic_template(
         1 for r in records if not mapping.is_skipped(r) and not mapping.is_success(r)
     )
     sr = total_success / total_exec if total_exec else 0.0
-    # avg duration in seconds and skip skipped runs with 2 decimal places
     avg_dur = (
         round(
             sum(r.duration_ms for r in records if not mapping.is_skipped(r))
@@ -601,7 +596,7 @@ def process_synthetic_template(
     daily_total: dict[date, int] = defaultdict(int)
     daily_success: dict[date, int] = defaultdict(int)
     for r in records:
-        d = r.date  # trx_date from mapping when present
+        d = r.date
         daily_total[d] += 1
         if mapping.is_success(r):
             daily_success[d] += 1
@@ -672,17 +667,17 @@ def process_synthetic_template(
     for i, (f1, f2) in enumerate(feature_pairs):
         slide_num = 5 + i
         label_bits = [_format_feature_title_text(x) for x in (f1, f2) if x]
-        label = " · ".join(label_bits) if label_bits else "—"
+        label = " \u00b7 ".join(label_bits) if label_bits else "\u2014"
         ppt.replace_text_on_slide(slide_num, "{{features_name}}", label)
         t1 = (
-            f"{mapping.name} — {_format_feature_title_text(f1)}: daily success rate"
+            f"{mapping.name} \u2014 {_format_feature_title_text(f1)}: daily success rate"
             if f1
-            else f"{mapping.name} — feature 1"
+            else f"{mapping.name} \u2014 feature 1"
         )
         t2 = (
-            f"{mapping.name} — {_format_feature_title_text(f2)}: daily success rate"
+            f"{mapping.name} \u2014 {_format_feature_title_text(f2)}: daily success rate"
             if f2
-            else f"{mapping.name} — feature 2"
+            else f"{mapping.name} \u2014 feature 2"
         )
         ppt.replace_image_on_slide(
             slide_num,
@@ -717,7 +712,7 @@ def process_synthetic_template(
         ppt.replace_text_on_slide(
             slide_num,
             "{{title}}",
-            f"{mapping.name} — per-action breakdown {period_label}",
+            f"{mapping.name} \u2014 per-action breakdown {period_label}",
         )
         if idx < len(action_pages):
             ppt.replace_table_on_slide(
@@ -744,7 +739,7 @@ def process_synthetic_template(
     ppt.replace_text_on_slide(
         _TOP_FAILED_SLIDE_NUM,
         "{{title}}",
-        f"{mapping.name} — top failed features {period_label}",
+        f"{mapping.name} \u2014 top failed features {period_label}",
     )
     ppt.replace_table_on_slide(
         _TOP_FAILED_SLIDE_NUM,
@@ -813,7 +808,7 @@ def main() -> None:
         )
         ppt.save(out)
 
-    print(f"Saved → {out.resolve()}")
+    print(f"Saved \u2192 {out.resolve()}")
     reopen_in_powerpoint(out)
 
 

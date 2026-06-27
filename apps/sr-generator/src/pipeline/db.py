@@ -9,15 +9,15 @@ from typing import cast
 
 from bptx import template as bptx_template
 from constants import TEMPLATE
-from lib.logging_utils import get_gui_logger
+from lib.logging import get_pipeline_logger
 from pipeline.common import GenerateResult, _auto_weekly_periods_clamped
-from services.mapping_db import is_db_mapping_path
+from services.mapping import is_db_mapping_path
 from lib.db.postgres import fetch_transaction_records_master_window, get_app_name
-from lib.jumphost_db_settings import DatabaseSettings
+from lib.settings import DatabaseSettings
 from lib.report_filename import sanitize_for_filename
-from process_template import process_template
+from generators.template import process_template
 
-log = get_gui_logger("generator.db")
+log = get_pipeline_logger("generator.db")
 
 DB_FIXED_FIELDS = {
     "date": "tanggal_transaksi",

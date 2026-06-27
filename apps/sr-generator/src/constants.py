@@ -21,9 +21,6 @@ for _ttf in (DATA_DIR / "fonts" / "Poppins").glob("*.ttf"):
 plt.rcParams["font.family"] = "Poppins"
 
 TEMPLATE = DATA_DIR / "template.pptx"
-OUTPUT = DATA_DIR / "output.pptx"
-XLSX = DATA_DIR / "excel" / "data-ibb.xlsx"
-MAPPING = DATA_DIR / "bale_bisnis_mapping.json"
 
 SHAPE_TYPE_LABELS = {
     MSO_SHAPE_TYPE.AUTO_SHAPE: "shape",

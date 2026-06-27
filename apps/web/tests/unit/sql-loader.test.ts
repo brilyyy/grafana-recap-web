@@ -83,7 +83,7 @@ describe('loadProcedureMetas (real frontmatter)', () => {
   it('builds catalog metadata for every success-rate + recap procedure', () => {
     const sr = loadProcedureMetas('success_rate')
     const rm = loadProcedureMetas('recap_models')
-    expect(sr).toHaveLength(9)
+    expect(sr).toHaveLength(10)
     expect(rm).toHaveLength(2)
     const bale = sr.find((m) => m.functionName === 'sp_process_bale_daily')
     expect(bale?.meta.id).toBe('sr:bale')

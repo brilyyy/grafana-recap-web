@@ -9,13 +9,13 @@ from typing import cast
 
 from bptx import template as bptx_template
 from constants import TEMPLATE
-from lib.logging_utils import get_gui_logger
+from lib.logging import get_pipeline_logger
 from pipeline.common import GenerateResult, _auto_weekly_periods_clamped
 from lib.data_processing import AppMapping, read_excel
 from lib.report_filename import sanitize_for_filename
-from process_template import process_template
+from generators.template import process_template
 
-log = get_gui_logger("generator.excel")
+log = get_pipeline_logger("generator.excel")
 
 
 def generate_for_excel_mapping(

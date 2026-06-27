@@ -9,6 +9,7 @@ Public API::
 """
 
 from ._convenience import new_presentation, template
+from ._debug import inspect
 from ._enums import TextAlign
 from ._exceptions import BPTXError, ShapeError, TemplateError
 from ._framework import BPTX
@@ -27,6 +28,7 @@ __all__ = [
     "BPTX",
     "template",
     "new_presentation",
+    "inspect",
     # Models
     "TextStyle",
     "TableData",

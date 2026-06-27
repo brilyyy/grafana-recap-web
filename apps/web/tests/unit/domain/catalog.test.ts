@@ -24,6 +24,7 @@ const SR_KEYS = [
   'cms',
   'bale_korpora',
   'debit_online',
+  'qris_n8n',
 ]
 
 describe('buildRecapCatalog', () => {

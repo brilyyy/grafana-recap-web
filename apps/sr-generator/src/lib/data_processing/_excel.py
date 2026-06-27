@@ -5,7 +5,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Iterator
 
-from ..logger import get_logger
+from ..logging import get_logger
 from ._mapping import AppMapping
 from ._record import TransactionRecord
 

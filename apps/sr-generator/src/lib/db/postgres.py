@@ -14,7 +14,7 @@ from psycopg import sql
 from psycopg.rows import dict_row
 
 from lib.data_processing import TransactionRecord
-from lib.jumphost_db_settings import DatabaseSettings
+from lib.settings import DatabaseSettings
 from lib.utils import is_dev
 
 

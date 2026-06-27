@@ -1,16 +1,15 @@
-"""lib/logger.py — Application logger with pretty console + file output.
+"""Application logging — console + rotating file output.
 
-Usage:
-    from lib.logger import get_logger
+Two loggers:
 
+- ``get_logger(name)`` → ``sr-gen.<name>``  — main app logger (coloured console + file)
+- ``get_pipeline_logger(name)`` → ``sr-gen.pipeline.<name>`` — pipeline logger (file + console)
+
+Usage::
+
+    from lib.logging import get_logger
     log = get_logger(__name__)
     log.info("Processing %d records", len(records))
-    log.debug("Mapping loaded", extra={"data": mapping})
-    log.error("Failed to parse row", exc_info=True)
-
-Log file location: <BASE_DIR>/logs/sr-gen.log  (rotating, 5 MB × 3 backups)
-Console output  : coloured, human-readable
-File output     : plain-text, same format (no colour codes)
 """
 
 from __future__ import annotations
@@ -21,7 +20,6 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -29,6 +27,7 @@ from pathlib import Path
 _BASE_DIR = Path(__file__).parent.parent.parent  # project root
 LOGS_DIR = _BASE_DIR / "logs"
 LOG_FILE = LOGS_DIR / "sr-gen.log"
+PIPELINE_LOG_FILE = LOGS_DIR / "sr_generator.log"
 
 # ---------------------------------------------------------------------------
 # ANSI colour helpers
@@ -39,17 +38,18 @@ _BOLD = "\033[1m"
 _DIM = "\033[2m"
 
 _LEVEL_COLOURS: dict[int, str] = {
-    logging.DEBUG: "\033[36m",     # cyan
-    logging.INFO: "\033[32m",      # green
-    logging.WARNING: "\033[33m",   # yellow
-    logging.ERROR: "\033[31m",     # red
-    logging.CRITICAL: "\033[35m",  # magenta
+    logging.DEBUG: "\033[36m",
+    logging.INFO: "\033[32m",
+    logging.WARNING: "\033[33m",
+    logging.ERROR: "\033[31m",
+    logging.CRITICAL: "\033[35m",
 }
 
 
 # ---------------------------------------------------------------------------
 # Formatters
 # ---------------------------------------------------------------------------
+
 
 class _ColourFormatter(logging.Formatter):
     """Console formatter — coloured level, dim timestamp, pretty extra data."""
@@ -74,7 +74,6 @@ class _ColourFormatter(logging.Formatter):
             message=record.getMessage(),
         )
 
-        # Append pretty-printed `data` if caller passed extra={"data": ...}
         data = getattr(record, "data", None)
         if data is not None:
             pretty = pprint.pformat(data, indent=2, width=100)
@@ -88,7 +87,7 @@ class _ColourFormatter(logging.Formatter):
 
 
 class _PlainFormatter(logging.Formatter):
-    """File formatter — no colour codes, ISO timestamp, pretty extra data."""
+    """File formatter — no colour codes, ISO timestamp."""
 
     _FMT = "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s"
 
@@ -109,20 +108,19 @@ class _PlainFormatter(logging.Formatter):
 # Root logger setup (runs once)
 # ---------------------------------------------------------------------------
 
+
 def _setup_root() -> None:
     root = logging.getLogger("sr-gen")
     if root.handlers:
-        return  # already initialised
+        return
 
     root.setLevel(logging.DEBUG)
 
-    # Console — INFO and above
     console = logging.StreamHandler(sys.stdout)
     console.setLevel(logging.INFO)
     console.setFormatter(_ColourFormatter())
     root.addHandler(console)
 
-    # File — DEBUG and above, rotating 5 MB × 3
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         LOG_FILE,
@@ -139,15 +137,64 @@ _setup_root()
 
 
 # ---------------------------------------------------------------------------
+# Pipeline logger (separate file for generator runs)
+# ---------------------------------------------------------------------------
+
+_PIPELINE_LOGGER_NAME = "sr-gen.pipeline"
+
+
+def _setup_pipeline_logger() -> logging.Logger:
+    logger = logging.getLogger(_PIPELINE_LOGGER_NAME)
+    if logger.handlers:
+        return logger
+
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        PIPELINE_LOG_FILE,
+        maxBytes=2 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(
+        logging.Formatter(
+            fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def get_logger(name: str) -> logging.Logger:
-    """Return a child logger under the 'sr-gen' root.
 
-    Example:
-        log = get_logger(__name__)   # → 'sr-gen.lib.chart'
+def get_logger(name: str) -> logging.Logger:
+    """Return a child logger under the ``sr-gen`` root.
+
+    Example::
+
+        log = get_logger(__name__)   # → sr-gen.lib.chart
     """
-    # Strip leading 'src.' so names read as 'sr-gen.lib.chart', not 'sr-gen.src.lib.chart'
     clean = name.removeprefix("src.")
     return logging.getLogger(f"sr-gen.{clean}")
+
+
+def get_pipeline_logger(name: str = "app") -> logging.Logger:
+    """Return a logger for the generation pipeline.
+
+    Writes to a separate log file (``sr_generator.log``).
+    """
+    _setup_pipeline_logger()
+    return logging.getLogger(f"{_PIPELINE_LOGGER_NAME}.{name}")

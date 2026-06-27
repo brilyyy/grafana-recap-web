@@ -8,7 +8,7 @@ from pptx.dml.color import RGBColor
 from pptx.util import Pt
 
 from ._enums import TextAlign
-from ._types import ImageSource, PathLike, RGBTuple
+from ._types import ImageSource, RGBTuple
 
 
 @dataclass(frozen=True)

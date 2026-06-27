@@ -23,19 +23,44 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-# Load env files before anything else touches os.environ
-from lib.api_dotenv import load_api_dotenv
+# Load env before anything else touches os.environ
+import sys as _sys
+from pathlib import Path as _Path
 
-load_api_dotenv()
+from dotenv import load_dotenv as _load_dotenv
+
+_explicit = os.environ.get("SR_GEN_ENV_FILE")
+if _explicit:
+    _load_dotenv(_Path(_explicit), override=False)
+else:
+    _candidates = [_Path.cwd()]
+    if getattr(_sys, "frozen", False):
+        _candidates.append(_Path(_sys.executable).parent)
+    # walk up from __file__ to find monorepo root .env
+    _here = _Path(__file__).resolve().parent
+    for _p in _here.parents:
+        if (_p / ".env").exists():
+            _candidates.append(_p)
+            break
+    _loaded = False
+    for _base in _candidates:
+        _env = _base / ".env"
+        if _env.exists():
+            _load_dotenv(_env, override=False)
+            _loaded = True
+            break
+    if not _loaded:
+        _load_dotenv(override=False)
+
+del _sys, _Path, _load_dotenv, _explicit, _candidates, _here, _p, _loaded, _base, _env
 
 from constants import DATA_DIR
-from services.db_service import get_db_apps
+from services.db import get_db_apps
 from pipeline.common import GenerateResult
 from pipeline.db import generate_for_db_mapping
 from pipeline.excel import generate_for_excel_mapping
-from services.mapping_db import list_db_mapping_apps
-from services.mapping_excel import list_excel_mapping_apps
-from lib.jumphost_db_settings import get_database_settings
+from services.mapping import list_db_mapping_apps, list_excel_mapping_apps
+from lib.settings import get_database_settings
 from lib.report_filename import sanitize_for_filename
 
 _SR_GEN_API_KEY = os.environ.get("SR_GEN_API_KEY", "").strip()
@@ -248,7 +273,7 @@ async def generate_synthetic(
     try:
         from bptx import template as bptx_template
         from lib.data_processing import SyntheticAppMapping
-        from process_synthetic_template import process_synthetic_template
+        from generators.synthetic import process_synthetic_template
 
         mapping_obj = SyntheticAppMapping.from_file(mapping_path)
 
