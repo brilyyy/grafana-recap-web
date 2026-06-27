@@ -128,4 +128,4 @@ jobs:
         with:
           name: ${{ steps.version.outputs.version }}
           path: deploy-${{ steps.version.outputs.version }}.zip
-          retention-days: 30
+          retention-days: 3
