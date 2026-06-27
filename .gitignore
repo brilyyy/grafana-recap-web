@@ -53,3 +53,8 @@ compressed/
 .poneglyph/
 
 notes.txt
+
+# Python
+__pycache__/
+*.egg-info/
+*.pyc
