@@ -91,6 +91,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.1",
     "@repo/tsconfig": "workspace:*",
+    "@repo/api": "workspace:*",
     "@swc/core": "^1.15.41",
     "@types/archiver": "^8.0.0",
     "@types/node": "^20.17.10",

@@ -17,6 +17,25 @@ CREATE TRIGGER "upd_app_identifier_updated_at"
   BEFORE UPDATE ON "app_identifier"
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- ── app_mappings ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS "app_mappings" (
+  "id"                  SERIAL PRIMARY KEY,
+  "id_app_identifier"   INTEGER NOT NULL REFERENCES "app_identifier"("id") ON DELETE CASCADE,
+  "generate_from"       VARCHAR(10) NOT NULL DEFAULT 'db',
+  "fields"              JSONB NOT NULL DEFAULT '{"date":"tanggal_transaksi","response_code":"rc","response_code_desc":"rc_description","error_type":"error_type","trx_count":"total_transaksi","trx_feature":"jenis_transaksi"}',
+  "success_type_format" JSONB NOT NULL DEFAULT '["Sukses"]',
+  "error_type_format"   JSONB NOT NULL DEFAULT '{"system_error":["S","#N/A"],"business_error":["N","B"]}',
+  "ignore_errors"       TEXT[] DEFAULT '{}',
+  "ignore_features"     TEXT[] DEFAULT '{}',
+  "created_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
+  "updated_at"          TIMESTAMP DEFAULT NOW() NOT NULL,
+  CONSTRAINT "unique_app_mapping" UNIQUE ("id_app_identifier")
+);
+DROP TRIGGER IF EXISTS "upd_app_mappings_updated_at" ON "app_mappings";
+CREATE TRIGGER "upd_app_mappings_updated_at"
+  BEFORE UPDATE ON "app_mappings"
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- ── fdw_source_table ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS "fdw_source_table" (
   "id"              SERIAL PRIMARY KEY,

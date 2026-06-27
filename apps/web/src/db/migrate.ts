@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Comprehensive Drizzle Migration Runner (CLI wrapper)
  *

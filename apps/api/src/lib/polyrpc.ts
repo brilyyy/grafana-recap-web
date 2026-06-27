@@ -12,7 +12,6 @@ export interface DbApp {
 export interface GenerateDbRequest {
   app_name: string;
   app_id: string;
-  mapping_filename?: string;
   master_date_from: string;
   master_date_to: string;
 }
@@ -32,8 +31,8 @@ export interface HealthResponse {
 
 export interface MappingInfo {
   name: string;
-  filename: string;
-  kind?: string;
+  app_id: string;
+  generate_from?: string;
 }
 
 export interface ReportInfo {
@@ -42,6 +41,8 @@ export interface ReportInfo {
   size_bytes: number;
   created_at: string;
 }
+
+export type FileResponse = Blob;
 
 // ============ PolyRPC Client ============
 

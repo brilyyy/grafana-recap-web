@@ -6,6 +6,9 @@
 -- app_identifier
 CREATE INDEX IF NOT EXISTS "idx_app_name" ON "app_identifier" ("app_name");
 
+-- app_mappings
+CREATE INDEX IF NOT EXISTS "idx_app_mappings_id_app_identifier" ON "app_mappings" ("id_app_identifier");
+
 -- app_success_rate
 CREATE INDEX IF NOT EXISTS "idx_tanggal_transaksi" ON "app_success_rate" ("tanggal_transaksi");
 CREATE INDEX IF NOT EXISTS "idx_id_app_identifier" ON "app_success_rate" ("id_app_identifier");

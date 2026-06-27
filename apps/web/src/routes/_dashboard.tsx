@@ -21,6 +21,7 @@ function getPageTitle(pathname: string): string {
     '/': m.nav_summary(),
     '/application': m.nav_applications(),
     '/dictionary': m.nav_dictionary(),
+    '/generator': m.nav_generator(),
     '/uploads': m.nav_uploads(),
     '/unmapped-rc': m.dict_unmapped_title(),
     '/transactions': m.nav_transactions(),

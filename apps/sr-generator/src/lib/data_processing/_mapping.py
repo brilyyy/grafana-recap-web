@@ -51,7 +51,11 @@ class AppMapping:
     def from_file(cls, path: str | Path) -> AppMapping:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
+        return cls.from_dict(data)
 
+    @classmethod
+    def from_dict(cls, data: dict) -> AppMapping:
+        """Construct from a dict (DB row or in-memory JSON)."""
         date_range: Optional[tuple[Optional[date], Optional[date]]] = None
         dr = data.get("date_range")
         if dr:

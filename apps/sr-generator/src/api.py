@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import tempfile
@@ -59,7 +58,7 @@ from services.db import get_db_apps
 from pipeline.common import GenerateResult
 from pipeline.db import generate_for_db_mapping
 from pipeline.excel import generate_for_excel_mapping
-from services.mapping import list_db_mapping_apps, list_excel_mapping_apps
+from services.mapping_db import fetch_all_mappings, fetch_mapping
 from lib.settings import get_database_settings
 from lib.report_filename import sanitize_for_filename
 
@@ -88,8 +87,8 @@ _SYNTHETIC_TEMPLATE = DATA_DIR / "templates" / "template_synthetic_monitoring.pp
 # ---------------------------------------------------------------------------
 class MappingInfo(BaseModel):
     name: str
-    filename: str
-    kind: str = Field(description="One of: db, excel, synthetic")
+    app_id: str
+    generate_from: str = Field(description="One of: db, excel")
 
 
 class DbApp(BaseModel):
@@ -100,7 +99,6 @@ class DbApp(BaseModel):
 class GenerateDbRequest(BaseModel):
     app_name: str
     app_id: str
-    mapping_filename: str = Field(description="Filename within data/db/")
     master_date_from: date
     master_date_to: date
 
@@ -175,19 +173,21 @@ def list_db_apps_endpoint(
 def list_mappings(
     _key: Annotated[None, Depends(_verify_api_key)] = None,
 ) -> list[MappingInfo]:
-    results: list[MappingInfo] = []
-    for name, path in list_db_mapping_apps():
-        results.append(MappingInfo(name=name, filename=path.name, kind="db"))
-    for name, path in list_excel_mapping_apps():
-        results.append(MappingInfo(name=name, filename=path.name, kind="excel"))
-    for path in sorted(DATA_DIR.glob("others/*.synthetic.mapping.json")):
-        try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-            name = str(raw.get("name") or path.stem.replace(".synthetic.mapping", "")).strip()
-        except Exception:
-            name = path.stem.replace(".synthetic.mapping", "")
-        results.append(MappingInfo(name=name, filename=path.name, kind="synthetic"))
-    return results
+    settings = get_database_settings()
+    if not settings.is_configured:
+        return []
+    try:
+        mappings = fetch_all_mappings(settings)
+    except Exception:
+        return []
+    return [
+        MappingInfo(
+            name=m["name"],
+            app_id=m["id_app_identifier"],
+            generate_from=m.get("generate_from", "db"),
+        )
+        for m in mappings
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -198,17 +198,21 @@ def generate_db(
     req: GenerateDbRequest,
     _key: Annotated[None, Depends(_verify_api_key)] = None,
 ) -> GenerateResponse:
-    mapping_path = DATA_DIR / "db" / req.mapping_filename
-    if not mapping_path.exists():
-        raise HTTPException(status_code=404, detail=f"Mapping not found: {req.mapping_filename}")
-
     settings = get_database_settings()
     if not settings.is_configured:
-        raise HTTPException(status_code=400, detail="Database not configured (SR_GEN_DATABASE_URL).")
+        raise HTTPException(
+            status_code=400, detail="Database not configured (SR_GEN_DATABASE_URL)."
+        )
+
+    mapping = fetch_mapping(settings, req.app_id)
+    if not mapping:
+        raise HTTPException(
+            status_code=404, detail=f"Mapping not found for app_id={req.app_id}"
+        )
 
     result = generate_for_db_mapping(
         app_name=req.app_name,
-        mapping_path=mapping_path,
+        mapping=mapping,
         app_id=req.app_id,
         master_date_from=req.master_date_from,
         master_date_to=req.master_date_to,
@@ -224,13 +228,21 @@ def generate_db(
 @app.post("/generate/excel", response_model=GenerateResponse)
 async def generate_excel(
     app_name: str = Form(...),
-    mapping_filename: str = Form(...),
+    app_id: str = Form(...),
     file: UploadFile = File(...),
     _key: Annotated[None, Depends(_verify_api_key)] = None,
 ) -> GenerateResponse:
-    mapping_path = DATA_DIR / "excel" / mapping_filename
-    if not mapping_path.exists():
-        raise HTTPException(status_code=404, detail=f"Mapping not found: {mapping_filename}")
+    settings = get_database_settings()
+    if not settings.is_configured:
+        raise HTTPException(
+            status_code=400, detail="Database not configured (SR_GEN_DATABASE_URL)."
+        )
+
+    mapping = fetch_mapping(settings, app_id)
+    if not mapping:
+        raise HTTPException(
+            status_code=404, detail=f"Mapping not found for app_id={app_id}"
+        )
 
     suffix = Path(file.filename or "upload.xlsx").suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -240,7 +252,7 @@ async def generate_excel(
     try:
         result = generate_for_excel_mapping(
             app_name=app_name,
-            mapping_path=mapping_path,
+            mapping=mapping,
             excel_path=tmp_path,
             output_root=_PROJECT_ROOT,
         )
@@ -261,9 +273,13 @@ async def generate_synthetic(
 ) -> GenerateResponse:
     mapping_path = DATA_DIR / "others" / mapping_filename
     if not mapping_path.exists():
-        raise HTTPException(status_code=404, detail=f"Mapping not found: {mapping_filename}")
+        raise HTTPException(
+            status_code=404, detail=f"Mapping not found: {mapping_filename}"
+        )
     if not _SYNTHETIC_TEMPLATE.exists():
-        raise HTTPException(status_code=500, detail="Synthetic monitoring template not found.")
+        raise HTTPException(
+            status_code=500, detail="Synthetic monitoring template not found."
+        )
 
     suffix = Path(file.filename or "upload.csv").suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -322,7 +338,9 @@ def list_reports(
     reports: list[ReportInfo] = []
     if not _GENERATED_DIR.exists():
         return reports
-    for path in sorted(_GENERATED_DIR.rglob("*.pptx"), key=lambda p: p.stat().st_mtime, reverse=True):
+    for path in sorted(
+        _GENERATED_DIR.rglob("*.pptx"), key=lambda p: p.stat().st_mtime, reverse=True
+    ):
         stat = path.stat()
         reports.append(
             ReportInfo(

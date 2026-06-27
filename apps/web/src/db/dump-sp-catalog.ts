@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Dump all sp_* stored procedures from the DB as catalog entries.
  * Output: JSON array to stdout. Pipe to a file as needed.
@@ -8,17 +9,17 @@
  *   pnpm db:dump-sp-catalog > catalog-from-db.json
  */
 
-import * as dotenv from "dotenv";
+import * as dotenv from 'dotenv'
 
-dotenv.config();
+dotenv.config()
 
-import postgres from "postgres";
+import postgres from 'postgres'
 
-const DB_HOST = process.env.DB_HOST ?? "localhost";
-const DB_PORT = parseInt(process.env.DB_PORT ?? "5432", 10);
-const DB_USER = process.env.DB_USER ?? "root";
-const DB_PASSWORD = process.env.DB_PASSWORD ?? "";
-const DB_NAME = process.env.DB_NAME ?? "platform_db";
+const DB_HOST = process.env.DB_HOST ?? 'localhost'
+const DB_PORT = parseInt(process.env.DB_PORT ?? '5432', 10)
+const DB_USER = process.env.DB_USER ?? 'root'
+const DB_PASSWORD = process.env.DB_PASSWORD ?? ''
+const DB_NAME = process.env.DB_NAME ?? 'platform_db'
 
 const client = postgres({
   host: DB_HOST,
@@ -26,7 +27,7 @@ const client = postgres({
   username: DB_USER,
   password: DB_PASSWORD,
   database: DB_NAME,
-});
+})
 
 async function main() {
   const rows = await client.unsafe(`
@@ -58,41 +59,38 @@ async function main() {
     WHERE n.nspname = 'public'
       AND p.proname LIKE 'sp_%'
     ORDER BY p.proname
-  `);
+  `)
 
   const entries = rows.map((row: any) => {
-    const fn = row.function_name as string;
-    const appKey =
-      (row.inferred_app_key as string) ??
-      fn.replace(/^sp_/, "").replace(/_daily$/, "");
-    const isRecap = fn.startsWith("sp_recap_");
-    const id = isRecap ? `rc:${appKey}` : `sr:${appKey}`;
+    const fn = row.function_name as string
+    const appKey = (row.inferred_app_key as string) ?? fn.replace(/^sp_/, '').replace(/_daily$/, '')
+    const isRecap = fn.startsWith('sp_recap_')
+    const id = isRecap ? `rc:${appKey}` : `sr:${appKey}`
     const title =
       appKey
-        .split("_")
+        .split('_')
         .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ") + (isRecap ? " — recap (daily)" : " — success rate (daily)");
+        .join(' ') + (isRecap ? ' — recap (daily)' : ' — success rate (daily)')
 
     return {
       id,
       recapKind: row.recap_kind,
       title,
-      description:
-        (row.description as string) ?? `Stored procedure: public.${fn}`,
-      briefProcessSummary: (row.description as string) ?? "",
+      description: (row.description as string) ?? `Stored procedure: public.${fn}`,
+      briefProcessSummary: (row.description as string) ?? '',
       briefQuery: `SELECT public.${fn}(p_processing_date::date)`,
       outputTable: row.inferred_output_table,
       functionName: fn,
-      rawSqlRepoPath: "",
-      scope: { type: "per_app", appKey },
-    };
-  });
+      rawSqlRepoPath: '',
+      scope: { type: 'per_app', appKey },
+    }
+  })
 
-  process.stdout.write(`${JSON.stringify(entries, null, 2)}\n`);
-  await client.end();
+  process.stdout.write(`${JSON.stringify(entries, null, 2)}\n`)
+  await client.end()
 }
 
 main().catch((e: Error) => {
-  console.error(e.message);
-  process.exit(1);
-});
+  console.error(e.message)
+  process.exit(1)
+})

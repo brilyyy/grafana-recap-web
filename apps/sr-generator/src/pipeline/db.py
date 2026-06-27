@@ -5,33 +5,18 @@ import json
 from contextlib import redirect_stdout
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from bptx import template as bptx_template
 from constants import TEMPLATE
 from lib.logging import get_pipeline_logger
 from pipeline.common import GenerateResult, _auto_weekly_periods_clamped
-from services.mapping import is_db_mapping_path
 from lib.db.postgres import fetch_transaction_records_master_window, get_app_name
 from lib.settings import DatabaseSettings
 from lib.report_filename import sanitize_for_filename
 from generators.template import process_template
 
 log = get_pipeline_logger("generator.db")
-
-DB_FIXED_FIELDS = {
-    "date": "tanggal_transaksi",
-    "response_code": "rc",
-    "response_code_desc": "rc_description",
-    "error_type": "error_type",
-    "trx_count": "total_transaksi",
-    "trx_feature": "jenis_transaksi",
-}
-DB_FIXED_SUCCESS = ["Sukses"]
-DB_FIXED_ERROR_TYPE = {
-    "system_error": ["S", "#N/A"],
-    "business_error": ["N", "B"],
-}
 
 
 def _as_str_list(value: object) -> list[str]:
@@ -89,25 +74,24 @@ def _parse_date_range(raw: dict[str, object]) -> tuple[date, date] | None:
 
 
 def _build_runtime_mapping(
-    mapping_path: Path, *, report_from: date, report_to: date
+    mapping: dict[str, Any], *, report_from: date, report_to: date
 ) -> dict:
-    raw: dict[str, object] = json.loads(mapping_path.read_text(encoding="utf-8"))
-    source_weekly_raw = raw.get("weekly_periods")
-    if is_db_mapping_path(mapping_path):
-        override_error_type = _as_error_type_format(raw.get("error_type_format"))
-        raw = {
-            "name": str(raw.get("name") or mapping_path.stem).strip(),
-            "ignore_errors": _as_str_list(raw.get("ignore_errors")),
-            "ignore_features": _as_str_list(raw.get("ignore_features")),
-            "fields": dict(DB_FIXED_FIELDS),
-            "success_type_format": list(DB_FIXED_SUCCESS),
-            "error_type_format": (
-                override_error_type
-                if override_error_type is not None
-                else dict(DB_FIXED_ERROR_TYPE)
-            ),
-        }
-    weekly_raw = source_weekly_raw if source_weekly_raw is not None else raw.get("weekly_periods")
+    """Build the runtime mapping dict from the DB mapping row."""
+    raw: dict[str, Any] = {
+        "name": mapping.get("name", ""),
+        "ignore_errors": _as_str_list(mapping.get("ignore_errors")),
+        "ignore_features": _as_str_list(mapping.get("ignore_features")),
+        "fields": dict(mapping.get("fields") or {}),
+        "success_type_format": list(mapping.get("success_type_format") or ["Sukses"]),
+        "error_type_format": (
+            _as_error_type_format(mapping.get("error_type_format"))
+            or {
+                "system_error": ["S", "#N/A"],
+                "business_error": ["N", "B"],
+            }
+        ),
+    }
+    weekly_raw = mapping.get("weekly_periods")
     weekly: list[dict[str, str]]
     if isinstance(weekly_raw, list) and weekly_raw:
         weekly = []
@@ -136,7 +120,7 @@ def _build_runtime_mapping(
 def generate_for_db_mapping(
     *,
     app_name: str,
-    mapping_path: Path,
+    mapping: dict[str, Any],
     app_id: str,
     master_date_from: date,
     master_date_to: date,
@@ -145,22 +129,18 @@ def generate_for_db_mapping(
 ) -> GenerateResult:
     full_log = ""
     try:
-        base_mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
-        app_id_override = str(base_mapping.get("id_app_identifier") or "").strip()
+        app_id_override = str(mapping.get("id_app_identifier") or "").strip()
         fetch_app_id = app_id_override or app_id
         fetch_from, fetch_to = master_date_from, master_date_to
-        if is_db_mapping_path(mapping_path):
-            report_range = _parse_date_range(base_mapping)
-            if report_range is not None:
-                report_from, report_to = report_range
-            else:
-                report_from, report_to = _auto_runtime_date_range_for_generate_date(
-                    generate_on=date.today(),
-                )
+        report_range = _parse_date_range(mapping)
+        if report_range is not None:
+            report_from, report_to = report_range
         else:
-            report_from, report_to = master_date_from, master_date_to
+            report_from, report_to = _auto_runtime_date_range_for_generate_date(
+                generate_on=date.today(),
+            )
         runtime_mapping = _build_runtime_mapping(
-            mapping_path,
+            mapping,
             report_from=report_from,
             report_to=report_to,
         )

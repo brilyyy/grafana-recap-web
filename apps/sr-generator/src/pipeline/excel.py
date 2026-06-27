@@ -5,7 +5,7 @@ import json
 from contextlib import redirect_stdout
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from bptx import template as bptx_template
 from constants import TEMPLATE
@@ -21,16 +21,13 @@ log = get_pipeline_logger("generator.excel")
 def generate_for_excel_mapping(
     *,
     app_name: str,
-    mapping_path: Path,
+    mapping: dict[str, Any],
     excel_path: Path,
     output_root: Path,
 ) -> GenerateResult:
     full_log = ""
     try:
-        base_mapping: dict[str, object] = json.loads(
-            mapping_path.read_text(encoding="utf-8")
-        )
-        mapping_obj = AppMapping.from_file(mapping_path)
+        mapping_obj = AppMapping.from_dict(mapping)
         all_records = read_excel(excel_path, mapping_obj)
 
         if mapping_obj.ignore_errors or mapping_obj.ignore_features:
@@ -61,7 +58,7 @@ def generate_for_excel_mapping(
         else:
             report_from = data_from
             report_to = data_to
-        weekly_raw = base_mapping.get("weekly_periods")
+        weekly_raw = mapping.get("weekly_periods")
         weekly: list[dict[str, str]]
         if isinstance(weekly_raw, list) and weekly_raw:
             weekly = []
@@ -82,6 +79,14 @@ def generate_for_excel_mapping(
             weekly = _auto_weekly_periods_clamped(
                 report_from=report_from, report_to=report_to
             )
+        base_mapping: dict[str, Any] = {
+            "name": mapping.get("name", ""),
+            "fields": mapping.get("fields") or {},
+            "success_type_format": mapping.get("success_type_format") or ["Sukses"],
+            "error_type_format": mapping.get("error_type_format") or {},
+            "ignore_errors": mapping.get("ignore_errors") or [],
+            "ignore_features": mapping.get("ignore_features") or [],
+        }
         base_mapping["date_range"] = {
             "from": report_from.isoformat(),
             "to": report_to.isoformat(),
@@ -103,7 +108,6 @@ def generate_for_excel_mapping(
         tmp_mapping.write_text(
             json.dumps(base_mapping, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        print(f"Base mapping: {base_mapping}")
         try:
             with bptx_template(TEMPLATE) as ppt:
                 stdout_buf = io.StringIO()

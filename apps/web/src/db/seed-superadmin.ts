@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Standalone Superadmin Seeder (Drizzle ORM)
  *
