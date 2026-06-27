@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useApplications } from '@/hooks/useApplications'
-import { validateCsvColumns } from '@/lib/csv-columns'
 import { trpc } from '@/router'
 
 const REQUIRED_COLUMNS = ['Jenis Transaksi', 'RC', 'S/N']
@@ -37,14 +36,7 @@ export default function DictionaryUploadCard() {
         appId: z.string().min(1, 'Please select an app'),
         file: z
           .custom<File>((f) => f instanceof File, 'Please select a file to upload')
-          .refine((f) => /\.(xlsx|csv)$/i.test(f.name), 'Only Excel (.xlsx) or CSV (.csv) files are allowed')
-          .superRefine(async (f, ctx) => {
-            if (!/\.(xlsx|csv)$/i.test(f.name)) return
-            const result = await validateCsvColumns(f, REQUIRED_COLUMNS, OPTIONAL_COLUMNS)
-            if (!result.isValid) {
-              ctx.addIssue({ code: 'custom', message: result.error ?? 'Invalid file format' })
-            }
-          }),
+          .refine((f) => /\.(xlsx|csv)$/i.test(f.name), 'Only Excel (.xlsx) or CSV (.csv) files are allowed'),
       }),
     [],
   )

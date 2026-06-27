@@ -20,7 +20,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { trpc } from '@/router'
-import { formatDate, type PendingUserRequest, RoleBadge, type User, useSuperadminGuard } from './-shared'
+import { formatDate, RoleBadge } from '@/lib/superadmin-utils'
+import { type PendingUserRequest, type User } from '@/types/superadmin'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/users')({
   ssr: false,

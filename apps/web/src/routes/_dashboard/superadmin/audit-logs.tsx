@@ -11,7 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDayMonth } from '@/lib/i18n-format'
 import { trpc } from '@/router'
-import { type AuditLogEntry, type AuditStats, formatDate, useSuperadminGuard } from './-shared'
+import { type AuditLogEntry, type AuditStats } from '@/types/superadmin'
+import { formatDate } from '@/lib/superadmin-utils'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/audit-logs')({
   ssr: false,

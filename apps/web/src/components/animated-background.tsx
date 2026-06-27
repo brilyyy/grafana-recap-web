@@ -14,23 +14,14 @@ interface StarData {
   duration: number
 }
 
-function generateStars(count: number, seed: number): StarData[] {
-  // Simple seeded-ish random using index for determinism across re-renders
-  return Array.from({ length: count }, (_, i) => {
-    const t = (i * 2654435761 + seed) >>> 0
-    const r1 = ((t ^ (t >>> 16)) * 0x45d9f3b) >>> 0
-    const r2 = ((r1 ^ (r1 >>> 16)) * 0x45d9f3b) >>> 0
-    const r3 = ((r2 ^ (r2 >>> 16)) * 0x45d9f3b) >>> 0
-    const r4 = ((r3 ^ (r3 >>> 16)) * 0x45d9f3b) >>> 0
-    const r5 = ((r4 ^ (r4 >>> 16)) * 0x45d9f3b) >>> 0
-    return {
-      x: ((r1 >>> 0) / 0xffffffff) * 100,
-      y: ((r2 >>> 0) / 0xffffffff) * 100,
-      size: ((r3 >>> 0) / 0xffffffff) * 1.8 + 0.4,
-      delay: ((r4 >>> 0) / 0xffffffff) * 8,
-      duration: ((r5 >>> 0) / 0xffffffff) * 4 + 3,
-    }
-  })
+function generateStars(count: number): StarData[] {
+  return Array.from({ length: count }, () => ({
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 1.8 + 0.4,
+    delay: Math.random() * 8,
+    duration: Math.random() * 4 + 3,
+  }))
 }
 
 export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBackgroundProps) {
@@ -41,9 +32,9 @@ export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBa
 
   const [farCount, midCount, nearCount] = variant === 'prominent' ? [70, 40, 18] : [40, 24, 10]
 
-  const farStars = React.useMemo(() => generateStars(farCount, 1), [farCount])
-  const midStars = React.useMemo(() => generateStars(midCount, 2), [midCount])
-  const nearStars = React.useMemo(() => generateStars(nearCount, 3), [nearCount])
+  const farStars = React.useMemo(() => generateStars(farCount), [farCount])
+  const midStars = React.useMemo(() => generateStars(midCount), [midCount])
+  const nearStars = React.useMemo(() => generateStars(nearCount), [nearCount])
 
   React.useEffect(() => {
     setMounted(true)

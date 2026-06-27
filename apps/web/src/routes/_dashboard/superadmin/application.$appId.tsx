@@ -27,7 +27,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SqlEditor } from '@/components/ui/sql-editor'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { trpc } from '@/router'
-import { formatDate, useSuperadminGuard } from './-shared'
+import { formatDate } from '@/lib/superadmin-utils'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/application/$appId')({
   ssr: false,

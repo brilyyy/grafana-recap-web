@@ -17,23 +17,13 @@ def _require_sql_ident(value: str, label: str) -> str:
 
 @dataclass(frozen=True)
 class DatabaseSettings:
-    """Postgres access for `/db/*` routes. Driven by env (see `.env.db.example`)."""
+    """Postgres access. Column mappings come from app_mappings.fields, not env."""
 
     database_url: str
-    table: str
-    app_id_column: str
-    date_column: str
-    col_date: str
-    col_response_code: str
-    col_response_code_desc: str
-    col_error_type: str
-    col_trx_count: str
-    col_trx_feature: str
-    # When set, GET /db/app-ids reads this small dimension table instead of DISTINCT on the fact table.
+    # Dimension table for listing apps (optional — falls back to DISTINCT on fact table).
     app_list_table: str | None
     app_list_id_column: str
     app_list_name_column: str
-    mapping_slug: str
 
     @property
     def is_configured(self) -> bool:
@@ -44,43 +34,6 @@ class DatabaseSettings:
         list_tbl_raw = (os.environ.get("SR_GEN_DB_APP_LIST_TABLE") or "").strip()
         return cls(
             database_url=(os.environ.get("SR_GEN_DATABASE_URL") or "").strip(),
-            table=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_TABLE") or "transactions",
-                "SR_GEN_DB_TABLE",
-            ),
-            app_id_column=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_APP_ID_COLUMN") or "app_id",
-                "SR_GEN_DB_APP_ID_COLUMN",
-            ),
-            date_column=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_DATE_COLUMN") or "txn_date",
-                "SR_GEN_DB_DATE_COLUMN",
-            ),
-            col_date=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_COL_DATE") or "txn_date",
-                "SR_GEN_DB_COL_DATE",
-            ),
-            col_response_code=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_COL_RESPONSE_CODE") or "response_code",
-                "SR_GEN_DB_COL_RESPONSE_CODE",
-            ),
-            col_response_code_desc=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_COL_RESPONSE_CODE_DESC")
-                or "response_code_desc",
-                "SR_GEN_DB_COL_RESPONSE_CODE_DESC",
-            ),
-            col_error_type=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_COL_ERROR_TYPE") or "error_type",
-                "SR_GEN_DB_COL_ERROR_TYPE",
-            ),
-            col_trx_count=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_COL_TRX_COUNT") or "trx_count",
-                "SR_GEN_DB_COL_TRX_COUNT",
-            ),
-            col_trx_feature=_require_sql_ident(
-                os.environ.get("SR_GEN_DB_COL_TRX_FEATURE") or "trx_feature",
-                "SR_GEN_DB_COL_TRX_FEATURE",
-            ),
             app_list_table=(
                 _require_sql_ident(list_tbl_raw, "SR_GEN_DB_APP_LIST_TABLE")
                 if list_tbl_raw
@@ -94,7 +47,6 @@ class DatabaseSettings:
                 os.environ.get("SR_GEN_DB_APP_LIST_NAME_COLUMN") or "app_name",
                 "SR_GEN_DB_APP_LIST_NAME_COLUMN",
             ),
-            mapping_slug=(os.environ.get("SR_GEN_DB_MAPPING_SLUG") or "default").strip(),
         )
 
 

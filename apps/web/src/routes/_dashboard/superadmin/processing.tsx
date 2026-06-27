@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatMonthName, formatMonthYear } from '@/lib/i18n-format'
 import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
-import { useSuperadminGuard } from './-shared'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/processing')({
   ssr: false,
@@ -457,11 +457,11 @@ function ProcessingPage() {
                           <TableCell className="whitespace-nowrap text-muted-foreground">
                             {processedAt
                               ? new Date(processedAt).toLocaleString('en-US', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
                               : '—'}
                           </TableCell>
                           <TableCell className="max-w-56">

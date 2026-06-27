@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { useAuthSession } from '@/hooks/use-auth-session'
 import { useBackgroundMode } from '@/hooks/use-background-mode'
 import { cn } from '@/lib/utils'
-import { AppSetupPanel } from './-components/app-setup-panel'
+import { AppSetupPanel } from '@/components/app-setup-panel'
 
 export const Route = createFileRoute('/_dashboard/settings')({
   ssr: false,

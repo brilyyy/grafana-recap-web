@@ -3,7 +3,9 @@ import { db } from '@/db'
 import { catalogEntryToLogFilter, getCatalogEntryByIdAsync } from '@/lib/domain/recap/catalog'
 import { normalizeAppNameToKey } from '@/lib/domain/recap/resolve-app'
 import type { TriggerRecapParams, TriggerRecapResult } from '@/lib/domain/recap/types'
-import { withLogging } from '@/lib/logger/with-logging'
+import { getLogger } from '@/lib/logger'
+
+const log = getLogger('recap')
 
 export class RecapValidationError extends Error {
   constructor(
@@ -52,7 +54,10 @@ async function resolveAppForEntry(
   return row
 }
 
-async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapResult> {
+export async function triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapResult> {
+  const start = performance.now()
+  log.debug({ catalogEntryId: params.catalogEntryId }, 'triggerRecap start')
+
   const entry = await getCatalogEntryByIdAsync(params.catalogEntryId)
   if (!entry) {
     throw new RecapValidationError(`Unknown recap catalog id: ${params.catalogEntryId}`, 'NOT_FOUND')
@@ -67,7 +72,7 @@ async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapRe
   }
 
   const appRow = await resolveAppForEntry(entry)
-  const logFilter = catalogEntryToLogFilter(entry)
+  const lf = catalogEntryToLogFilter(entry)
 
   const targetDate = await resolveTargetDate(dateParam)
   const dateParamForDb = dateParam || null
@@ -85,7 +90,7 @@ async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapRe
     SELECT * FROM app_processing_log
     WHERE processing_date = ${targetDate}
       AND (
-        catalog_entry_id = ${logFilter.catalogEntryId}
+        catalog_entry_id = ${lf.catalogEntryId}
         OR (
           catalog_entry_id IS NULL
           AND app_name = ${appRow.app_name}
@@ -95,20 +100,22 @@ async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapRe
     ORDER BY created_at DESC
     LIMIT 1
   `)
-  const log = logResult[0] as Record<string, unknown> | undefined
+  const row = logResult[0] as Record<string, unknown> | undefined
 
-  const logEntry = log
+  const logEntry = row
     ? {
-        id: Number(log.id),
-        status: String(log.status ?? ''),
-        recordsProcessed: log.records_processed != null ? Number(log.records_processed) : null,
-        recordsInserted: log.records_inserted != null ? Number(log.records_inserted) : null,
-        startTime: log.start_time != null ? String(log.start_time) : null,
-        endTime: log.end_time != null ? String(log.end_time) : null,
-        errorMessage: log.error_message != null ? String(log.error_message) : null,
-        recapKind: log.recap_kind != null ? String(log.recap_kind) : entry.recapKind,
+        id: Number(row.id),
+        status: String(row.status ?? ''),
+        recordsProcessed: row.records_processed != null ? Number(row.records_processed) : null,
+        recordsInserted: row.records_inserted != null ? Number(row.records_inserted) : null,
+        startTime: row.start_time != null ? String(row.start_time) : null,
+        endTime: row.end_time != null ? String(row.end_time) : null,
+        errorMessage: row.error_message != null ? String(row.error_message) : null,
+        recapKind: row.recap_kind != null ? String(row.recap_kind) : entry.recapKind,
       }
     : null
+
+  log.info({ durationMs: Math.round((performance.now() - start) * 100) / 100, status: 'success' }, 'triggerRecap ok')
 
   return {
     success: true,
@@ -118,5 +125,3 @@ async function _triggerRecap(params: TriggerRecapParams): Promise<TriggerRecapRe
     logEntry,
   }
 }
-
-export const triggerRecap = withLogging('triggerRecap', _triggerRecap, { module: 'recap' })

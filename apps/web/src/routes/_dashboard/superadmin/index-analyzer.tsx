@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { trpc } from '@/router'
 import type { IndexAnalyzerReport } from '@/server/trpc/routers/indexAnalyzer'
-import { useSuperadminGuard } from './-shared'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/index-analyzer')({
   ssr: false,

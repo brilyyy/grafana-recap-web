@@ -42,8 +42,6 @@ export interface ReportInfo {
   created_at: string;
 }
 
-export type FileResponse = Blob;
-
 // ============ PolyRPC Client ============
 
 const BASE_URL = 'http://localhost:8321';

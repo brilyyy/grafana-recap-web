@@ -145,9 +145,11 @@ def generate_for_db_mapping(
             report_to=report_to,
         )
         range_end_exclusive = fetch_to + timedelta(days=1)
+        fields = dict(mapping.get("fields") or {})
         records = fetch_transaction_records_master_window(
             settings,
             fetch_app_id,
+            fields=fields,
             range_start=fetch_from,
             range_end_exclusive=range_end_exclusive,
         )

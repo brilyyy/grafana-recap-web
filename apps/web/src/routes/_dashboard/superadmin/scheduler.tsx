@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDateTime } from '@/lib/i18n-format'
 import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
-import { useSuperadminGuard } from './-shared'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/scheduler')({
   ssr: false,

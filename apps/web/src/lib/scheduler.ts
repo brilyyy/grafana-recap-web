@@ -6,7 +6,6 @@
  */
 
 import { getLogger } from '@/lib/logger'
-import { withLogging } from '@/lib/logger/with-logging'
 
 const log = getLogger('scheduler')
 
@@ -53,7 +52,7 @@ async function runStoredProcedure(procedureName: string): Promise<void> {
  *
  * @param jobs - Optional job list. Falls back to hardcoded RECAP_JOBS (env-var driven).
  */
-async function _initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
+export async function initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
   if (typeof window !== 'undefined') {
     log.warn('Scheduler initialization skipped: running in browser')
     return
@@ -104,10 +103,7 @@ async function _initializeScheduler(jobs?: RecapJobInput[]): Promise<void> {
   }
 }
 
-/** Initialize scheduler. Idempotent: already-running jobs are left untouched. */
-export const initializeScheduler = withLogging('initializeScheduler', _initializeScheduler, {
-  module: 'scheduler',
-})
+// ponytail: withLogging wrapper removed — function already logs internally
 
 /** Stop all scheduled jobs. */
 export function stopScheduler(): void {

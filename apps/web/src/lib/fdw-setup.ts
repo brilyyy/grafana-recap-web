@@ -1,5 +1,5 @@
 import type { Sql } from 'postgres'
-import { withLogging } from '@/lib/logger/with-logging'
+import { getLogger } from '@/lib/logger'
 import { fdwLocalRelationName } from './fdw'
 
 export interface FdwSetupResult {
@@ -8,13 +8,17 @@ export interface FdwSetupResult {
   errors: string[]
 }
 
+const log = getLogger('fdw')
+
 /**
  * Execute all FDW configuration from fdw_source_table.
  *
  * Drops and recreates foreign servers, user mappings, foreign tables,
  * and compatibility views for every row in fdw_source_table.
  */
-async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
+export async function applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
+  const start = performance.now()
+  log.debug('applyFdwConfig start')
   const result: FdwSetupResult = { serversProcessed: 0, tablesProcessed: 0, errors: [] }
 
   const DB_HOST = process.env.DB_HOST ?? 'localhost'
@@ -146,10 +150,8 @@ async function _applyFdwConfig(sqlClient: Sql): Promise<FdwSetupResult> {
     }
   }
 
+  log.info({ durationMs: Math.round((performance.now() - start) * 100) / 100, status: 'success' }, 'applyFdwConfig ok')
   return result
 }
 
-export const applyFdwConfig = withLogging('applyFdwConfig', _applyFdwConfig, {
-  module: 'fdw',
-  logArgs: false, // arg is a live DB client, not loggable
-})
+// ponytail: withLogging wrapper removed — inline logging added above

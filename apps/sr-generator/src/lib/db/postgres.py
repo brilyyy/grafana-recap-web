@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import os
-from collections.abc import Mapping
 from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -16,6 +15,10 @@ from psycopg.rows import dict_row
 from lib.data_processing import TransactionRecord
 from lib.settings import DatabaseSettings
 from lib.utils import is_dev
+
+# Hardcoded — these match the DB schema, no env override needed.
+TABLE = "app_success_rate"
+APP_ID_COL = "id_app_identifier"
 
 
 def _repo_root() -> Path:
@@ -90,8 +93,8 @@ def _connect(settings: DatabaseSettings):
 def list_app_ids(settings: DatabaseSettings) -> list[str]:
     """App ids as strings for JSON.
 
-    Prefer ``SR_GEN_DB_APP_LIST_TABLE`` (e.g. ``app_identifier``) so we do not scan
-    the fact table for DISTINCT. Otherwise falls back to DISTINCT on the fact table.
+    Prefer ``app_identifier`` dimension table so we do not scan the fact table.
+    Otherwise falls back to DISTINCT on the fact table.
     """
     if _mock_enabled():
         return [a["app_id"] for a in _load_mock_apps()]
@@ -104,8 +107,8 @@ def list_app_ids(settings: DatabaseSettings) -> list[str]:
         q = sql.SQL(
             "SELECT DISTINCT {aid} AS v FROM {tbl} ORDER BY 1"
         ).format(
-            aid=sql.Identifier(settings.app_id_column),
-            tbl=sql.Identifier(settings.table),
+            aid=sql.Identifier(APP_ID_COL),
+            tbl=sql.Identifier(TABLE),
         )
     with _connect(settings) as conn:
         with conn.cursor() as cur:
@@ -115,10 +118,7 @@ def list_app_ids(settings: DatabaseSettings) -> list[str]:
 
 
 def list_apps(settings: DatabaseSettings) -> list[dict[str, str]]:
-    """List (app_id, app_name) pairs for UI selection.
-
-    Requires SR_GEN_DB_APP_LIST_TABLE to be set (e.g. app_identifier).
-    """
+    """List (app_id, app_name) pairs for UI selection."""
     if _mock_enabled():
         return _load_mock_apps()
     if not settings.app_list_table:
@@ -171,19 +171,26 @@ def get_app_name(settings: DatabaseSettings, app_id: str) -> str | None:
     return str(row[0] or "") or None
 
 
-def _row_to_record(row: Mapping[str, Any], settings: DatabaseSettings) -> TransactionRecord:
-    d = row[settings.col_date]
+def _row_to_record(row: dict[str, Any], fields: dict[str, str]) -> TransactionRecord:
+    col_date = fields.get("date", "tanggal_transaksi")
+    col_rc = fields.get("response_code", "rc")
+    col_rc_desc = fields.get("response_code_desc", "rc_description")
+    col_err = fields.get("error_type", "error_type")
+    col_count = fields.get("trx_count", "total_transaksi")
+    col_feat = fields.get("trx_feature", "jenis_transaksi")
+
+    d = row[col_date]
     if hasattr(d, "date"):
         d = d.date()
     elif isinstance(d, str):
         d = date.fromisoformat(d.strip())
-    feat = row.get(settings.col_trx_feature)
+    feat = row.get(col_feat)
     return TransactionRecord(
         date=d,
-        response_code=str(row[settings.col_response_code] or "none"),
-        response_code_desc=str(row[settings.col_response_code_desc] or "none"),
-        error_type=str(row[settings.col_error_type] or "none"),
-        trx_count=int(row[settings.col_trx_count] or 0),
+        response_code=str(row[col_rc] or "none"),
+        response_code_desc=str(row[col_rc_desc] or "none"),
+        error_type=str(row[col_err] or "none"),
+        trx_count=int(row[col_count] or 0),
         trx_feature=None if feat is None or str(feat).strip() == "" else str(feat).strip(),
     )
 
@@ -192,54 +199,51 @@ def fetch_transaction_records_master_window(
     settings: DatabaseSettings,
     app_id: str,
     *,
+    fields: dict[str, str],
     range_start: date,
     range_end_exclusive: date,
 ) -> list[TransactionRecord]:
-    """Load rows for one app inside a half-open date window ``[range_start, range_end_exclusive)``.
+    """Load rows for one app inside a half-open date window ``[range_start, range_end_exclusive)``."""
+    col_date = fields.get("date", "tanggal_transaksi")
+    col_rc = fields.get("response_code", "rc")
+    col_rc_desc = fields.get("response_code_desc", "rc_description")
+    col_err = fields.get("error_type", "error_type")
+    col_count = fields.get("trx_count", "total_transaksi")
+    col_feat = fields.get("trx_feature", "jenis_transaksi")
 
-    Use calendar-month or custom inclusive bounds by computing ``range_end_exclusive``
-    as the day after the last inclusive day.
-    """
     if _mock_enabled():
         app_id_s = str(app_id)
         out: list[TransactionRecord] = []
         for row in _load_mock_facts():
-            row_app_id = str(row.get(settings.app_id_column) or row.get("id_app_identifier") or "").strip()
+            row_app_id = str(row.get(APP_ID_COL) or row.get("id_app_identifier") or "").strip()
             if row_app_id != app_id_s:
                 continue
-            raw_date = str(row.get(settings.date_column) or row.get("tanggal_transaksi") or "").strip()
+            raw_date = str(row.get(col_date) or row.get("tanggal_transaksi") or "").strip()
             if not raw_date:
                 continue
             d = date.fromisoformat(raw_date)
             if d < range_start or d >= range_end_exclusive:
                 continue
-            out.append(_row_to_record(row, settings))
+            out.append(_row_to_record(row, fields))
         out.sort(key=lambda r: r.date)
         return out
 
-    cols = [
-        settings.col_date,
-        settings.col_response_code,
-        settings.col_response_code_desc,
-        settings.col_error_type,
-        settings.col_trx_count,
-        settings.col_trx_feature,
-    ]
+    cols = [col_date, col_rc, col_rc_desc, col_err, col_count, col_feat]
     select_list = sql.SQL(", ").join(sql.Identifier(c) for c in cols)
     q = sql.SQL(
         "SELECT {fields} FROM {tbl} WHERE {aid} = %s "
         "AND {dcol} >= %s AND {dcol} < %s ORDER BY {dcol}"
     ).format(
         fields=select_list,
-        tbl=sql.Identifier(settings.table),
-        aid=sql.Identifier(settings.app_id_column),
-        dcol=sql.Identifier(settings.date_column),
+        tbl=sql.Identifier(TABLE),
+        aid=sql.Identifier(APP_ID_COL),
+        dcol=sql.Identifier(col_date),
     )
     with _connect(settings) as conn:
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(q, (app_id, range_start, range_end_exclusive))
             rows = cur.fetchall()
-    return [_row_to_record(r, settings) for r in rows]
+    return [_row_to_record(r, fields) for r in rows]
 
 
 def month_half_open(report_month: str) -> tuple[date, date]:
