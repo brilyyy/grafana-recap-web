@@ -9,7 +9,6 @@ Public API::
 """
 
 from ._convenience import new_presentation, template
-from ._debug import inspect
 from ._enums import TextAlign
 from ._exceptions import BPTXError, ShapeError, TemplateError
 from ._framework import BPTX
@@ -22,6 +21,16 @@ from ._models import (
     TableStyle,
     TextStyle,
 )
+
+def __getattr__(name: str):
+    if name == "inspect":
+        import sys
+        if getattr(sys, "frozen", False):
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+        from ._debug import inspect
+        return inspect
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     # Core

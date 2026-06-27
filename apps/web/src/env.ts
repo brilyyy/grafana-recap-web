@@ -18,6 +18,7 @@ const schema = z.object({
   DEFAULT_SU_PASSWORD: z.string().optional(),
   DEFAULT_SU_EMAIL: z.string().optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  GENERATOR_API_URL: z.url().default('http://localhost:8321'),
 })
 
 function withoutEmptyStrings(source: Record<string, unknown>): Record<string, unknown> {

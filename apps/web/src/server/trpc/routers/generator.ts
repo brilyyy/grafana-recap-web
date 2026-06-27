@@ -1,45 +1,69 @@
-import { PolyRPCError, py } from '@repo/api'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { protectedProcedure, router } from '../init'
 
-function handleSrGenError(err: unknown): never {
-  if (err instanceof PolyRPCError) {
-    const detail = err.data as { detail?: string } | undefined
+const API = process.env.GENERATOR_API_URL ?? 'http://localhost:8321'
+
+// ── Types (mirror sr-gen Python models) ───────────────────────
+
+interface HealthResponse {
+  status: string
+  db_configured: boolean
+  db_connected: boolean
+}
+
+interface DbApp {
+  app_id: string
+  app_name: string
+}
+
+interface MappingInfo {
+  name: string
+  app_id: string
+  generate_from?: string
+}
+
+interface GenerateResponse {
+  app_name: string
+  output_path?: string | null
+  success: boolean
+  message: string
+}
+
+interface ReportInfo {
+  filename: string
+  path: string
+  size_bytes: number
+  created_at: string
+}
+
+// ── Fetch helper ──────────────────────────────────────────────
+
+async function srGenFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API}${path}`, init)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }))
     throw new TRPCError({
-      code: err.status === 404 ? 'NOT_FOUND' : 'BAD_REQUEST',
-      message: detail?.detail ?? err.message,
+      code: res.status === 404 ? 'NOT_FOUND' : 'BAD_REQUEST',
+      message: body.detail ?? res.statusText,
     })
   }
-  if (err instanceof Error) {
-    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: err.message })
-  }
-  throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'sr-generator error' })
+  return res.json() as Promise<T>
 }
+
+// ── Router ────────────────────────────────────────────────────
 
 export const generatorRouter = router({
   health: protectedProcedure.query(async () => {
-    try {
-      return await py.health.health.query()
-    } catch (err) {
-      handleSrGenError(err)
-    }
+    return srGenFetch<HealthResponse>('/health')
   }),
 
   listApps: protectedProcedure.query(async () => {
-    try {
-      return await py.apps.list_db_apps_endpoint.query()
-    } catch (err) {
-      handleSrGenError(err)
-    }
+    return srGenFetch<DbApp[]>('/apps/db')
   }),
 
   listMappings: protectedProcedure.query(async () => {
-    try {
-      return await py.apps.list_mappings.query()
-    } catch (err) {
-      handleSrGenError(err)
-    }
+    return srGenFetch<MappingInfo[]>('/apps/mappings')
   }),
 
   generateDb: protectedProcedure
@@ -52,44 +76,30 @@ export const generatorRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      try {
-        return await py.generate.generate_db.mutate(input)
-      } catch (err) {
-        handleSrGenError(err)
-      }
+      return srGenFetch<GenerateResponse>('/generate/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
     }),
 
   generateExcel: protectedProcedure.input(z.any()).mutation(async ({ input }) => {
-    try {
-      const form = input as FormData
-      const res = await fetch(`${process.env.SR_GEN_BASE_URL || 'http://localhost:8321'}/generate/excel`, {
-        method: 'POST',
-        body: form,
-      })
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new TRPCError({ code: 'BAD_REQUEST', message: detail.detail ?? res.statusText })
-      }
-      return await res.json()
-    } catch (err) {
-      if (err instanceof TRPCError) throw err
-      handleSrGenError(err)
+    const form = input as FormData
+    const res = await fetch(`${API}/generate/excel`, { method: 'POST', body: form })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new TRPCError({ code: 'BAD_REQUEST', message: body.detail ?? res.statusText })
     }
+    return res.json()
   }),
 
   listReports: protectedProcedure.query(async () => {
-    try {
-      return await py.reports.list_reports.query()
-    } catch (err) {
-      handleSrGenError(err)
-    }
+    return srGenFetch<ReportInfo[]>('/reports')
   }),
 
   deleteReport: protectedProcedure.input(z.object({ filename: z.string() })).mutation(async ({ input }) => {
-    try {
-      return await py.reports.delete_report.mutate({ filename: input.filename })
-    } catch (err) {
-      handleSrGenError(err)
-    }
+    return srGenFetch<Record<string, string>>(`/reports/${input.filename}`, {
+      method: 'DELETE',
+    })
   }),
 })
