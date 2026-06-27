@@ -8,6 +8,9 @@ node_modules/
 dist/
 .output/
 
+# Turborepo
+.turbo/
+
 # Misc
 .DS_Store
 *.pem
@@ -26,10 +29,15 @@ yarn-error.log*
 *.tsbuildinfo
 
 # Drizzle (generated migrations)
-drizzle/
+**/drizzle/
 
 # Uploads
-public/uploads/
+**/public/uploads/
+
+# Logs (folder tracked via log/.gitkeep, contents ignored)
+**/log/*.log
+**/log/*.gz
+**/log/
 
 # Code review graph
 .code-review-graph/
@@ -40,3 +48,13 @@ entities.json
 
 .tanstack/
 .claude/settings.local.json
+
+compressed/
+.poneglyph/
+
+notes.txt
+
+# Python
+__pycache__/
+*.egg-info/
+*.pyc

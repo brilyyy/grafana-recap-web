@@ -37,8 +37,10 @@ pnpm dev
 Validated at startup by `src/env.ts` (custom zod validator — server vars come from
 `process.env`, browser-safe vars must be prefixed `VITE_` and go through `clientEnv`).
 Required: `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
-Optional: scheduler cron expressions (`*_PROCESSING_SCHEDULE`, default `1 0 * * *`),
-`SCHEDULER_TIMEZONE` (default `Asia/Jakarta`), `BETTER_AUTH_TRUSTED_ORIGINS`, seed credentials.
+Optional: `SCHEDULER_TIMEZONE` (default `Asia/Jakarta`, fallback only — jobs use a
+per-job DB timezone), `BETTER_AUTH_TRUSTED_ORIGINS`, seed credentials. Scheduler job
+schedules themselves are DB-driven (`scheduler_jobs` table), not env vars — see
+[docs/technical/processing-scheduler.md](docs/technical/processing-scheduler.md).
 
 ## Build and Run
 ```bash
@@ -56,6 +58,8 @@ Phase-specific commands:
 - `pnpm db:migrate:procedures`
 - `pnpm db:migrate:seed`
 - `pnpm db:migrate:fdw`
+
+All schema/index/procedure/cron SQL lives under [`src/db/sql/`](src/db/sql/), organized into numbered phase directories — each stored procedure is a single `.sql` file with a `@meta` frontmatter block (no separate registry). See [docs/operations/success-rate-sql.md](docs/operations/success-rate-sql.md).
 
 ## Lint / Format
 ```bash

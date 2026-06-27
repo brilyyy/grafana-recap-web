@@ -1,0 +1,108 @@
+name: Build deploy zip
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Node.js + pnpm ─────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: corepack enable && corepack prepare pnpm@11 --activate
+
+      - name: Install web deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm --filter @repo/web build
+
+      - name: Prune web node_modules to production
+        working-directory: apps/web
+        run: pnpm install --prod --ignore-scripts
+
+      # ── Python + uv + PyInstaller ──────────────────────────────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install sr-generator deps
+        working-directory: apps/sr-generator
+        run: uv sync --extra api --group dev
+
+      - name: Build sr-gen.exe
+        working-directory: apps/sr-generator
+        shell: cmd
+        run: |
+          .venv\Scripts\pyinstaller --onefile --name sr-gen ^
+            --paths src ^
+            --collect-all bptx ^
+            --collect-all matplotlib ^
+            --add-data "data;data" ^
+            --hidden-import "pipeline" ^
+            --hidden-import "generators" ^
+            --hidden-import "services" ^
+            --hidden-import "lib.db" ^
+            --hidden-import "lib.data_processing" ^
+            src\api.py
+
+      # ── Package ────────────────────────────────────────────────
+      - name: Create deploy directory
+        shell: cmd
+        run: |
+          mkdir deploy\web
+          xcopy /E /I apps\web\.output deploy\web\.output
+          xcopy /E /I apps\web\node_modules deploy\web\node_modules
+          copy apps\sr-generator\dist\sr-gen.exe deploy\
+          if exist apps\web\.env.example copy apps\web\.env.example deploy\web\.env
+          if exist apps\sr-generator\.env.example copy apps\sr-generator\.env.example deploy\.env.sr-gen
+
+      - name: Write start.bat
+        shell: cmd
+        run: |
+          (
+          echo @echo off
+          echo.
+          echo echo Starting sr-generator on port 8321...
+          echo start "sr-gen" /min sr-gen.exe --port 8321 --host 0.0.0.0
+          echo.
+          echo echo Starting web app on port 3000...
+          echo start "web" /min cmd /c "cd web ^&^& node .output\server\index.mjs"
+          echo.
+          echo echo Both services started.
+          echo echo   Web:     http://localhost:3000
+          echo echo   sr-gen:  http://localhost:8321
+          echo.
+          echo pause
+          ) > deploy\start.bat
+
+      - name: Write stop.bat
+        shell: cmd
+        run: |
+          (
+          echo @echo off
+          echo echo Stopping services...
+          echo taskkill /FI "WINDOWTITLE eq sr-gen*" /F ^>nul 2^>nul
+          echo taskkill /FI "WINDOWTITLE eq web*" /F ^>nul 2^>nul
+          echo echo Done.
+          ) > deploy\stop.bat
+
+      - name: Zip deploy
+        run: Compress-Archive -Path deploy\* -DestinationPath deploy.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy-zip
+          path: deploy.zip
+          retention-days: 30

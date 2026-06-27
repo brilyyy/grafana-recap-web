@@ -1,0 +1,22 @@
+{
+	"name": "Bale",
+	"ignore_errors": [],
+	"ignore_features": [],
+	"fields": {
+		"run_id": "run_id",
+		"status": "status",
+		"message": "message",
+		"start_time": "start_time",
+		"end_time": "end_time",
+		"duration_ms": "duration_ms",
+		"feature_name": "feature",
+		"form_duration_ms": "form_duration_ms",
+		"inquiry_duration_ms": "inquiry_duration_ms",
+		"action_date": "created_at"
+	},
+	"skipped_statuses": ["skipped"],
+	"success_statuses": ["success"],
+	"failed_statuses": ["failed"],
+	"features_durations_ms_only": ["login", "open_app", "check_balance"],
+	"run_id_fallback_column": "id"
+}

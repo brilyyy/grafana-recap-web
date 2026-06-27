@@ -1,0 +1,12 @@
+node_modules
+.output
+dist
+.git
+*.md
+.env*
+.vscode
+.turbo
+.dockerignore
+Dockerfile
+docker-compose.yml
+scripts
