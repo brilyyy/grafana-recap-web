@@ -60,6 +60,7 @@ jobs:
           .venv\Scripts\pyinstaller --onefile --name sr-gen ^
             --paths src ^
             --collect-all bptx ^
+            --exclude-module _curses ^
             --collect-all matplotlib ^
             --add-data "data;data" ^
             --hidden-import "pipeline" ^
