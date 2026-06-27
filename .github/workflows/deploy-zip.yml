@@ -93,13 +93,13 @@ jobs:
           echo @echo off
           echo.
           echo echo Starting docs site on port 8080...
-          echo start "docs" /min cmd /c "node docs\serve-docs.mjs"
+          echo start "docs" /min cmd /c "C:\bin\node.exe docs\serve-docs.mjs"
           echo.
           echo echo Starting sr-generator on port 8321...
           echo start "sr-gen" /min sr-gen.exe --port 8321 --host 0.0.0.0
           echo.
           echo echo Starting web app on port 3000...
-          echo start "web" /min cmd /c "cd web ^&^& node .output\server\index.mjs"
+          echo start "web" /min cmd /c "cd web ^&^& C:\bin\node.exe .output\server\index.mjs"
           echo.
           echo echo Services started.
           echo echo   Web:     http://localhost:3000
