@@ -14,8 +14,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -244,7 +244,7 @@ function GeneratorPage() {
         <CardContent className="flex flex-col gap-4">
           {/* App selector */}
           <div className="flex flex-col gap-2">
-            <FormLabel>{m.gen_select_app()}</FormLabel>
+            <Label>{m.gen_select_app()}</Label>
             <Select value={selectedAppId} onValueChange={setSelectedAppId}>
               <SelectTrigger>
                 <SelectValue placeholder={m.gen_select_app()} />
@@ -275,11 +275,11 @@ function GeneratorPage() {
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <FormLabel className="text-xs">{m.gen_date_from()}</FormLabel>
+              <Label className="text-xs">{m.gen_date_from()}</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1">
-              <FormLabel className="text-xs">{m.gen_date_to()}</FormLabel>
+              <Label className="text-xs">{m.gen_date_to()}</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
           </div>
@@ -388,7 +388,7 @@ function GeneratorPage() {
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
             {/* generate_from */}
             <div className="flex flex-col gap-1">
-              <FormLabel>{m.appcfg_generate_from_label()}</FormLabel>
+              <Label>{m.appcfg_generate_from_label()}</Label>
               <Select
                 value={mappingFormValues.generate_from}
                 onValueChange={(v) => {
@@ -409,7 +409,7 @@ function GeneratorPage() {
 
             {/* Fields */}
             <div className="flex flex-col gap-2">
-              <FormLabel>{m.appcfg_fields_title()}</FormLabel>
+              <Label>{m.appcfg_fields_title()}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {(
                   ['date', 'response_code', 'response_code_desc', 'error_type', 'trx_count', 'trx_feature'] as const
@@ -433,7 +433,7 @@ function GeneratorPage() {
 
             {/* Success type format */}
             <div className="flex flex-col gap-1">
-              <FormLabel>{m.appcfg_success_type_label()}</FormLabel>
+              <Label>{m.appcfg_success_type_label()}</Label>
               <div className="flex flex-wrap gap-1">
                 {mappingFormValues.success_type_format.map((val) => (
                   <Badge key={val} variant="secondary" className="gap-1">
@@ -474,7 +474,7 @@ function GeneratorPage() {
 
             {/* Ignore errors */}
             <div className="flex flex-col gap-1">
-              <FormLabel>{m.appcfg_ignore_errors_label()}</FormLabel>
+              <Label>{m.appcfg_ignore_errors_label()}</Label>
               <div className="flex flex-wrap gap-1">
                 {mappingFormValues.ignore_errors.map((val) => (
                   <Badge key={val} variant="secondary" className="gap-1">
@@ -515,7 +515,7 @@ function GeneratorPage() {
 
             {/* Ignore features */}
             <div className="flex flex-col gap-1">
-              <FormLabel>{m.appcfg_ignore_features_label()}</FormLabel>
+              <Label>{m.appcfg_ignore_features_label()}</Label>
               <div className="flex flex-wrap gap-1">
                 {mappingFormValues.ignore_features.map((val) => (
                   <Badge key={val} variant="secondary" className="gap-1">
@@ -567,7 +567,7 @@ function GeneratorPage() {
               </Button>
               {showAdvanced && (
                 <div className="mt-2 flex flex-col gap-2 rounded border p-3">
-                  <FormLabel>{m.appcfg_error_type_label()}</FormLabel>
+                  <Label>{m.appcfg_error_type_label()}</Label>
                   {Object.entries(mappingFormValues.error_type_format).map(([key, values]) => (
                     <div key={key} className="flex items-center gap-2">
                       <span className="w-32 text-xs text-muted-foreground">{key}</span>
