@@ -1,0 +1,12 @@
+[python]
+source_dir = "../sr-generator/src"
+include = ["api.py"]
+exclude = ["__pycache__", "venv", ".venv", "services/**", "pipeline/**"]
+
+[typescript]
+output_file = "src/lib/polyrpc.ts"
+generate_client = true
+
+[api]
+base_url = "http://localhost:8321"
+prefix = ""
