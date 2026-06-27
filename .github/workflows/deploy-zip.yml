@@ -15,9 +15,9 @@ jobs:
       # ── Node.js + pnpm ─────────────────────────────────────────
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - run: corepack enable && corepack prepare pnpm@11 --activate
+      - run: corepack enable && corepack prepare pnpm@11.5.1 --activate
 
       - name: Install web deps
         run: pnpm install --frozen-lockfile
