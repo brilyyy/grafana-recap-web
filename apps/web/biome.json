@@ -1,0 +1,26 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
+  "extends": "//",
+  "files": {
+    "includes": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.json",
+      "!**/routeTree.gen.ts",
+      "!**/drizzle",
+      "!**/migration-kit",
+      "!**/scripts",
+      "!**/.output",
+      "!**/dist",
+      "!**/components/ui",
+      "!**/tests"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noAssignInExpressions": "off"
+      }
+    }
+  }
+}

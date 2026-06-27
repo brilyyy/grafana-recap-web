@@ -1,4 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
 allowBuilds:
   '@swc/core': true
   esbuild: true
+  polyrpc: set this to true or false
   unrs-resolver: true

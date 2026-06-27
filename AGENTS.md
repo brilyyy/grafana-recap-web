@@ -1,27 +1,10 @@
-<!-- intent-skills:start -->
-## Skill Loading
+<!-- CODEGRAPH_START -->
+## CodeGraph
 
-Before substantial work:
-- Skill check: run `pnpm dlx @tanstack/intent@latest list`, or use skills already listed in context.
-- Skill guidance: if one local skill clearly matches the task, run `pnpm dlx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
-- Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
-- Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
-<!-- intent-skills:end -->
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
 
-<!-- poneglyph:start -->
-## poneglyph: durable memory + code graph
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
 
-This project has poneglyph wired up (MCP server `poneglyph mcp`). Prefer
-its tools over re-deriving things or manually scanning directories:
-
-- `remember` / `recall` / `get_project_context` — durable cross-session
-  memory. Call `get_project_context` at session start, `recall` before
-  re-researching something, `remember` for durable facts/decisions/preferences.
-- `codegraph_query` (`callers_of:`/`callees_of:`/`imports_of:`/`tests_for:`/
-  `path:<a>..<b>`, or a bare keyword for a graph-backed name search) and
-  `codegraph_blast_radius` — call/import/test graph. ALWAYS try this FIRST
-  for "find X" / "what calls/imports/breaks if I change X" questions — it's
-  a targeted index lookup, not a directory walk, so it stays fast as the
-  codebase grows. Fall back to grep/glob only when the graph has nothing.
-  Requires `poneglyph graph init` to have been run once.
-<!-- poneglyph:end -->
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+<!-- CODEGRAPH_END -->
