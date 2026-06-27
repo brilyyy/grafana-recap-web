@@ -3,7 +3,6 @@ import {
   BookOpen,
   Cog,
   DatabaseZap,
-  FileText,
   Gauge,
   LayoutDashboard,
   LayoutGrid,
@@ -41,7 +40,6 @@ const workspaceNav = [
   { title: 'Generator', to: '/generator', icon: Presentation },
   { title: 'Uploads', to: '/uploads', icon: Upload },
   { title: 'Transactions', to: '/transactions', icon: ReceiptText },
-  { title: 'Docs', to: '/docs', icon: FileText },
 ] as const
 
 const superadminNav = [

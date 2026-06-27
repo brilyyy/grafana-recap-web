@@ -28,6 +28,9 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 
+# Astro (generated content cache)
+apps/docs/.astro/
+
 # Drizzle (generated migrations)
 **/drizzle/
 

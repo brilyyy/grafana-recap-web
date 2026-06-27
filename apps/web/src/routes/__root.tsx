@@ -1,6 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/components/theme-provider'
 import type { ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { BackgroundModeProvider } from '@/hooks/use-background-mode'
@@ -25,19 +25,7 @@ function RootComponent() {
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider
-            attribute="class"
             defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-            themes={['latte', 'frappe', 'macchiato', 'mocha']}
-            value={{
-              light: 'latte',
-              dark: 'mocha',
-              latte: 'latte',
-              frappe: 'frappe',
-              macchiato: 'macchiato',
-              mocha: 'mocha',
-            }}
           >
             <BackgroundModeProvider>
               <TooltipProvider>

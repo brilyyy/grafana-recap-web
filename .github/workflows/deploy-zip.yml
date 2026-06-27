@@ -41,6 +41,9 @@ jobs:
         working-directory: apps/web
         run: pnpm install --prod --ignore-scripts
 
+      - name: Build docs site
+        run: pnpm --filter @repo/docs build
+
       # ── Python + uv + PyInstaller ──────────────────────────────
       - uses: actions/setup-python@v5
         with:
@@ -77,6 +80,8 @@ jobs:
           mkdir deploy\web
           xcopy /E /I apps\web\.output deploy\web\.output
           xcopy /E /I apps\web\node_modules deploy\web\node_modules
+          xcopy /E /I apps\docs\dist deploy\docs
+          copy apps\docs\serve-docs.mjs deploy\docs\
           copy apps\sr-generator\dist\sr-gen.exe deploy\
           if exist apps\web\.env.example copy apps\web\.env.example deploy\web\.env
           if exist apps\sr-generator\.env.example copy apps\sr-generator\.env.example deploy\.env.sr-gen
@@ -87,15 +92,19 @@ jobs:
           (
           echo @echo off
           echo.
+          echo echo Starting docs site on port 8080...
+          echo start "docs" /min cmd /c "node docs\serve-docs.mjs"
+          echo.
           echo echo Starting sr-generator on port 8321...
           echo start "sr-gen" /min sr-gen.exe --port 8321 --host 0.0.0.0
           echo.
           echo echo Starting web app on port 3000...
           echo start "web" /min cmd /c "cd web ^&^& node .output\server\index.mjs"
           echo.
-          echo echo Both services started.
+          echo echo Services started.
           echo echo   Web:     http://localhost:3000
           echo echo   sr-gen:  http://localhost:8321
+          echo echo   Docs:    http://localhost:8080
           echo.
           echo pause
           ) > deploy\start.bat
@@ -108,6 +117,7 @@ jobs:
           echo echo Stopping services...
           echo taskkill /FI "WINDOWTITLE eq sr-gen*" /F ^>nul 2^>nul
           echo taskkill /FI "WINDOWTITLE eq web*" /F ^>nul 2^>nul
+          echo taskkill /FI "WINDOWTITLE eq docs*" /F ^>nul 2^>nul
           echo echo Done.
           ) > deploy\stop.bat
 

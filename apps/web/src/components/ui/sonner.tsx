@@ -1,12 +1,11 @@
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { resolvedTheme } = useTheme()
 
-  // Map Catppuccin flavor names to Sonner's expected 'light' | 'dark'
-  const sonnerTheme: ToasterProps['theme'] = resolvedTheme === 'latte' || resolvedTheme === 'light' ? 'light' : 'dark'
+  const sonnerTheme: ToasterProps['theme'] = resolvedTheme
 
   return (
     <Sonner

@@ -35,7 +35,6 @@ function getPageTitle(pathname: string): string {
   }
   if (pageTitles[pathname]) return pageTitles[pathname]
   if (pathname.startsWith('/superadmin/application/')) return 'App config'
-  if (pathname.startsWith('/docs/')) return 'Docs'
   if (pathname.startsWith('/superadmin/')) return 'Superadmin'
   return 'Dashboard'
 }

@@ -1,5 +1,5 @@
 import { CheckIcon, MonitorIcon, PaletteIcon } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,6 +16,10 @@ const FLAVORS = [
   { value: 'frappe', label: 'Frappé', swatch: '#ca9ee6', bg: '#303446' },
   { value: 'macchiato', label: 'Macchiato', swatch: '#c6a0f6', bg: '#24273a' },
   { value: 'mocha', label: 'Mocha', swatch: '#cba6f7', bg: '#1e1e2e' },
+  { value: 'kanagawa', label: 'Kanagawa', swatch: '#957FB8', bg: '#1F1F28' },
+  { value: 'gruvbox', label: 'Gruvbox', swatch: '#ea6962', bg: '#1d2021' },
+  { value: 'github-dark', label: 'GitHub Dark', swatch: '#58a6ff', bg: '#0d1117' },
+  { value: 'github-light', label: 'GitHub Light', swatch: '#0969da', bg: '#ffffff' },
 ] as const
 
 export function ThemeToggle() {

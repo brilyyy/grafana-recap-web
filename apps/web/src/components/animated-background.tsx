@@ -92,30 +92,6 @@ export function AnimatedBackground({ variant = 'subtle', className }: AnimatedBa
 
   return (
     <div aria-hidden="true" className={cn('pointer-events-none absolute inset-0 -z-10 overflow-hidden', className)}>
-      {/* Nebula glows — large radial blurs for the "deep space" tint */}
-      <div
-        className="absolute -top-1/4 -left-1/4 h-3/4 w-3/4 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, var(--nebula-1) 0%, transparent 70%)',
-          filter: 'blur(48px)',
-        }}
-      />
-      <div
-        className="absolute -bottom-1/4 -right-1/4 h-2/3 w-2/3 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, var(--nebula-2) 0%, transparent 70%)',
-          filter: 'blur(48px)',
-        }}
-      />
-      <div
-        className="absolute top-1/3 right-1/3 h-1/2 w-1/2 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, var(--nebula-1) 0%, transparent 60%)',
-          filter: 'blur(60px)',
-          opacity: 0.6,
-        }}
-      />
-
       {/* Stars — only after mount to avoid SSR hydration mismatch */}
       {mounted && (
         <>

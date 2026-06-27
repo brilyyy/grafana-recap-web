@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MonitorIcon } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -49,6 +49,38 @@ const FLAVORS = [
     swatch: '#cba6f7',
     bg: '#1e1e2e',
     accent: '#313244',
+  },
+  {
+    value: 'kanagawa',
+    label: 'Kanagawa',
+    description: 'Japanese ink painting',
+    swatch: '#957FB8',
+    bg: '#1F1F28',
+    accent: '#223249',
+  },
+  {
+    value: 'gruvbox',
+    label: 'Gruvbox',
+    description: 'Warm retro, hard contrast',
+    swatch: '#ea6962',
+    bg: '#1d2021',
+    accent: '#504945',
+  },
+  {
+    value: 'github-dark',
+    label: 'GitHub Dark',
+    description: 'GitHub dark mode',
+    swatch: '#58a6ff',
+    bg: '#0d1117',
+    accent: '#1f6feb',
+  },
+  {
+    value: 'github-light',
+    label: 'GitHub Light',
+    description: 'GitHub light mode',
+    swatch: '#0969da',
+    bg: '#ffffff',
+    accent: '#ddf4ff',
   },
 ] as const
 
