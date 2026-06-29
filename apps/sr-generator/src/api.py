@@ -398,7 +398,7 @@ if __name__ == "__main__":
     _host = os.environ.get("HOST", "0.0.0.0")
     _port = int(os.environ.get("PORT", "8321"))
     try:
-        uvicorn.run("api:app", host=_host, port=_port, log_level="info")
+        uvicorn.run(app, host=_host, port=_port, log_level="info")
     except Exception:
         import traceback
 
