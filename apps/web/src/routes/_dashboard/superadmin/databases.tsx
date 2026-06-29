@@ -14,8 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { trpc } from '@/router'
 import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
+import { trpc } from '@/router'
 
 export const Route = createFileRoute('/_dashboard/superadmin/databases')({
   ssr: false,

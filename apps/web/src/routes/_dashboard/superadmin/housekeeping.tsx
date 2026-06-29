@@ -9,14 +9,22 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { trpc } from '@/router'
 import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
+import { trpc } from '@/router'
 
 export const Route = createFileRoute('/_dashboard/superadmin/housekeeping')({
   ssr: false,
@@ -68,6 +76,7 @@ function HousekeepingPage() {
     date_column_type: DateColumnType
   } | null>(null)
   const [runningId, setRunningId] = useState<number | null>(null)
+  const [deletingRow, setDeletingRow] = useState<HousekeepingRow | null>(null)
 
   const listQuery = trpc.housekeeping.list.useQuery(undefined, { enabled: isSuperadmin })
   const scheduleQuery = trpc.housekeeping.getSchedule.useQuery(undefined, { enabled: isSuperadmin })
@@ -393,7 +402,7 @@ function HousekeepingPage() {
                           </div>
                         ) : (
                           <div className="flex flex-col items-start gap-1">
-                            <Badge variant="outline">
+                            <Badge variant="outline" className="border-chart-4/40 text-chart-4">
                               <Clock />
                               {'Pending setup'}
                             </Badge>
@@ -506,11 +515,7 @@ function HousekeepingPage() {
                             size="sm"
                             className="h-7 text-destructive hover:text-destructive"
                             disabled={deleteMutation.isPending}
-                            onClick={() => {
-                              if (!window.confirm(`Delete housekeeping row for ${row.db_name}.${row.table_name}?`))
-                                return
-                              deleteMutation.mutate({ id: row.id })
-                            }}
+                            onClick={() => setDeletingRow(row)}
                           >
                             {'Delete'}
                           </Button>
@@ -524,6 +529,35 @@ function HousekeepingPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!deletingRow} onOpenChange={(open) => !open && setDeletingRow(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{'Delete housekeeping row'}</DialogTitle>
+            <DialogDescription>
+              {`Delete the configuration for ${deletingRow?.db_name ?? ''}.${deletingRow?.table_name ?? ''}? This cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingRow(null)}>
+              {'Cancel'}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deletingRow) {
+                  deleteMutation.mutate({ id: deletingRow.id })
+                  setDeletingRow(null)
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending && <Loader2 className="animate-spin" />}
+              {'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -27,9 +27,7 @@ function getPageTitle(pathname: string): string {
     '/settings': 'Settings',
     '/superadmin/users': 'Users',
     '/superadmin/audit-logs': 'Audit logs',
-    '/superadmin/processing': 'Processing',
     '/superadmin/jobs': 'Jobs',
-    '/superadmin/scheduler': 'Scheduler',
     '/superadmin/databases': 'Databases',
     '/superadmin/housekeeping': 'Housekeeping',
   }

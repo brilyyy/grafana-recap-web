@@ -52,9 +52,9 @@ export function formatDate(dateString: string) {
 export function RoleBadge({ role }: { role: string }) {
   switch (role) {
     case 'superadmin':
-      return <Badge>superadmin</Badge>
+      return <Badge className="bg-chart-1/15 text-chart-1 hover:bg-chart-1/25">superadmin</Badge>
     case 'admin':
-      return <Badge variant="secondary">admin</Badge>
+      return <Badge className="bg-chart-3/15 text-chart-3 hover:bg-chart-3/25">admin</Badge>
     default:
       return <Badge variant="outline">{role}</Badge>
   }

@@ -7,23 +7,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
+import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
 import type { IndexAnalyzerReport } from '@/server/trpc/routers/indexAnalyzer'
-import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
 
 export const Route = createFileRoute('/_dashboard/superadmin/index-analyzer')({
   ssr: false,
   component: IndexAnalyzerPage,
 })
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+function StatCard({ label, value, hint, accent }: { label: string; value: string; hint: string; accent?: string }) {
   return (
     <Card className="gap-1 py-4">
       <CardHeader className="px-4">
         <CardDescription>{label}</CardDescription>
       </CardHeader>
       <CardContent className="px-4">
-        <p className="truncate text-2xl font-semibold tabular-nums" title={value}>
+        <p className={cn('truncate text-2xl font-semibold tabular-nums', accent)} title={value}>
           {value}
         </p>
         <p className="text-xs text-muted-foreground">{hint}</p>
@@ -103,15 +104,36 @@ function IndexAnalyzerPage() {
       {report && (
         <>
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-            <StatCard label={'Unused indexes'} value={String(report.summary.unused)} hint={'0 scans, droppable'} />
-            <StatCard label={'Seq-scan tables'} value={String(report.summary.missing)} hint={'index candidates'} />
-            <StatCard label={'Redundant'} value={String(report.summary.redundant)} hint={'prefix-covered'} />
+            <StatCard
+              label={'Unused indexes'}
+              value={String(report.summary.unused)}
+              hint={'0 scans, droppable'}
+              accent="text-chart-5"
+            />
+            <StatCard
+              label={'Seq-scan tables'}
+              value={String(report.summary.missing)}
+              hint={'index candidates'}
+              accent="text-chart-1"
+            />
+            <StatCard
+              label={'Redundant'}
+              value={String(report.summary.redundant)}
+              hint={'prefix-covered'}
+              accent="text-chart-4"
+            />
             <StatCard
               label={'Drift: missing'}
               value={String(report.summary.driftMissing)}
               hint={'defined, not in DB'}
+              accent="text-chart-2"
             />
-            <StatCard label={'Drift: extra'} value={String(report.summary.driftExtra)} hint={'in DB, not in source'} />
+            <StatCard
+              label={'Drift: extra'}
+              value={String(report.summary.driftExtra)}
+              hint={'in DB, not in source'}
+              accent="text-chart-3"
+            />
           </div>
 
           <SectionCard
@@ -210,7 +232,7 @@ function IndexAnalyzerPage() {
                       <TableCell className="text-right text-xs tabular-nums">{r.liveTuples.toLocaleString()}</TableCell>
                       <TableCell className="text-right text-xs tabular-nums">
                         {r.deadPct >= 20 ? (
-                          <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                          <Badge variant="outline" className="border-chart-4/40 text-chart-4">
                             {r.deadPct}%
                           </Badge>
                         ) : (
@@ -283,7 +305,7 @@ function IndexAnalyzerPage() {
                         {r.status === 'missing' ? (
                           <Badge variant="destructive">{'MISSING'}</Badge>
                         ) : (
-                          <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                          <Badge variant="outline" className="border-chart-4/40 text-chart-4">
                             {'EXTRA'}
                           </Badge>
                         )}

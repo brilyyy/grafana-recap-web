@@ -1,5 +1,6 @@
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { CircleCheck, Loader2, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { TablePager } from '@/components/table-pager'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -16,17 +17,62 @@ import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
 import type { SuccessRateEntry } from '@/types'
 
+type SortDir = 'asc' | 'desc'
+type SortState = { key: string; dir: SortDir } | null
+
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  sort: SortState
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const active = sort?.key === sortKey
+  return (
+    <TableHead
+      className={cn('cursor-pointer select-none hover:text-foreground', className)}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && <span className="text-xs">{sort?.dir === 'asc' ? '↑' : '↓'}</span>}
+      </span>
+    </TableHead>
+  )
+}
+
 export default function NoRcTransactionCard() {
   const { applications } = useApplications()
-  const [selectedAppId, setSelectedAppId] = useState<number | null>(null)
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(25)
+  const navigate = useNavigate()
+  const searchParams = useSearch({ strict: false }) as Record<string, unknown>
+
+  const [selectedAppId, setSelectedAppId] = useState<number | null>(
+    searchParams.app_id ? Number(searchParams.app_id) : null,
+  )
+  const [page, setPage] = useState(Number(searchParams.page) || 1)
+  const [limit, setLimit] = useState(Number(searchParams.limit) || 25)
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [editingRc, setEditingRc] = useState<Record<number, string>>({})
   const [editingRcDescription, setEditingRcDescription] = useState<Record<number, string>>({})
   const [bulkRc, setBulkRc] = useState('')
   const [bulkRcDescription, setBulkRcDescription] = useState('')
   const [submittingId, setSubmittingId] = useState<number | null>(null)
+  const [sort, setSort] = useState<SortState>(null)
+
+  // Sync state to URL
+  useEffect(() => {
+    const params: Record<string, unknown> = {}
+    if (selectedAppId) params.app_id = selectedAppId
+    if (page !== 1) params.page = page
+    if (limit !== 25) params.limit = limit
+    navigate({ search: params, replace: true })
+  }, [selectedAppId, page, limit, navigate])
 
   const utils = trpc.useUtils()
   const listQuery = trpc.noRcTransaction.list.useQuery({
@@ -37,6 +83,24 @@ export default function NoRcTransactionCard() {
   const transactions = (listQuery.data?.data?.entries ?? []) as SuccessRateEntry[]
   const totalCount = listQuery.data?.data?.total ?? 0
   const totalPages = Math.ceil(totalCount / limit) || 1
+
+  const toggleSort = (key: string) => {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }
+
+  const sortedTransactions = useMemo(() => {
+    if (!sort) return transactions
+    const sorted = [...transactions].sort((a, b) => {
+      const av = String((a as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      const bv = String((b as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+    return sorted
+  }, [transactions, sort])
 
   const submitMutation = trpc.noRcTransaction.submit.useMutation()
   const submitBatchMutation = trpc.noRcTransaction.submitBatch.useMutation()
@@ -231,22 +295,43 @@ export default function NoRcTransactionCard() {
                       aria-label={'Select all'}
                     />
                   </TableHead>
-                  <TableHead>{'Date'}</TableHead>
-                  <TableHead>Jenis Transaksi</TableHead>
-                  <TableHead className="hidden md:table-cell">{'Status'}</TableHead>
-                  <TableHead className="hidden text-right md:table-cell">{'Total'}</TableHead>
+                  <SortableHeader label="Date" sortKey="tanggal_transaksi" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Jenis Transaksi" sortKey="jenis_transaksi" sort={sort} onSort={toggleSort} />
+                  <SortableHeader
+                    label="Status"
+                    sortKey="status_transaksi"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
+                  <SortableHeader
+                    label="Total"
+                    sortKey="total_transaksi"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden text-right md:table-cell"
+                  />
                   <TableHead>RC</TableHead>
                   <TableHead className="hidden lg:table-cell">{'RC description'}</TableHead>
                   <TableHead className="w-28 text-right">{'Action'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((transaction) => {
+                {sortedTransactions.map((transaction) => {
                   const id = transaction.id
                   if (id === undefined) return null
                   const rcValue = editingRc[id] ?? ''
                   return (
-                    <TableRow key={id} data-state={selectedItems.has(id) ? 'selected' : undefined}>
+                    <TableRow
+                      key={id}
+                      className="cursor-pointer"
+                      data-state={selectedItems.has(id) ? 'selected' : undefined}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button, input, [role="checkbox"], [role="combobox"]'))
+                          return
+                        toggleItem(id)
+                      }}
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedItems.has(id)}

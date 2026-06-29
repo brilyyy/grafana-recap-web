@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ScrollText } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,25 +9,56 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDayMonth } from '@/lib/i18n-format'
-import { trpc } from '@/router'
-import { type AuditLogEntry, type AuditStats } from '@/types/superadmin'
-import { formatDate } from '@/lib/superadmin-utils'
 import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
+import { formatDayMonth } from '@/lib/i18n-format'
+import { formatDate } from '@/lib/superadmin-utils'
+import { cn } from '@/lib/utils'
+import { trpc } from '@/router'
+import type { AuditLogEntry, AuditStats } from '@/types/superadmin'
 
 export const Route = createFileRoute('/_dashboard/superadmin/audit-logs')({
   ssr: false,
   component: AuditLogsPage,
 })
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+type SortDir = 'asc' | 'desc'
+type SortState = { key: string; dir: SortDir } | null
+
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  sort: SortState
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const active = sort?.key === sortKey
+  return (
+    <TableHead
+      className={cn('cursor-pointer select-none hover:text-foreground', className)}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && <span className="text-xs">{sort?.dir === 'asc' ? '↑' : '↓'}</span>}
+      </span>
+    </TableHead>
+  )
+}
+
+function StatCard({ label, value, hint, accent }: { label: string; value: string; hint: string; accent?: string }) {
   return (
     <Card className="gap-1 py-4">
       <CardHeader className="px-4">
         <CardDescription>{label}</CardDescription>
       </CardHeader>
       <CardContent className="px-4">
-        <p className="truncate text-2xl font-semibold tabular-nums" title={value}>
+        <p className={cn('truncate text-2xl font-semibold tabular-nums', accent)} title={value}>
           {value}
         </p>
         <p className="text-xs text-muted-foreground">{hint}</p>
@@ -38,14 +69,30 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
 
 function AuditLogsPage() {
   const { isSuperadmin } = useSuperadminGuard()
-  const [page, setPage] = useState(1)
+  const navigate = useNavigate()
+  const searchParams = Route.useSearch() as Record<string, unknown>
+
+  const [page, setPage] = useState(Number(searchParams.page) || 1)
   const [filters, setFilters] = useState({
-    action: '',
-    resource_type: '',
-    username: '',
-    start_date: '',
-    end_date: '',
+    action: (searchParams.action as string) || '',
+    resource_type: (searchParams.resource_type as string) || '',
+    username: (searchParams.username as string) || '',
+    start_date: (searchParams.start_date as string) || '',
+    end_date: (searchParams.end_date as string) || '',
   })
+  const [sort, setSort] = useState<SortState>(null)
+
+  // Sync state to URL
+  useEffect(() => {
+    const params: Record<string, unknown> = {}
+    if (page !== 1) params.page = page
+    if (filters.action) params.action = filters.action
+    if (filters.resource_type) params.resource_type = filters.resource_type
+    if (filters.username) params.username = filters.username
+    if (filters.start_date) params.start_date = filters.start_date
+    if (filters.end_date) params.end_date = filters.end_date
+    navigate({ search: params, replace: true })
+  }, [page, filters, navigate])
 
   const setFilter = (key: keyof typeof filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -70,6 +117,24 @@ function AuditLogsPage() {
   const totalPages = logsQuery.data?.data?.totalPages ?? 1
   const stats = statsQuery.data?.data as AuditStats | undefined
 
+  const toggleSort = (key: string) => {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }
+
+  const sortedLogs = useMemo(() => {
+    if (!sort) return logs
+    const sorted = [...logs].sort((a, b) => {
+      const av = String((a as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      const bv = String((b as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+    return sorted
+  }, [logs, sort])
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
@@ -79,21 +144,29 @@ function AuditLogsPage() {
 
       {stats && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard label={'Total activities'} value={stats.total.toLocaleString()} hint={'Last 30 days'} />
+          <StatCard
+            label={'Total activities'}
+            value={stats.total.toLocaleString()}
+            hint={'Last 30 days'}
+            accent="text-chart-1"
+          />
           <StatCard
             label={'Top action'}
             value={stats.actionCounts[0]?.action || '—'}
             hint={`${stats.actionCounts[0]?.count || 0} times`}
+            accent="text-chart-2"
           />
           <StatCard
             label={'Top resource'}
             value={stats.resourceTypeCounts[0]?.resource_type || '—'}
             hint={`${stats.resourceTypeCounts[0]?.count || 0} times`}
+            accent="text-chart-3"
           />
           <StatCard
             label={'Most active user'}
             value={stats.topUsers[0]?.username || '—'}
             hint={`${stats.topUsers[0]?.count || 0} activities`}
+            accent="text-chart-4"
           />
         </div>
       )}
@@ -224,16 +297,28 @@ function AuditLogsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{'Date'}</TableHead>
-                  <TableHead>{'User'}</TableHead>
-                  <TableHead>{'Action'}</TableHead>
-                  <TableHead>{'Resource'}</TableHead>
-                  <TableHead className="hidden lg:table-cell">{'Details'}</TableHead>
-                  <TableHead className="hidden md:table-cell">{'IP address'}</TableHead>
+                  <SortableHeader label="Date" sortKey="created_at" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="User" sortKey="username" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Action" sortKey="action" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Resource" sortKey="resource_type" sort={sort} onSort={toggleSort} />
+                  <SortableHeader
+                    label="Details"
+                    sortKey="details"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden lg:table-cell"
+                  />
+                  <SortableHeader
+                    label="IP address"
+                    sortKey="ip_address"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {logs.map((log) => (
+                {sortedLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap text-muted-foreground">
                       {formatDate(log.created_at)}

@@ -1,7 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import {
   BookOpen,
-  Cog,
   DatabaseZap,
   Gauge,
   LayoutDashboard,
@@ -12,7 +11,6 @@ import {
   ScrollText,
   Server,
   Settings,
-  Timer,
   Trash2,
   Upload,
   Users,
@@ -45,9 +43,7 @@ const workspaceNav = [
 const superadminNav = [
   { title: 'Users', to: '/superadmin/users', icon: Users },
   { title: 'Audit logs', to: '/superadmin/audit-logs', icon: ScrollText },
-  { title: 'Processing', to: '/superadmin/processing', icon: Cog },
   { title: 'Jobs', to: '/superadmin/jobs', icon: ListChecks },
-  { title: 'Scheduler', to: '/superadmin/scheduler', icon: Timer },
   { title: 'Databases', to: '/superadmin/databases', icon: Server },
   { title: 'Index analyzer', to: '/superadmin/index-analyzer', icon: DatabaseZap },
   { title: 'Housekeeping', to: '/superadmin/housekeeping', icon: Trash2 },

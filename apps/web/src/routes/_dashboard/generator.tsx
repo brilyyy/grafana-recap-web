@@ -229,7 +229,10 @@ function GeneratorPage() {
       {healthQuery.isLoading ? (
         <Skeleton className="h-9 w-48" />
       ) : (
-        <Badge variant={isHealthy ? 'secondary' : 'destructive'}>
+        <Badge
+          variant={isHealthy ? 'default' : 'destructive'}
+          className={isHealthy ? 'bg-chart-2 hover:bg-chart-2' : ''}
+        >
           {isHealthy ? 'Generator service online' : 'Generator service offline'}
         </Badge>
       )}

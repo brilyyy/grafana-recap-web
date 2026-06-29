@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MonitorIcon } from 'lucide-react'
-import { useTheme } from '@/components/theme-provider'
 import { useEffect, useState } from 'react'
+import { AppSetupPanel } from '@/components/app-setup-panel'
+import { useTheme } from '@/components/theme-provider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -10,7 +11,6 @@ import { Switch } from '@/components/ui/switch'
 import { useAuthSession } from '@/hooks/use-auth-session'
 import { useBackgroundMode } from '@/hooks/use-background-mode'
 import { cn } from '@/lib/utils'
-import { AppSetupPanel } from '@/components/app-setup-panel'
 
 export const Route = createFileRoute('/_dashboard/settings')({
   ssr: false,

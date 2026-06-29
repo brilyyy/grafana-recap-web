@@ -26,9 +26,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Skeleton } from '@/components/ui/skeleton'
 import { SqlEditor } from '@/components/ui/sql-editor'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { trpc } from '@/router'
-import { formatDate } from '@/lib/superadmin-utils'
 import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
+import { formatDate } from '@/lib/superadmin-utils'
+import { trpc } from '@/router'
 
 export const Route = createFileRoute('/_dashboard/superadmin/application/$appId')({
   ssr: false,

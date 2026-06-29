@@ -1,3 +1,4 @@
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Check, CircleCheck, Download, FileX, Loader2, Pencil, RefreshCw, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -16,6 +17,36 @@ import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
 import type { DictionaryViewEntry } from '@/types'
 import MultiSelectFilter from './multi-select-filter'
+
+type SortDir = 'asc' | 'desc'
+type SortState = { key: string; dir: SortDir } | null
+
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  sort: SortState
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const active = sort?.key === sortKey
+  return (
+    <TableHead
+      className={cn('cursor-pointer select-none hover:text-foreground', className)}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && <span className="text-xs">{sort?.dir === 'asc' ? '↑' : '↓'}</span>}
+      </span>
+    </TableHead>
+  )
+}
 
 type ErrorType = 'S' | 'N' | 'Sukses'
 const ERROR_TYPES: ErrorType[] = ['S', 'N', 'Sukses']
@@ -44,13 +75,22 @@ function ErrorTypeBadge({ errorType }: { errorType: string }) {
 
 export default function DictionaryCard() {
   const { applications } = useApplications()
-  const [searchInput, setSearchInput] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedAppIds, setSelectedAppIds] = useState<string[]>([])
-  const [selectedErrorTypes, setSelectedErrorTypes] = useState<string[]>([])
-  const [selectedJenisTransaksi, setSelectedJenisTransaksi] = useState<string[]>([])
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(25)
+  const navigate = useNavigate()
+  const searchParams = useSearch({ strict: false }) as Record<string, unknown>
+
+  const [searchInput, setSearchInput] = useState((searchParams.search as string) || '')
+  const [searchQuery, setSearchQuery] = useState((searchParams.search as string) || '')
+  const [selectedAppIds, setSelectedAppIds] = useState<string[]>(
+    searchParams.app_ids ? (searchParams.app_ids as string).split(',') : [],
+  )
+  const [selectedErrorTypes, setSelectedErrorTypes] = useState<string[]>(
+    searchParams.error_types ? (searchParams.error_types as string).split(',') : [],
+  )
+  const [selectedJenisTransaksi, setSelectedJenisTransaksi] = useState<string[]>(
+    searchParams.jenis_transaksi ? (searchParams.jenis_transaksi as string).split(',') : [],
+  )
+  const [page, setPage] = useState(Number(searchParams.page) || 1)
+  const [limit, setLimit] = useState(Number(searchParams.limit) || 25)
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingErrorType, setEditingErrorType] = useState<ErrorType | ''>('')
@@ -58,6 +98,19 @@ export default function DictionaryCard() {
   const [editingDescription, setEditingDescription] = useState('')
   const [bulkDescription, setBulkDescription] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [sort, setSort] = useState<SortState>(null)
+
+  // Sync state to URL
+  useEffect(() => {
+    const params: Record<string, unknown> = {}
+    if (searchQuery) params.search = searchQuery
+    if (selectedAppIds.length > 0) params.app_ids = selectedAppIds.join(',')
+    if (selectedErrorTypes.length > 0) params.error_types = selectedErrorTypes.join(',')
+    if (selectedJenisTransaksi.length > 0) params.jenis_transaksi = selectedJenisTransaksi.join(',')
+    if (page !== 1) params.page = page
+    if (limit !== 25) params.limit = limit
+    navigate({ search: params, replace: true })
+  }, [searchQuery, selectedAppIds, selectedErrorTypes, selectedJenisTransaksi, page, limit, navigate])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,6 +136,24 @@ export default function DictionaryCard() {
   const entries = (listQuery.data?.data?.entries ?? []) as DictionaryViewEntry[]
   const totalCount = listQuery.data?.data?.total ?? entries.length
   const totalPages = Math.ceil(totalCount / limit) || 1
+
+  const toggleSort = (key: string) => {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }
+
+  const sortedEntries = useMemo(() => {
+    if (!sort) return entries
+    const sorted = [...entries].sort((a, b) => {
+      const av = String((a as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      const bv = String((b as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+    return sorted
+  }, [entries, sort])
 
   const jenisOptionsQuery = trpc.dictionary.jenisOptions.useQuery(
     selectedAppIds.length > 0 ? { app_ids: selectedAppIds.map(Number) } : undefined,
@@ -266,6 +337,10 @@ export default function DictionaryCard() {
         </div>
       </div>
 
+      {selectedItems.size === 0 && !listQuery.isLoading && entries.length > 0 && (
+        <p className="text-xs text-muted-foreground">{'Select rows to bulk-edit descriptions'}</p>
+      )}
+
       {selectedItems.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted px-3 py-2">
           <span className="text-sm tabular-nums">{`${selectedItems.size} selected`}</span>
@@ -336,17 +411,32 @@ export default function DictionaryCard() {
                       aria-label={'Select all'}
                     />
                   </TableHead>
-                  <TableHead>{'App'}</TableHead>
-                  <TableHead>RC</TableHead>
-                  <TableHead>{'Description'}</TableHead>
-                  <TableHead>{'Type'}</TableHead>
-                  <TableHead className="hidden md:table-cell">Jenis Transaksi</TableHead>
+                  <SortableHeader label="App" sortKey="app_name" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="RC" sortKey="rc" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Description" sortKey="rc_description" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Type" sortKey="error_type" sort={sort} onSort={toggleSort} />
+                  <SortableHeader
+                    label="Jenis Transaksi"
+                    sortKey="jenis_transaksi"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
                   <TableHead className="w-24 text-right">{'Action'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entries.map((entry) => (
-                  <TableRow key={entry.id} data-state={selectedItems.has(entry.id) ? 'selected' : undefined}>
+                {sortedEntries.map((entry) => (
+                  <TableRow
+                    key={entry.id}
+                    className="cursor-pointer"
+                    data-state={selectedItems.has(entry.id) ? 'selected' : undefined}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('button, input, [role="checkbox"], [role="combobox"]'))
+                        return
+                      toggleItem(entry.id)
+                    }}
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selectedItems.has(entry.id)}

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { BookOpen, LayoutGrid, type LucideIcon, ReceiptText, Unlink } from 'lucide-react'
+import { BookOpen, CheckCircle2, LayoutGrid, type LucideIcon, ReceiptText, Unlink, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -89,12 +89,66 @@ function SummaryPage() {
   const counts = summaryQuery.data?.data?.counts
   const recentLogs = summaryQuery.data?.data?.recentLogs ?? []
 
+  const showOnboarding = !summaryQuery.isLoading && counts?.applications === 0
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <header>
         <h1 className="text-lg font-semibold tracking-tight">{'Summary'}</h1>
         <p className="text-sm text-muted-foreground">{'Overview of success-rate data across apps.'}</p>
       </header>
+
+      {showOnboarding && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base font-medium">{'Getting started'}</CardTitle>
+            <CardDescription>{'Follow these steps to set up your success-rate pipeline.'}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <Link
+                to="/application"
+                className="group flex items-center gap-3 rounded-lg border bg-background p-3 hover:border-primary/40"
+              >
+                <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <LayoutGrid className="size-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{'1. Add an application'}</p>
+                  <p className="text-xs text-muted-foreground">{'Register the apps you want to track.'}</p>
+                </div>
+                <Badge variant="outline" className="group-hover:border-primary/40">
+                  {'Start here'}
+                </Badge>
+              </Link>
+              <Link
+                to="/dictionary"
+                className="group flex items-center gap-3 rounded-lg border bg-background p-3 hover:border-primary/40"
+              >
+                <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Upload className="size-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{'2. Upload dictionary'}</p>
+                  <p className="text-xs text-muted-foreground">{'Map response codes to error types.'}</p>
+                </div>
+              </Link>
+              <Link
+                to="/superadmin/jobs"
+                className="group flex items-center gap-3 rounded-lg border bg-background p-3 hover:border-primary/40"
+              >
+                <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <CheckCircle2 className="size-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{'3. Process jobs'}</p>
+                  <p className="text-xs text-muted-foreground">{'Run recap jobs to generate success-rate data.'}</p>
+                </div>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -135,8 +189,15 @@ function SummaryPage() {
 
       <Card className="py-0">
         <CardHeader className="px-4 pt-4">
-          <CardTitle className="text-base font-medium">{'Recent processing'}</CardTitle>
-          <CardDescription>{'Latest recap runs across all apps.'}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-medium">{'Recent processing'}</CardTitle>
+              <CardDescription>{'Latest recap runs across all apps.'}</CardDescription>
+            </div>
+            <Link to="/superadmin/jobs" className="text-xs text-muted-foreground hover:text-foreground">
+              {'View all jobs'}
+            </Link>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {summaryQuery.isLoading ? (

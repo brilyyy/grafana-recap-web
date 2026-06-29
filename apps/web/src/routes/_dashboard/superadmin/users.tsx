@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2, Search, UsersRound } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,10 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { trpc } from '@/router'
-import { formatDate, RoleBadge } from '@/lib/superadmin-utils'
-import { type PendingUserRequest, type User } from '@/types/superadmin'
 import { useSuperadminGuard } from '@/hooks/use-superadmin-guard'
+import { formatDate, RoleBadge } from '@/lib/superadmin-utils'
+import { cn } from '@/lib/utils'
+import { trpc } from '@/router'
+import type { PendingUserRequest, User } from '@/types/superadmin'
 
 export const Route = createFileRoute('/_dashboard/superadmin/users')({
   ssr: false,
@@ -31,11 +32,44 @@ export const Route = createFileRoute('/_dashboard/superadmin/users')({
 
 const ROLES = ['superadmin', 'admin', 'user'] as const
 
+type SortDir = 'asc' | 'desc'
+type SortState = { key: string; dir: SortDir } | null
+
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  sort: SortState
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const active = sort?.key === sortKey
+  return (
+    <TableHead
+      className={cn('cursor-pointer select-none hover:text-foreground', className)}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && <span className="text-xs">{sort?.dir === 'asc' ? '↑' : '↓'}</span>}
+      </span>
+    </TableHead>
+  )
+}
+
 function UsersPage() {
   const { isSuperadmin } = useSuperadminGuard()
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState('')
+  const navigate = useNavigate()
+  const searchParams = Route.useSearch() as Record<string, unknown>
+
+  const [page, setPage] = useState(Number(searchParams.page) || 1)
+  const [search, setSearch] = useState((searchParams.search as string) || '')
+  const [roleFilter, setRoleFilter] = useState((searchParams.role as string) || '')
 
   const [selectedRequest, setSelectedRequest] = useState<PendingUserRequest | null>(null)
   const [dialogMode, setDialogMode] = useState<'approve' | 'reject' | null>(null)
@@ -43,6 +77,16 @@ function UsersPage() {
   const [approvedRole, setApprovedRole] = useState<string>('user')
   const [newRole, setNewRole] = useState<string>('user')
   const [rejectionReason, setRejectionReason] = useState('')
+  const [sort, setSort] = useState<SortState>(null)
+
+  // Sync state to URL
+  useEffect(() => {
+    const params: Record<string, unknown> = {}
+    if (page !== 1) params.page = page
+    if (search) params.search = search
+    if (roleFilter) params.role = roleFilter
+    navigate({ search: params, replace: true })
+  }, [page, search, roleFilter, navigate])
 
   const utils = trpc.useUtils()
   const usersQuery = trpc.users.list.useQuery(
@@ -55,6 +99,24 @@ function UsersPage() {
   const usersTotalPages = usersQuery.data?.data?.totalPages ?? 1
   const pendingRequests = ((pendingQuery.data?.data as { requests?: PendingUserRequest[] } | undefined)?.requests ??
     []) as PendingUserRequest[]
+
+  const toggleSort = (key: string) => {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }
+
+  const sortedUsers = useMemo(() => {
+    if (!sort) return users
+    const sorted = [...users].sort((a, b) => {
+      const av = String((a as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      const bv = String((b as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+    return sorted
+  }, [users, sort])
 
   const approveRequestMutation = trpc.auth.approveRequest.useMutation()
   const rejectRequestMutation = trpc.auth.rejectRequest.useMutation()
@@ -241,15 +303,21 @@ function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{'Username'}</TableHead>
-                  <TableHead>{'Email'}</TableHead>
-                  <TableHead>{'Role'}</TableHead>
-                  <TableHead className="hidden md:table-cell">{'Created'}</TableHead>
+                  <SortableHeader label="Username" sortKey="username" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Email" sortKey="email" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Role" sortKey="role" sort={sort} onSort={toggleSort} />
+                  <SortableHeader
+                    label="Created"
+                    sortKey="created_at"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
                   <TableHead className="text-right">{'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {sortedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.username}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>

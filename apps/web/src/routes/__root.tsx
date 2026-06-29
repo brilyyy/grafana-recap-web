@@ -1,7 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
-import { ThemeProvider } from '@/components/theme-provider'
 import type { ReactNode } from 'react'
+import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { BackgroundModeProvider } from '@/hooks/use-background-mode'
 import { queryClient, trpc, trpcClient } from '@/router'
@@ -24,9 +24,7 @@ function RootComponent() {
     <RootDocument>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider
-            defaultTheme="system"
-          >
+          <ThemeProvider defaultTheme="system">
             <BackgroundModeProvider>
               <TooltipProvider>
                 <Outlet />

@@ -57,13 +57,13 @@ function StatusBadge({ status }: { status: DiagnoseStatus }) {
   switch (status) {
     case 'ok':
       return (
-        <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+        <Badge variant="outline" className="border-chart-2/40 text-chart-2">
           {'OK'}
         </Badge>
       )
     case 'drift':
       return (
-        <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+        <Badge variant="outline" className="border-chart-4/40 text-chart-4">
           {'DRIFT'}
         </Badge>
       )
@@ -90,8 +90,8 @@ function DiagnoseTab() {
           {report ? (
             <span>
               {'Database'} <span className="font-mono font-medium text-foreground">{report.dbName}</span> ·{' '}
-              <span className="text-emerald-600 dark:text-emerald-400">{`${report.summary.ok} OK`}</span> ·{' '}
-              <span className="text-amber-600 dark:text-amber-400">{`${report.summary.drift} drift`}</span> ·{' '}
+              <span className="text-chart-2">{`${report.summary.ok} OK`}</span> ·{' '}
+              <span className="text-chart-4">{`${report.summary.drift} drift`}</span> ·{' '}
               <span className="text-destructive">
                 {`${report.summary.missing + report.summary.error} missing/error`}
               </span>
@@ -206,7 +206,7 @@ function MigrateTab() {
       </p>
 
       {conflicts.length > 0 && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+        <div className="rounded-md border border-chart-4/40 bg-chart-4/5 p-2.5 text-xs text-chart-4">
           {`${conflicts.length} conflicts found. Choose`} <span className="font-medium">Null</span> {'or'}{' '}
           <span className="font-medium">Random</span> {'for each.'}
         </div>

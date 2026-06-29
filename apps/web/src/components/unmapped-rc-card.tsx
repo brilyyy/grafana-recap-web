@@ -1,5 +1,5 @@
 import { CircleCheck, Loader2, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { TablePager } from '@/components/table-pager'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -19,6 +19,36 @@ import type { UnmappedRC } from '@/types'
 type ErrorType = 'S' | 'N' | 'Sukses'
 const ERROR_TYPES: ErrorType[] = ['S', 'N', 'Sukses']
 
+type SortDir = 'asc' | 'desc'
+type SortState = { key: string; dir: SortDir } | null
+
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  sort: SortState
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const active = sort?.key === sortKey
+  return (
+    <TableHead
+      className={cn('cursor-pointer select-none hover:text-foreground', className)}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && <span className="text-xs">{sort?.dir === 'asc' ? '↑' : '↓'}</span>}
+      </span>
+    </TableHead>
+  )
+}
+
 export default function UnmappedRcCard() {
   const { applications } = useApplications()
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null)
@@ -27,6 +57,7 @@ export default function UnmappedRcCard() {
   const [selectedErrorTypes, setSelectedErrorTypes] = useState<Record<number, ErrorType>>({})
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [submittingId, setSubmittingId] = useState<number | null>(null)
+  const [sort, setSort] = useState<SortState>(null)
 
   const utils = trpc.useUtils()
   const listQuery = trpc.unmappedRc.list.useQuery({
@@ -37,6 +68,24 @@ export default function UnmappedRcCard() {
   const unmappedRcs = (listQuery.data?.data?.entries ?? []) as UnmappedRC[]
   const totalCount = listQuery.data?.data?.total ?? 0
   const totalPages = Math.ceil(totalCount / limit) || 1
+
+  const toggleSort = (key: string) => {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }
+
+  const sortedRcs = useMemo(() => {
+    if (!sort) return unmappedRcs
+    const sorted = [...unmappedRcs].sort((a, b) => {
+      const av = String((a as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      const bv = String((b as Record<string, unknown>)[sort.key] ?? '').toLowerCase()
+      return sort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+    return sorted
+  }, [unmappedRcs, sort])
 
   const submitMutation = trpc.unmappedRc.submit.useMutation()
   const submitBatchMutation = trpc.unmappedRc.submitBatch.useMutation()
@@ -229,16 +278,22 @@ export default function UnmappedRcCard() {
                       aria-label={'Select all'}
                     />
                   </TableHead>
-                  <TableHead>{'App'}</TableHead>
-                  <TableHead>RC</TableHead>
-                  <TableHead>Jenis Transaksi</TableHead>
-                  <TableHead className="hidden md:table-cell">{'Description'}</TableHead>
+                  <SortableHeader label="App" sortKey="app_name" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="RC" sortKey="rc" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Jenis Transaksi" sortKey="jenis_transaksi" sort={sort} onSort={toggleSort} />
+                  <SortableHeader
+                    label="Description"
+                    sortKey="rc_description"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
                   <TableHead>{'Classification'}</TableHead>
                   <TableHead className="w-28 text-right">{'Action'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {unmappedRcs.map((rc) => (
+                {sortedRcs.map((rc) => (
                   <TableRow key={rc.id} data-state={selectedItems.has(rc.id) ? 'selected' : undefined}>
                     <TableCell>
                       <Checkbox

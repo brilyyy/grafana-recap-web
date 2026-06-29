@@ -1,5 +1,5 @@
-import { formatDateTime } from '@/lib/i18n-format'
 import { Badge } from '@/components/ui/badge'
+import { formatDateTime } from '@/lib/i18n-format'
 
 export function formatDate(dateString: string) {
   return formatDateTime(dateString)

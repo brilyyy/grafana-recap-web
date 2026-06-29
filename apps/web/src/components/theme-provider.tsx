@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'system' | 'latte' | 'frappe' | 'macchiato' | 'mocha' | 'kanagawa' | 'gruvbox' | 'github-dark' | 'github-light'
+type Theme =
+  | 'system'
+  | 'latte'
+  | 'frappe'
+  | 'macchiato'
+  | 'mocha'
+  | 'kanagawa'
+  | 'gruvbox'
+  | 'github-dark'
+  | 'github-light'
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -14,7 +23,16 @@ type ThemeProviderState = {
   resolvedTheme: 'light' | 'dark'
 }
 
-const ALL_THEMES = ['latte', 'frappe', 'macchiato', 'mocha', 'kanagawa', 'gruvbox', 'github-dark', 'github-light'] as const
+const ALL_THEMES = [
+  'latte',
+  'frappe',
+  'macchiato',
+  'mocha',
+  'kanagawa',
+  'gruvbox',
+  'github-dark',
+  'github-light',
+] as const
 const DARK_THEMES = ['frappe', 'macchiato', 'mocha', 'kanagawa', 'gruvbox', 'github-dark'] as const
 
 function getResolved(theme: Theme): 'light' | 'dark' {
@@ -48,9 +66,8 @@ export function ThemeProvider({
     const root = window.document.documentElement
     root.classList.remove(...ALL_THEMES)
 
-    const resolved = theme === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'mocha' : 'latte')
-      : theme
+    const resolved =
+      theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'mocha' : 'latte') : theme
 
     root.classList.add(resolved)
   }, [theme])
@@ -75,7 +92,6 @@ export function ThemeProvider({
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
-  if (context === undefined)
-    throw new Error('useTheme must be used within a ThemeProvider')
+  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
   return context
 }
