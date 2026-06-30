@@ -4,7 +4,7 @@ import os
 import platform
 import re
 import subprocess
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 
@@ -75,11 +75,28 @@ def format_date_range(start: date, end: date) -> str:
     return f"{start.day} {start_month} {start.year} - {end.day} {end_month} {end.year}"
 
 
-def format_date_range_auto(dates: list[date]) -> str:
-    """Format a date range by auto-detecting the oldest and latest date in the list."""
+def format_date_range_list(dates: list[date]) -> str:
+    """Format a date range from a list of dates — finds min/max automatically."""
     if not dates:
         raise ValueError("dates must not be empty")
     return format_date_range(min(dates), max(dates))
+
+
+def auto_derive_weekly_periods(
+    n: int = 5,
+    base: date | None = None,
+) -> list[tuple[date, date]]:
+    """N contiguous 7-day periods ending at base-1, oldest first.
+
+    Each period is a ``(from, to)`` tuple inclusive. Default ``base`` is
+    ``date.today()`` with ``n=5`` → 5 weeks ending yesterday.
+    """
+    if base is None:
+        base = date.today()
+    return [
+        (base - timedelta(days=7 + 7 * i), base - timedelta(days=1 + 7 * i))
+        for i in reversed(range(n))
+    ]
 
 
 def get_year_range(dates: list[date]) -> str:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from lib.data_processing import AppMapping, TransactionRecord, read_excel
-from lib.utils import format_date_range_auto, sanitize_for_filename
+from lib.utils import format_date_range_list, sanitize_for_filename
 
 
 def report_pptx_basename_for_preloaded(
@@ -19,7 +19,7 @@ def report_pptx_basename_for_preloaded(
     records = mapping.filter_by_date(all_records)
     if not records:
         return f"SuccessRate_{sanitize_for_filename(mapping.name)}_no_data.pptx"
-    date_str = format_date_range_auto([r.date for r in records])
+    date_str = format_date_range_list([r.date for r in records])
     return (
         f"SuccessRate_{sanitize_for_filename(mapping.name)}_"
         f"{sanitize_for_filename(date_str)}.pptx"
@@ -43,7 +43,7 @@ def report_pptx_basename_for_preloaded_with_app(
             f"SuccessRate_{sanitize_for_filename(app_name)}_"
             f"{sanitize_for_filename(mapping.name)}_no_data.pptx"
         )
-    date_str = format_date_range_auto([r.date for r in records])
+    date_str = format_date_range_list([r.date for r in records])
     return (
         f"SuccessRate_{sanitize_for_filename(app_name)}_"
         f"{sanitize_for_filename(mapping.name)}_"
@@ -60,7 +60,7 @@ def report_pptx_basename(mapping_path: Path, xlsx_path: Path) -> str:
     records = mapping.filter_by_date(all_records)
     if not records:
         return f"SuccessRate_{sanitize_for_filename(mapping.name)}_no_data.pptx"
-    date_str = format_date_range_auto([r.date for r in records])
+    date_str = format_date_range_list([r.date for r in records])
     return (
         f"SuccessRate_{sanitize_for_filename(mapping.name)}_"
         f"{sanitize_for_filename(date_str)}.pptx"

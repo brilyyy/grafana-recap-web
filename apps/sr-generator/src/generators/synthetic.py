@@ -23,7 +23,7 @@ from lib.data_processing import (
     SyntheticRunRecord,
     read_synthetic_table,
 )
-from lib.report_helpers import format_date_range_auto
+from lib.report_helpers import format_date_range_list
 from lib.utils import get_year_range, reopen_in_powerpoint, sanitize_for_filename
 
 _PROJECT_ROOT = DATA_DIR.parent
@@ -603,8 +603,8 @@ def process_synthetic_template(
     }
     h_sr_date = max(daily_sr, key=lambda d: daily_sr[d])
     l_sr_date = min(daily_sr, key=lambda d: daily_sr[d])
-    date_range = format_date_range_auto([r.date for r in records])
-    period_label = format_date_range_auto(
+    date_range = format_date_range_list([r.date for r in records])
+    period_label = format_date_range_list(
         [min(r.date for r in records), max(r.date for r in records)]
     )
 
@@ -619,7 +619,7 @@ def process_synthetic_template(
 
     # Slide 3
     ppt.replace_text_on_slide(
-        3, "{{date_range}}", format_date_range_auto([r.date for r in records])
+        3, "{{date_range}}", format_date_range_list([r.date for r in records])
     )
 
     # Slide 4

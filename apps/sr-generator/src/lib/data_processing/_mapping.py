@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..logging import get_logger
+from ..utils import auto_derive_weekly_periods
 
 log = get_logger(__name__)
 
@@ -68,6 +69,8 @@ class AppMapping:
             (_coerce_date(p["from"]), _coerce_date(p["to"]))
             for p in data.get("weekly_periods", [])
         ]
+        if not weekly_periods:
+            weekly_periods = auto_derive_weekly_periods()
 
         mapping = cls(
             name=data["name"],

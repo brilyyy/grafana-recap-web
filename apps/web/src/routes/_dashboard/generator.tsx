@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useApplications } from '@/hooks/useApplications'
 import { trpc } from '@/router'
 
 export const Route = createFileRoute('/_dashboard/generator')({
@@ -58,9 +59,12 @@ function GeneratorPage() {
   const healthQuery = trpc.generator.health.useQuery()
   const isHealthy = healthQuery.data?.status === 'ok'
 
-  // Apps
-  const appsQuery = trpc.generator.listApps.useQuery()
-  const apps = appsQuery.data ?? []
+  // Apps (from web app DB, not sr-gen API)
+  const { applications: registeredApps } = useApplications()
+  const apps = useMemo(
+    () => registeredApps.map((a) => ({ app_id: String(a.id), app_name: a.app_name })),
+    [registeredApps],
+  )
 
   // Selected app
   const [selectedAppId, setSelectedAppId] = useState<string>('')

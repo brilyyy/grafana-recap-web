@@ -26,7 +26,7 @@ from lib.report_helpers import (
     get_table_pages,
 )
 from lib.utils import (
-    format_date_range_auto,
+    format_date_range_list,
     get_year_range,
     short_num_format,
 )
@@ -676,41 +676,41 @@ def process_template(
     plt.close("all")
     mapping = AppMapping.from_file(mapping_path)
     if records_preloaded is not None:
-        all_records = list(records_preloaded)
+        yearly_data = list(records_preloaded)
     else:
         if xlsx_path is None:
             raise ValueError("xlsx_path required when records_preloaded not given")
-        all_records = read_excel(xlsx_path, mapping)
+        yearly_data = read_excel(xlsx_path, mapping)
 
     if mapping.ignore_errors or mapping.ignore_features:
-        before = len(all_records)
-        all_records = [r for r in all_records if not r.is_ignored(mapping)]
+        ignored_yearly_data = [r for r in yearly_data if r.is_ignored(mapping)]
+        yearly_data = [r for r in yearly_data if not r.is_ignored(mapping)]
         print(
-            f"Ignored {before - len(all_records)} records matching: errors={mapping.ignore_errors} features={mapping.ignore_features}"
+            f"Ignored {len(ignored_yearly_data)} records matching: errors={mapping.ignore_errors} features={mapping.ignore_features}"
         )
 
-    records = mapping.filter_by_date(all_records)
+    monthly_data = mapping.filter_by_date(yearly_data)
 
-    if records is not all_records:
+    if monthly_data is not yearly_data:
         print(
-            f"Date filter applied: {len(records)}/{len(all_records)} records in range."
+            f"Date filter applied: {len(monthly_data)}/{len(yearly_data)} records in range."
         )
-    if not records:
+    if not monthly_data:
         raise ValueError(
             "No records found after applying mapping, ignore filters, and date range."
         )
 
-    total_trx = sum(r.trx_count for r in records)
-    success_trx = sum(r.trx_count for r in records if r.is_considered_success(mapping))
+    total_trx = sum(r.trx_count for r in monthly_data)
+    success_trx = sum(r.trx_count for r in monthly_data if r.is_considered_success(mapping))
     sr = success_trx / total_trx if total_trx else 0.0
-    system_error_trx = sum(r.trx_count for r in records if r.is_system_error(mapping))
+    system_error_trx = sum(r.trx_count for r in monthly_data if r.is_system_error(mapping))
     business_error_trx = sum(
-        r.trx_count for r in records if r.is_business_error(mapping)
+        r.trx_count for r in monthly_data if r.is_business_error(mapping)
     )
 
     daily_total: dict[date, int] = defaultdict(int)
     daily_success: dict[date, int] = defaultdict(int)
-    for r in records:
+    for r in monthly_data:
         daily_total[r.date] += r.trx_count
         if r.is_considered_success(mapping):
             daily_success[r.date] += r.trx_count
@@ -722,20 +722,20 @@ def process_template(
     }
     h_sr_date = max(daily_sr, key=lambda d: daily_sr[d])
     l_sr_date = min(daily_sr, key=lambda d: daily_sr[d])
-    date_range = format_date_range_auto([r.date for r in records])
+    date_range = format_date_range_list([r.date for r in monthly_data])
 
     def fmt_date(d: date) -> str:
         return f"{d.day} {d.strftime('%b %Y')}"
 
     # Slide 1
-    ppt.replace_text_on_slide(1, "{{year}}", get_year_range([r.date for r in records]))
+    ppt.replace_text_on_slide(1, "{{year}}", get_year_range([r.date for r in yearly_data]))
 
     # Slide 2
     ppt.replace_text_on_slide(2, "{{title}}", mapping.name)
 
     # Slide 3
     ppt.replace_text_on_slide(
-        3, "{{date_range}}", format_date_range_auto([r.date for r in records])
+        3, "{{date_range}}", format_date_range_list([r.date for r in monthly_data])
     )
 
     # Slide 4
@@ -751,15 +751,15 @@ def process_template(
     ppt.replace_text_on_slide(4, "{{h_sr_date}}", fmt_date(h_sr_date))
     ppt.replace_text_on_slide(4, "{{l_sr}}", f"{daily_sr[l_sr_date]:.2%}")
     ppt.replace_text_on_slide(4, "{{l_sr_date}}", fmt_date(l_sr_date))
-    ppt.replace_image("img_daily_sr_trx", _chart_daily_sr_trx(records, mapping))
-    ppt.replace_image("img_monthly_sr_trx", _chart_monthly_sr_trx(all_records, mapping))
+    ppt.replace_image("img_daily_sr_trx", _chart_daily_sr_trx(monthly_data, mapping))
+    ppt.replace_image("img_monthly_sr_trx", _chart_monthly_sr_trx(yearly_data, mapping))
 
     # Fixed slide layout: 5=SE p1, 6=SE p2, 7=SE p3, 8=BE, 9=trends
-    se_pages, be_page = get_table_pages(records, mapping)
+    se_pages, be_page = get_table_pages(monthly_data, mapping)
     log.debug("CEK SE BE", {"se": se_pages, "be": be_page})
 
-    img_trx_breakdown = _chart_trx_breakdown(records, mapping)
-    img_errors_breakdown = _chart_errors_breakdown(records, mapping)
+    img_trx_breakdown = _chart_trx_breakdown(monthly_data, mapping)
+    img_errors_breakdown = _chart_errors_breakdown(monthly_data, mapping)
     table_style = TableStyle(
         header_style=TextStyle(bold=True, size=9, font="Poppins"),
         row_style=TextStyle(size=9, font="Poppins"),
@@ -769,9 +769,9 @@ def process_template(
 
     if mapping.weekly_periods:
         p_from, p_to = mapping.weekly_periods[-1]
-        latest_period_label = format_date_range_auto([p_from, p_to])
+        latest_period_label = format_date_range_list([p_from, p_to])
     else:
-        latest_period_label = format_date_range_auto([r.date for r in records])
+        latest_period_label = format_date_range_list([r.date for r in monthly_data])
 
     # SE slides 5 - 7
     for i, page in enumerate(se_pages):
@@ -800,7 +800,7 @@ def process_template(
         9,
         "img_chart_se_trends",
         _chart_top_five_errors(
-            all_records,
+            yearly_data,
             mapping,
             TransactionRecord.is_system_error,
             f"{mapping.name} System Error Trends",
@@ -810,7 +810,7 @@ def process_template(
         9,
         "img_chart_be_trends",
         _chart_top_five_errors(
-            all_records,
+            yearly_data,
             mapping,
             TransactionRecord.is_business_error,
             f"{mapping.name} Business Error Trends",

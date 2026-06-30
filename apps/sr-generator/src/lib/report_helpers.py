@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 
 from bptx._models import TableData
 from lib.data_processing import AppMapping, TransactionRecord
-from lib.utils import format_date_range_auto
+from lib.utils import format_date_range_list
 
 _TABLE_HEADERS_SE = [
     "No",
@@ -91,7 +91,7 @@ def aggregate_by_period(
         for from_d, to_d in period_ranges
     ]
     period_labels = [
-        format_date_range_auto(list(date_set)) for date_set in period_date_sets
+        format_date_range_list(list(date_set)) for date_set in period_date_sets
     ]
 
     has_feature = bool(mapping.fields.get("trx_feature"))
@@ -122,7 +122,7 @@ def aggregate_by_period_v2(
     *,
     error_key: Callable[[TransactionRecord], str] | None = None,
 ) -> dict[str, dict[str, int]]:
-    """Aggregate by weekly period. Keys are ``format_date_range_auto`` labels (chronological).
+    """Aggregate by weekly period. Keys are ``format_date_range_list`` labels (chronological).
 
     Ranks **top_n** error keys by ``trx_count`` in the **latest** week only, then for those
     keys only, sums ``trx_count`` into **every** period where the transaction date falls
@@ -140,7 +140,7 @@ def aggregate_by_period_v2(
         {from_d + timedelta(days=i) for i in range((to_d - from_d).days + 1)}
         for from_d, to_d in period_ranges
     ]
-    period_labels = [format_date_range_auto(list(ds)) for ds in period_date_sets]
+    period_labels = [format_date_range_list(list(ds)) for ds in period_date_sets]
 
     def _error_key(r: TransactionRecord) -> str:
         if error_key is not None:
