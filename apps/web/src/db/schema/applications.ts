@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { date, decimal, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
+import { date, decimal, index, integer, jsonb, pgTable, serial, smallint, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { responseCodeDictionary, unmappedRc } from './dictionary'
 import { errorTypeEnum } from './enums'
 import { appProcessingLog } from './logging'
@@ -81,6 +81,7 @@ export const appMappings = pgTable(
     ignoreErrors: text('ignore_errors').array().default([]),
     ignoreFeatures: text('ignore_features').array().default([]),
     dateRange: jsonb('date_range'),
+    weeklyPeriodsCount: smallint('weekly_periods_count').notNull().default(5),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

@@ -91,6 +91,7 @@ def _build_runtime_mapping(
             }
         ),
     }
+    periods_count = int(mapping.get("weekly_periods_count", 5))
     weekly_raw = mapping.get("weekly_periods")
     weekly: list[dict[str, str]]
     if isinstance(weekly_raw, list) and weekly_raw:
@@ -106,11 +107,11 @@ def _build_runtime_mapping(
             weekly.append({"from": str(from_v), "to": str(to_v)})
         if not weekly:
             weekly = _auto_weekly_periods_clamped(
-                report_from=report_from, report_to=report_to
+                report_from=report_from, report_to=report_to, count=periods_count
             )
     else:
         weekly = _auto_weekly_periods_clamped(
-            report_from=report_from, report_to=report_to
+            report_from=report_from, report_to=report_to, count=periods_count
         )
     raw["date_range"] = {"from": report_from.isoformat(), "to": report_to.isoformat()}
     raw["weekly_periods"] = weekly

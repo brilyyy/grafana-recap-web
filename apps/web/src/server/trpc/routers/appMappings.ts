@@ -19,6 +19,7 @@ export const appMappingsRouter = router({
         ignore_errors: appMappings.ignoreErrors,
         ignore_features: appMappings.ignoreFeatures,
         date_range: appMappings.dateRange,
+        weekly_periods_count: appMappings.weeklyPeriodsCount,
         app_name: appIdentifier.appName,
         created_at: appMappings.createdAt,
         updated_at: appMappings.updatedAt,
@@ -47,6 +48,7 @@ export const appMappingsRouter = router({
         ignore_errors: appMappings.ignoreErrors,
         ignore_features: appMappings.ignoreFeatures,
         date_range: appMappings.dateRange,
+        weekly_periods_count: appMappings.weeklyPeriodsCount,
         app_name: appIdentifier.appName,
         created_at: appMappings.createdAt,
         updated_at: appMappings.updatedAt,
@@ -69,6 +71,7 @@ export const appMappingsRouter = router({
         ignore_errors: z.array(z.string()).default([]),
         ignore_features: z.array(z.string()).default([]),
         date_range: z.object({ from: z.string(), to: z.string() }).optional(),
+        weekly_periods_count: z.number().int().min(1).max(52).default(5),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -93,6 +96,7 @@ export const appMappingsRouter = router({
             ignoreErrors: input.ignore_errors,
             ignoreFeatures: input.ignore_features,
             dateRange: input.date_range,
+            weeklyPeriodsCount: input.weekly_periods_count,
           })
           .where(
             and(
@@ -120,6 +124,7 @@ export const appMappingsRouter = router({
         ignoreErrors: input.ignore_errors,
         ignoreFeatures: input.ignore_features,
         dateRange: input.date_range,
+        weeklyPeriodsCount: input.weekly_periods_count,
       })
       await logAuditEvent(
         ctx.session.userId,

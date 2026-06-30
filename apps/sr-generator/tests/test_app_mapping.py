@@ -66,7 +66,7 @@ class TestAppMappingFromFile(unittest.TestCase):
         self.assertEqual(m.name, "Minimal")
         self.assertEqual(m.success_type_format, ["A"])
         self.assertIsNone(m.date_range)
-        self.assertEqual(m.weekly_periods, [])
+        self.assertEqual(len(m.weekly_periods), 5)
 
     def test_from_file_full(self) -> None:
         path = self._mapping_path(_FULL_MAPPING)

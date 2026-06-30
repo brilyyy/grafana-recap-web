@@ -70,7 +70,8 @@ class AppMapping:
             for p in data.get("weekly_periods", [])
         ]
         if not weekly_periods:
-            weekly_periods = auto_derive_weekly_periods()
+            n = data.get("weekly_periods_count", 5)
+            weekly_periods = auto_derive_weekly_periods(n=n)
 
         mapping = cls(
             name=data["name"],

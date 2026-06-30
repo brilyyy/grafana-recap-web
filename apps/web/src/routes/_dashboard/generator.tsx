@@ -35,6 +35,7 @@ type MappingFormValues = {
   ignore_errors: string[]
   ignore_features: string[]
   date_range?: { from: string; to: string }
+  weekly_periods_count: number
 }
 
 const DB_DEFAULTS: Record<string, string> = {
@@ -134,6 +135,7 @@ function GeneratorPage() {
       ignore_errors: first?.ignore_errors ?? [],
       ignore_features: first?.ignore_features ?? [],
       date_range: first?.date_range ?? undefined,
+      weekly_periods_count: (first as any)?.weekly_periods_count ?? 5,
     }
   }, [appMappings])
 
@@ -152,6 +154,7 @@ function GeneratorPage() {
       ignore_errors: saved?.ignore_errors ?? [],
       ignore_features: saved?.ignore_features ?? [],
       date_range: saved?.date_range ?? undefined,
+      weekly_periods_count: saved?.weekly_periods_count ?? 5,
     })
   }
 
@@ -181,6 +184,7 @@ function GeneratorPage() {
       ignore_errors: mappingFormValues.ignore_errors,
       ignore_features: mappingFormValues.ignore_features,
       date_range: mappingFormValues.date_range,
+      weekly_periods_count: mappingFormValues.weekly_periods_count,
     })
   }
 
@@ -444,6 +448,27 @@ function GeneratorPage() {
                   }
                 />
               </div>
+            </div>
+
+            {/* Trend periods */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">{'Trend periods (weeks)'}</Label>
+              <Input
+                type="number"
+                min={1}
+                max={52}
+                value={mappingFormValues.weekly_periods_count}
+                onChange={(e) => {
+                  const v = Number.parseInt(e.target.value, 10)
+                  if (!Number.isNaN(v)) {
+                    setMappingFormValues({ ...mappingFormValues, weekly_periods_count: v })
+                  }
+                }}
+                className="w-32 font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                {'Number of weekly periods shown in trends chart (default 5).'}
+              </p>
             </div>
 
             {/* Fields */}

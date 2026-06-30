@@ -58,6 +58,7 @@ def generate_for_excel_mapping(
         else:
             report_from = data_from
             report_to = data_to
+        periods_count = int(mapping.get("weekly_periods_count", 5))
         weekly_raw = mapping.get("weekly_periods")
         weekly: list[dict[str, str]]
         if isinstance(weekly_raw, list) and weekly_raw:
@@ -73,11 +74,11 @@ def generate_for_excel_mapping(
                 weekly.append({"from": str(from_v), "to": str(to_v)})
             if not weekly:
                 weekly = _auto_weekly_periods_clamped(
-                    report_from=report_from, report_to=report_to
+                    report_from=report_from, report_to=report_to, count=periods_count
                 )
         else:
             weekly = _auto_weekly_periods_clamped(
-                report_from=report_from, report_to=report_to
+                report_from=report_from, report_to=report_to, count=periods_count
             )
         base_mapping: dict[str, Any] = {
             "name": mapping.get("name", ""),

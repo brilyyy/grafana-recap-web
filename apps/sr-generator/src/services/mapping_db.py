@@ -26,7 +26,9 @@ def fetch_mapping(settings: DatabaseSettings, app_id: str, generate_from: str = 
             am.success_type_format,
             am.error_type_format,
             am.ignore_errors,
-            am.ignore_features
+            am.ignore_features,
+            am.date_range,
+            am.weekly_periods_count
         FROM app_mappings am
         JOIN app_identifier ai ON ai.id = am.id_app_identifier
         WHERE am.id_app_identifier = %s AND am.generate_from = %s
@@ -52,7 +54,9 @@ def fetch_all_mappings(settings: DatabaseSettings) -> list[dict[str, Any]]:
             am.success_type_format,
             am.error_type_format,
             am.ignore_errors,
-            am.ignore_features
+            am.ignore_features,
+            am.date_range,
+            am.weekly_periods_count
         FROM app_mappings am
         JOIN app_identifier ai ON ai.id = am.id_app_identifier
         ORDER BY ai.app_name
@@ -75,6 +79,8 @@ def _row_to_dict(row: tuple) -> dict[str, Any]:
         error_type_format,
         ignore_errors,
         ignore_features,
+        date_range,
+        weekly_periods_count,
     ) = row
 
     # psycopg returns JSON as str; parse it
@@ -91,6 +97,10 @@ def _row_to_dict(row: tuple) -> dict[str, Any]:
     if isinstance(ignore_features, str):
         ignore_features = [s.strip() for s in ignore_features.strip('{}').split(',') if s.strip()] if ignore_features.strip('{}') else []
 
+    if isinstance(date_range, str):
+        date_range = json.loads(date_range) if date_range else None
+    weekly_periods_count = int(weekly_periods_count) if weekly_periods_count is not None else 5
+
     return {
         "name": app_name,
         "id_app_identifier": str(id_app_identifier),
@@ -103,4 +113,6 @@ def _row_to_dict(row: tuple) -> dict[str, Any]:
         },
         "ignore_errors": ignore_errors or [],
         "ignore_features": ignore_features or [],
+        "date_range": date_range,
+        "weekly_periods_count": weekly_periods_count,
     }
