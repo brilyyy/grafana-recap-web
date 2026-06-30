@@ -9,8 +9,8 @@ from lib.db.postgres import _connect
 from lib.settings import DatabaseSettings
 
 
-def fetch_mapping(settings: DatabaseSettings, app_id: str) -> dict[str, Any] | None:
-    """Fetch one mapping row from app_mappings + app_identifier by id_app_identifier.
+def fetch_mapping(settings: DatabaseSettings, app_id: str, generate_from: str = 'db') -> dict[str, Any] | None:
+    """Fetch one mapping row from app_mappings + app_identifier by id_app_identifier and generate_from.
 
     Returns dict matching the old JSON file structure:
         {"name", "id_app_identifier", "generate_from", "fields",
@@ -29,12 +29,12 @@ def fetch_mapping(settings: DatabaseSettings, app_id: str) -> dict[str, Any] | N
             am.ignore_features
         FROM app_mappings am
         JOIN app_identifier ai ON ai.id = am.id_app_identifier
-        WHERE am.id_app_identifier = %s
+        WHERE am.id_app_identifier = %s AND am.generate_from = %s
         LIMIT 1
     """
     with _connect(settings) as conn:
         with conn.cursor() as cur:
-            cur.execute(q, (app_id,))
+            cur.execute(q, (app_id, generate_from))
             row = cur.fetchone()
     if not row:
         return None

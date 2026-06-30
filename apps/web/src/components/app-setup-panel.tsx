@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 import { trpc } from '@/router'
 
 // Kept local (string union) so this client component never imports the server-only engine module.
-type Phase = 'schema' | 'fdw' | 'procedures' | 'seed' | 'cron' | 'all'
+type Phase = 'schema' | 'core' | 'better-auth' | 'processing-log' | 'recap-tables' | 'indexes' | 'fdw' | 'procedures' | 'seed' | 'cron' | 'all'
 type DiagnoseStatus = 'ok' | 'missing' | 'drift' | 'error'
 interface DiagnoseRow {
   category: string
@@ -33,7 +33,12 @@ interface DiagnoseRow {
 function getPhases(): { key: Phase; label: string; desc: string }[] {
   return [
     { key: 'all', label: 'Run all', desc: 'Schema, FDW, procedures, seeds, scheduler' },
-    { key: 'schema', label: 'Schema', desc: 'Tables, columns, indexes, enums' },
+    { key: 'schema', label: 'Schema', desc: 'All schema phases (core → betterauth → processing log → recap → indexes)' },
+    { key: 'core', label: 'Core Schema', desc: 'Core tables, enums, triggers, column reconciliation' },
+    { key: 'better-auth', label: 'BetterAuth', desc: 'User/auth column reconciliation' },
+    { key: 'processing-log', label: 'Processing Log', desc: 'app_processing_log upgrades + backfill' },
+    { key: 'recap-tables', label: 'Recap Tables', desc: 'recap_cms_corp_daily grain key + column upgrade' },
+    { key: 'indexes', label: 'Indexes', desc: 'Performance indexes' },
     { key: 'fdw', label: 'FDW', desc: 'postgres_fdw foreign servers + tables' },
     { key: 'procedures', label: 'Procedures', desc: 'Stored procedures + recap models' },
     { key: 'seed', label: 'Seed', desc: 'Superadmin user(s)' },
@@ -181,7 +186,8 @@ function MigrateTab() {
   const runningPhase = apply.isPending ? (apply.variables?.phase as Phase | undefined) : undefined
 
   // Conflicts only matter for the schema-touching phases.
-  const showConflicts = (confirmPhase === 'schema' || confirmPhase === 'all') && conflicts.length > 0
+  const schemaPhases: Phase[] = ['schema', 'all', 'core', 'better-auth', 'processing-log', 'recap-tables']
+  const showConflicts = schemaPhases.includes(confirmPhase) && conflicts.length > 0
   const resolutionFor = (key: string): 'null' | 'random' => resolutions[key] ?? 'null'
 
   const runConfirmed = () => {

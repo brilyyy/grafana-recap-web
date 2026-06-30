@@ -35,7 +35,7 @@ export interface EngineDb {
 /** Where human-readable step lines are written (console.log for CLI, an array for the UI). */
 export type LogSink = (line: string) => void
 
-export type Phase = 'schema' | 'fdw' | 'procedures' | 'seed' | 'cron' | 'all'
+export type Phase = 'schema' | 'core' | 'better-auth' | 'processing-log' | 'recap-tables' | 'indexes' | 'fdw' | 'procedures' | 'seed' | 'cron' | 'all'
 
 // ─── Bound helpers (exec + existence checks for a given db) ──────────────────────
 
@@ -330,7 +330,7 @@ export async function runCoreSchema(db: EngineDb, log: LogSink) {
   for (const spec of columnsFor('raw_table_housekeeping')) await addColumnSafely(db, spec, undefined, log)
 
   // 3) Long RC codes (e.g. GCM ERR_MAP_CD / exception paths) exceed legacy VARCHAR(50).
-  const { exec, tableExists } = bind(db)
+  const { exec, tableExists, columnExists } = bind(db)
   for (const tbl of ['app_success_rate', 'response_code_dictionary', 'unmapped_rc'] as const) {
     if (await tableExists(tbl)) {
       try {
@@ -339,6 +339,29 @@ export async function runCoreSchema(db: EngineDb, log: LogSink) {
       } catch (e: unknown) {
         log(`  \u23ED  ${tbl}.rc alter skipped: ${(e as Error).message}`)
       }
+    }
+  }
+
+  // 4) Allow 2 mappings per app (db + excel) — swap old UNIQUE(id_app_identifier) for composite.
+  if (await tableExists('app_mappings')) {
+    await exec(`ALTER TABLE "app_mappings" DROP CONSTRAINT IF EXISTS "app_mappings_id_app_identifier_key"`)
+    try {
+      await exec(`
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'app_mappings_app_generate_unique') THEN
+            ALTER TABLE "app_mappings" ADD CONSTRAINT "app_mappings_app_generate_unique"
+              UNIQUE (id_app_identifier, generate_from);
+          END IF;
+        END $$;
+      `)
+      log('  \u2705 app_mappings constraint swapped to (id_app_identifier, generate_from)')
+    } catch (e: unknown) {
+      log(`  \u23ED  app_mappings constraint swap skipped: ${(e as Error).message}`)
+    }
+    // 5) Add date_range column for mapping-level date filter
+    if (!(await columnExists('app_mappings', 'date_range'))) {
+      await exec(`ALTER TABLE "app_mappings" ADD COLUMN "date_range" jsonb`)
+      log('  \u2705 app_mappings.date_range added')
     }
   }
 
@@ -671,6 +694,21 @@ export async function applyPhase(
   resolutions: ColumnResolutions = {},
 ): Promise<void> {
   switch (phase) {
+    case 'core':
+      await runCoreSchema(db, log)
+      break
+    case 'better-auth':
+      await runBetterAuthSchema(db, log)
+      break
+    case 'processing-log':
+      await runProcessingLogSchema(db, log)
+      break
+    case 'recap-tables':
+      await runRecapModelTables(db, log, resolutions)
+      break
+    case 'indexes':
+      await runPerformanceIndexes(db, log)
+      break
     case 'schema':
       await runSchemaGroup(db, log, resolutions)
       break

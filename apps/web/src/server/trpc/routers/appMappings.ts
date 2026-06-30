@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '@/db'
 import { appIdentifier, appMappings } from '@/db/schema'
@@ -18,6 +18,7 @@ export const appMappingsRouter = router({
         error_type_format: appMappings.errorTypeFormat,
         ignore_errors: appMappings.ignoreErrors,
         ignore_features: appMappings.ignoreFeatures,
+        date_range: appMappings.dateRange,
         app_name: appIdentifier.appName,
         created_at: appMappings.createdAt,
         updated_at: appMappings.updatedAt,
@@ -28,27 +29,34 @@ export const appMappingsRouter = router({
     return { success: true, data: { mappings: rows } }
   }),
 
-  getByAppId: protectedProcedure.input(z.object({ appId: z.number().int().positive() })).query(async ({ input }) => {
-    const rows = await db
-      .select({
-        id: appMappings.id,
-        id_app_identifier: appMappings.idAppIdentifier,
-        generate_from: appMappings.generateFrom,
-        fields: appMappings.fields,
-        success_type_format: appMappings.successTypeFormat,
-        error_type_format: appMappings.errorTypeFormat,
+  getByAppId: protectedProcedure
+    .input(z.object({ appId: z.number().int().positive(), generate_from: z.enum(['db', 'excel']).optional() }))
+    .query(async ({ input }) => {
+      const conditions = [eq(appMappings.idAppIdentifier, input.appId)]
+      if (input.generate_from) {
+        conditions.push(eq(appMappings.generateFrom, input.generate_from))
+      }
+      const rows = await db
+        .select({
+          id: appMappings.id,
+          id_app_identifier: appMappings.idAppIdentifier,
+          generate_from: appMappings.generateFrom,
+          fields: appMappings.fields,
+          success_type_format: appMappings.successTypeFormat,
+          error_type_format: appMappings.errorTypeFormat,
         ignore_errors: appMappings.ignoreErrors,
         ignore_features: appMappings.ignoreFeatures,
+        date_range: appMappings.dateRange,
         app_name: appIdentifier.appName,
         created_at: appMappings.createdAt,
         updated_at: appMappings.updatedAt,
       })
       .from(appMappings)
       .innerJoin(appIdentifier, eq(appMappings.idAppIdentifier, appIdentifier.id))
-      .where(eq(appMappings.idAppIdentifier, input.appId))
-    if (rows.length === 0) return { success: true, data: { mapping: null } }
-    return { success: true, data: { mapping: rows[0] } }
-  }),
+      .where(and(...conditions))
+      .orderBy(asc(appMappings.generateFrom))
+      return { success: true, data: { mappings: rows } }
+    }),
 
   upsert: superAdminProcedure
     .input(
@@ -60,13 +68,19 @@ export const appMappingsRouter = router({
         error_type_format: z.record(z.string(), z.array(z.string())),
         ignore_errors: z.array(z.string()).default([]),
         ignore_features: z.array(z.string()).default([]),
+        date_range: z.object({ from: z.string(), to: z.string() }).optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       const existing = await db
         .select({ id: appMappings.id })
         .from(appMappings)
-        .where(eq(appMappings.idAppIdentifier, input.id_app_identifier))
+        .where(
+          and(
+            eq(appMappings.idAppIdentifier, input.id_app_identifier),
+            eq(appMappings.generateFrom, input.generate_from),
+          ),
+        )
 
       if (existing.length > 0) {
         await db
@@ -78,8 +92,14 @@ export const appMappingsRouter = router({
             errorTypeFormat: input.error_type_format,
             ignoreErrors: input.ignore_errors,
             ignoreFeatures: input.ignore_features,
+            dateRange: input.date_range,
           })
-          .where(eq(appMappings.idAppIdentifier, input.id_app_identifier))
+          .where(
+            and(
+              eq(appMappings.idAppIdentifier, input.id_app_identifier),
+              eq(appMappings.generateFrom, input.generate_from),
+            ),
+          )
         await logAuditEvent(
           ctx.session.userId,
           ctx.session.username,
@@ -99,6 +119,7 @@ export const appMappingsRouter = router({
         errorTypeFormat: input.error_type_format,
         ignoreErrors: input.ignore_errors,
         ignoreFeatures: input.ignore_features,
+        dateRange: input.date_range,
       })
       await logAuditEvent(
         ctx.session.userId,
@@ -112,20 +133,27 @@ export const appMappingsRouter = router({
     }),
 
   delete: superAdminProcedure
-    .input(z.object({ appId: z.number().int().positive() }))
+    .input(z.object({ appId: z.number().int().positive(), generate_from: z.enum(['db', 'excel']).optional() }))
     .mutation(async ({ input, ctx }) => {
+      const conditions = [eq(appMappings.idAppIdentifier, input.appId)]
+      if (input.generate_from) {
+        conditions.push(eq(appMappings.generateFrom, input.generate_from))
+      }
       const deleted = await db
         .delete(appMappings)
-        .where(eq(appMappings.idAppIdentifier, input.appId))
+        .where(and(...conditions))
         .returning({ id: appMappings.id })
       if (deleted.length === 0) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mapping not found' })
+      const detail = input.generate_from
+        ? `Deleted mapping generate_from=${input.generate_from} for app_id=${input.appId}`
+        : `Deleted all mappings for app_id=${input.appId}`
       await logAuditEvent(
         ctx.session.userId,
         ctx.session.username,
         'APP_MAPPING_DELETED',
         'app_mappings',
         input.appId.toString(),
-        `Deleted mapping for app_id=${input.appId}`,
+        detail,
       )
       return { success: true, message: 'Mapping deleted' }
     }),

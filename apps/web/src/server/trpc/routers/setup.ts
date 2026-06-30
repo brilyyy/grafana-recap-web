@@ -5,7 +5,7 @@ import { applyPhase, type ColumnResolutions, detectColumnConflicts, diagnose, ty
 import { logAuditEvent } from '@/lib/audit'
 import { router, superAdminProcedure } from '../init'
 
-const phaseEnum = z.enum(['schema', 'fdw', 'procedures', 'seed', 'cron', 'all'])
+const phaseEnum = z.enum(['schema', 'core', 'better-auth', 'processing-log', 'recap-tables', 'indexes', 'fdw', 'procedures', 'seed', 'cron', 'all'])
 
 export const setupRouter = router({
   /** Read-only schema/config doctor. Executes no DDL. */

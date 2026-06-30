@@ -204,10 +204,10 @@ def generate_db(
             status_code=400, detail="Database not configured (SR_GEN_DATABASE_URL)."
         )
 
-    mapping = fetch_mapping(settings, req.app_id)
+    mapping = fetch_mapping(settings, req.app_id, 'db')
     if not mapping:
         raise HTTPException(
-            status_code=404, detail=f"Mapping not found for app_id={req.app_id}"
+            status_code=404, detail=f"DB mapping not found for app_id={req.app_id}"
         )
 
     result = generate_for_db_mapping(
@@ -238,10 +238,10 @@ async def generate_excel(
             status_code=400, detail="Database not configured (SR_GEN_DATABASE_URL)."
         )
 
-    mapping = fetch_mapping(settings, app_id)
+    mapping = fetch_mapping(settings, app_id, 'excel')
     if not mapping:
         raise HTTPException(
-            status_code=404, detail=f"Mapping not found for app_id={app_id}"
+            status_code=404, detail=f"Excel mapping not found for app_id={app_id}"
         )
 
     suffix = Path(file.filename or "upload.xlsx").suffix

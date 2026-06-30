@@ -33,6 +33,7 @@ type MappingFormValues = {
   error_type_format: Record<string, string[]>
   ignore_errors: string[]
   ignore_features: string[]
+  date_range?: { from: string; to: string }
 }
 
 const DB_DEFAULTS: Record<string, string> = {
@@ -68,17 +69,18 @@ function GeneratorPage() {
   // Mapping status
   const mappingsQuery = trpc.generator.listMappings.useQuery()
   const mappings = mappingsQuery.data ?? []
-  const currentMapping = useMemo(
-    () => mappings.find((mapping) => mapping.app_id === selectedAppId),
+  const appMappings = useMemo(
+    () => mappings.filter((mapping) => mapping.app_id === selectedAppId),
     [mappings, selectedAppId],
   )
+  const dbMapping = useMemo(() => appMappings.find((m) => m.generate_from === 'db'), [appMappings])
+  const excelMapping = useMemo(() => appMappings.find((m) => m.generate_from === 'excel'), [appMappings])
 
-  // Date range
-  const [dateFrom, setDateFrom] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
-  })
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10))
+  // Master date range: always current year
+  function yearDateRange() {
+    const year = new Date().getFullYear()
+    return { from: `${year}-01-01`, to: `${year}-12-31` }
+  }
 
   // Generate
   const [isGenerating, setIsGenerating] = useState(false)
@@ -115,31 +117,43 @@ function GeneratorPage() {
   const [successTypeInput, setSuccessTypeInput] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  const existingMapping = useMemo(
-    () => mappings.find((mapping) => mapping.app_id === selectedAppId),
-    [mappings, selectedAppId],
-  )
-
-  const mappingValues: MappingFormValues = useMemo(
-    () => ({
-      generate_from: (existingMapping?.generate_from as 'db' | 'excel') ?? 'db',
-      fields: (existingMapping as any)?.fields ?? { ...DB_DEFAULTS },
-      success_type_format: (existingMapping as any)?.success_type_format ?? ['Sukses'],
-      error_type_format: (existingMapping as any)?.error_type_format ?? {
+  const mappingInitial = useMemo((): MappingFormValues => {
+    const first = appMappings[0] as any
+    return {
+      generate_from: first?.generate_from ?? 'db',
+      fields: first?.fields ?? { ...DB_DEFAULTS },
+      success_type_format: first?.success_type_format ?? ['Sukses'],
+      error_type_format: first?.error_type_format ?? {
         system_error: ['S', '#N/A'],
         business_error: ['N', 'B'],
       },
-      ignore_errors: (existingMapping as any)?.ignore_errors ?? [],
-      ignore_features: (existingMapping as any)?.ignore_features ?? [],
-    }),
-    [existingMapping],
-  )
+      ignore_errors: first?.ignore_errors ?? [],
+      ignore_features: first?.ignore_features ?? [],
+      date_range: first?.date_range ?? undefined,
+    }
+  }, [appMappings])
 
-  const [mappingFormValues, setMappingFormValues] = useState<MappingFormValues>(mappingValues)
+  const [mappingFormValues, setMappingFormValues] = useState<MappingFormValues>(mappingInitial)
+
+  function loadMappingForMode(mode: 'db' | 'excel') {
+    const saved = appMappings.find((m) => m.generate_from === mode) as any
+    setMappingFormValues({
+      generate_from: mode,
+      fields: saved?.fields ?? (mode === 'db' ? { ...DB_DEFAULTS } : {}),
+      success_type_format: saved?.success_type_format ?? ['Sukses'],
+      error_type_format: saved?.error_type_format ?? {
+        system_error: ['S', '#N/A'],
+        business_error: ['N', 'B'],
+      },
+      ignore_errors: saved?.ignore_errors ?? [],
+      ignore_features: saved?.ignore_features ?? [],
+      date_range: saved?.date_range ?? undefined,
+    })
+  }
 
   // Reset form when dialog opens with new app
   function openMappingDialog() {
-    setMappingFormValues({ ...mappingValues })
+    setMappingFormValues({ ...mappingInitial })
     setMappingDialogOpen(true)
   }
 
@@ -162,6 +176,7 @@ function GeneratorPage() {
       error_type_format: mappingFormValues.error_type_format,
       ignore_errors: mappingFormValues.ignore_errors,
       ignore_features: mappingFormValues.ignore_features,
+      date_range: mappingFormValues.date_range,
     })
   }
 
@@ -189,11 +204,12 @@ function GeneratorPage() {
   async function handleGenerateDb() {
     if (!selectedApp || !selectedAppId) return
     setIsGenerating(true)
+    const { from, to } = yearDateRange()
     generateDbMutation.mutate({
       app_name: selectedApp.app_name,
       app_id: selectedAppId,
-      master_date_from: dateFrom,
-      master_date_to: dateTo,
+      master_date_from: from,
+      master_date_to: to,
     })
   }
 
@@ -264,8 +280,11 @@ function GeneratorPage() {
           {/* Mapping status */}
           {selectedAppId && (
             <div className="flex items-center gap-2">
-              <Badge variant={currentMapping ? 'secondary' : 'outline'}>
-                {currentMapping ? 'Configured' : 'Not configured'}
+              <Badge variant={dbMapping ? 'secondary' : 'outline'}>
+                {'DB'} {dbMapping ? '\u2705' : '\u274C'}
+              </Badge>
+              <Badge variant={excelMapping ? 'secondary' : 'outline'}>
+                {'Excel'} {excelMapping ? '\u2705' : '\u274C'}
               </Badge>
               <Button variant="ghost" size="sm" className="h-7 gap-1" onClick={openMappingDialog}>
                 <Settings2 className="size-3" />
@@ -273,18 +292,6 @@ function GeneratorPage() {
               </Button>
             </div>
           )}
-
-          {/* Date range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{'Date from'}</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{'Date to'}</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-            </div>
-          </div>
 
           {/* Generate buttons */}
           <div className="flex gap-2">
@@ -393,11 +400,7 @@ function GeneratorPage() {
               <Label>{'Data source'}</Label>
               <Select
                 value={mappingFormValues.generate_from}
-                onValueChange={(v) => {
-                  const newValues = { ...mappingFormValues, generate_from: v as 'db' | 'excel' }
-                  if (v === 'db') newValues.fields = { ...DB_DEFAULTS }
-                  setMappingFormValues(newValues)
-                }}
+                onValueChange={(v) => loadMappingForMode(v as 'db' | 'excel')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -407,6 +410,36 @@ function GeneratorPage() {
                   <SelectItem value="excel">Excel</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Date range */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs">{'Date from'}</Label>
+                <Input
+                  type="date"
+                  value={mappingFormValues.date_range?.from ?? ''}
+                  onChange={(e) =>
+                    setMappingFormValues({
+                      ...mappingFormValues,
+                      date_range: { from: e.target.value, to: mappingFormValues.date_range?.to ?? '' },
+                    })
+                  }
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs">{'Date to'}</Label>
+                <Input
+                  type="date"
+                  value={mappingFormValues.date_range?.to ?? ''}
+                  onChange={(e) =>
+                    setMappingFormValues({
+                      ...mappingFormValues,
+                      date_range: { from: mappingFormValues.date_range?.from ?? '', to: e.target.value },
+                    })
+                  }
+                />
+              </div>
             </div>
 
             {/* Fields */}

@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { date, decimal, index, integer, jsonb, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { date, decimal, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { responseCodeDictionary, unmappedRc } from './dictionary'
 import { errorTypeEnum } from './enums'
 import { appProcessingLog } from './logging'
@@ -55,33 +55,39 @@ export const appCustomProcedure = pgTable('app_custom_procedure', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-export const appMappings = pgTable('app_mappings', {
-  id: serial('id').primaryKey(),
-  idAppIdentifier: integer('id_app_identifier')
-    .notNull()
-    .references(() => appIdentifier.id, { onDelete: 'cascade' })
-    .unique(),
-  generateFrom: varchar('generate_from', { length: 10 }).notNull().default('db'),
-  fields: jsonb('fields').notNull().default({
-    date: 'tanggal_transaksi',
-    response_code: 'rc',
-    response_code_desc: 'rc_description',
-    error_type: 'error_type',
-    trx_count: 'total_transaksi',
-    trx_feature: 'jenis_transaksi',
-  }),
-  successTypeFormat: jsonb('success_type_format').notNull().default(['Sukses']),
-  errorTypeFormat: jsonb('error_type_format')
-    .notNull()
-    .default({
-      system_error: ['S', '#N/A'],
-      business_error: ['N', 'B'],
+export const appMappings = pgTable(
+  'app_mappings',
+  {
+    id: serial('id').primaryKey(),
+    idAppIdentifier: integer('id_app_identifier')
+      .notNull()
+      .references(() => appIdentifier.id, { onDelete: 'cascade' }),
+    generateFrom: varchar('generate_from', { length: 10 }).notNull().default('db'),
+    fields: jsonb('fields').notNull().default({
+      date: 'tanggal_transaksi',
+      response_code: 'rc',
+      response_code_desc: 'rc_description',
+      error_type: 'error_type',
+      trx_count: 'total_transaksi',
+      trx_feature: 'jenis_transaksi',
     }),
-  ignoreErrors: text('ignore_errors').array().default([]),
-  ignoreFeatures: text('ignore_features').array().default([]),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+    successTypeFormat: jsonb('success_type_format').notNull().default(['Sukses']),
+    errorTypeFormat: jsonb('error_type_format')
+      .notNull()
+      .default({
+        system_error: ['S', '#N/A'],
+        business_error: ['N', 'B'],
+      }),
+    ignoreErrors: text('ignore_errors').array().default([]),
+    ignoreFeatures: text('ignore_features').array().default([]),
+    dateRange: jsonb('date_range'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    appGenerateUnique: uniqueIndex('app_mappings_app_generate_unique').on(t.idAppIdentifier, t.generateFrom),
+  }),
+)
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 
