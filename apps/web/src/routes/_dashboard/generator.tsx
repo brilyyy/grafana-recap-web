@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Loader2, Play, Presentation, Settings2, Trash2, Upload } from 'lucide-react'
+import { Download, Loader2, Play, Presentation, Settings2, Trash2, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -45,6 +45,24 @@ const DB_DEFAULTS: Record<string, string> = {
   error_type: 'error_type',
   trx_count: 'total_transaksi',
   trx_feature: 'jenis_transaksi',
+}
+
+function DownloadButton({ filename }: { filename: string }) {
+  const { refetch } = trpc.generator.getReportDownloadUrl.useQuery(
+    { filename },
+    { enabled: false },
+  )
+
+  async function handleDownload() {
+    const { data } = await refetch()
+    if (data?.url) window.open(data.url, '_blank')
+  }
+
+  return (
+    <Button variant="ghost" size="sm" className="h-7" onClick={handleDownload}>
+      <Download className="size-3.5" />
+    </Button>
+  )
 }
 
 function formatSize(bytes: number): string {
@@ -96,6 +114,12 @@ function GeneratorPage() {
   const reportsQuery = trpc.generator.listReports.useQuery()
   const reports = reportsQuery.data ?? []
 
+  // Filter reports by selected app
+  const filteredReports = useMemo(() => {
+    if (!selectedAppId || !selectedApp) return reports
+    return reports.filter((r) => r.filename.toLowerCase().includes(selectedApp.app_name.toLowerCase()))
+  }, [reports, selectedAppId, selectedApp])
+
   // Delete report
   const deleteReportMutation = trpc.generator.deleteReport.useMutation({
     onSuccess: () => {
@@ -105,13 +129,20 @@ function GeneratorPage() {
     onError: (e) => toast.error(e.message || 'Failed to delete report'),
   })
 
+  // Generation result for status display
+  const [generationResult, setGenerationResult] = useState<{ success: boolean; message: string } | null>(null)
+
   // Generate DB
   const generateDbMutation = trpc.generator.generateDb.useMutation({
     onSuccess: (data) => {
+      setGenerationResult({ success: data.success, message: data.message })
       toast.success(data.message)
       utils.generator.listReports.invalidate()
     },
-    onError: (e) => toast.error(e.message || 'Generation failed'),
+    onError: (e) => {
+      setGenerationResult({ success: false, message: e.message || 'Generation failed' })
+      toast.error(e.message || 'Generation failed')
+    },
     onSettled: () => setIsGenerating(false),
   })
 
@@ -229,10 +260,12 @@ function GeneratorPage() {
       form.append('app_name', selectedApp.app_name)
       form.append('app_id', selectedAppId)
       form.append('file', selectedFile)
-      const data = await utils.client.generator.generateExcel.mutate(form)
+      const data = await utils.client.generator.generateExcel.mutate(form) as { success: boolean; message: string }
+      setGenerationResult({ success: data.success, message: data.message })
       toast.success(data.message)
       utils.generator.listReports.invalidate()
     } catch (e: any) {
+      setGenerationResult({ success: false, message: e.message || 'Generation failed' })
       toast.error(e.message || 'Generation failed')
     } finally {
       setIsGenerating(false)
@@ -336,6 +369,27 @@ function GeneratorPage() {
         </CardContent>
       </Card>
 
+      {/* Generation status */}
+      {generationResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium">
+              {generationResult.success ? 'Generation Complete' : 'Generation Failed'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <Badge variant={generationResult.success ? 'secondary' : 'destructive'} className="self-start">
+                {generationResult.success ? 'Success' : 'Error'}
+              </Badge>
+              <pre className="whitespace-pre-wrap break-all rounded bg-muted p-3 font-mono text-xs">
+                {generationResult.message}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Reports list */}
       <Card>
         <CardHeader>
@@ -358,6 +412,15 @@ function GeneratorPage() {
                 <EmptyTitle>{'No reports generated yet'}</EmptyTitle>
               </EmptyHeader>
             </Empty>
+          ) : filteredReports.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Presentation />
+                </EmptyMedia>
+                <EmptyTitle>{'No reports for this app'}</EmptyTitle>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <Table>
               <TableHeader>
@@ -365,16 +428,17 @@ function GeneratorPage() {
                   <TableHead>{'Filename'}</TableHead>
                   <TableHead>{'Generated'}</TableHead>
                   <TableHead>{'Size'}</TableHead>
-                  <TableHead className="w-20" />
+                  <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((reportItem) => (
+                {filteredReports.map((reportItem) => (
                   <TableRow key={reportItem.filename}>
                     <TableCell className="font-mono text-xs">{reportItem.filename}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{String(reportItem.created_at)}</TableCell>
                     <TableCell className="text-xs tabular-nums">{formatSize(reportItem.size_bytes)}</TableCell>
                     <TableCell className="text-right">
+                      <DownloadButton filename={reportItem.filename} />
                       <Button
                         variant="ghost"
                         size="sm"

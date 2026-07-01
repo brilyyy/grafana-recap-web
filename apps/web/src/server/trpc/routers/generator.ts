@@ -102,4 +102,10 @@ export const generatorRouter = router({
       method: 'DELETE',
     })
   }),
+
+  getReportDownloadUrl: protectedProcedure
+    .input(z.object({ filename: z.string() }))
+    .query(async ({ input }) => {
+      return { url: `${API}/reports/${input.filename}` }
+    }),
 })
