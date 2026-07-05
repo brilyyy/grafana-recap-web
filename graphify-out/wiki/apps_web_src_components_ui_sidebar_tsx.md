@@ -1,0 +1,36 @@
+# sidebar
+
+- **ID:** `apps_web_src_components_ui_sidebar_tsx`
+- **Type:** File
+- **File:** `./apps/web/src/components/ui/sidebar.tsx`
+- **Community:** 24 (useSidebar())
+
+## Relationships
+
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_class_variance_authority_cva (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_class_variance_authority_variantprops (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_lucide_react_panellefticon (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_radix_ui_slot (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_react (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_button_button (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_input_input (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_separator_separator (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_sheet_sheet (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_sheet_sheetcontent (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_sheet_sheetdescription (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_sheet_sheetheader (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_sheet_sheettitle (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_skeleton_skeleton (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_tooltip_tooltip (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_tooltip_tooltipcontent (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_components_ui_tooltip_tooltiptrigger (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_hooks_use_mobile_useismobile (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_import_lib_utils_cn (imports, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_usesidebar (defines, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_cn (defines, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_sidebarfooter (defines, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_sidebarseparator (defines, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_sidebarmenu (defines, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_sidebarmenuitem (defines, Extracted)
+- apps_web_src_components_ui_sidebar_tsx → apps_web_src_components_ui_sidebar_tsx_sidebarmenubutton (defines, Extracted)
+

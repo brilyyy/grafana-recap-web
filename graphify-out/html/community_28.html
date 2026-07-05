@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BPTX — Community 28</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0f0f1a; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+#sidebar { width: 320px; min-width: 320px; background: #1a1a2e; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; border-right: 1px solid #2a2a4a; }
+#sidebar h2 { font-size: 18px; color: #9C755F; margin-bottom: 4px; }
+#sidebar h3 { font-size: 14px; color: #9ca3af; margin-bottom: 8px; }
+.nav-link { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px; border-radius: 4px; color: #e0e0e0; text-decoration: none; }
+.nav-link:hover { background: #2a2a4a; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+#graph-container { flex: 1; position: relative; }
+#search { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #3a3a5a; background: #0f0f1a; color: #e0e0e0; font-size: 14px; }
+#search:focus { outline: none; border-color: #9C755F; }
+#info-panel { background: #0f0f1a; border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.6; min-height: 100px; }
+#info-panel .prop { color: #9ca3af; }
+#info-panel .val { color: #e0e0e0; }
+</style>
+</head>
+<body>
+<div id="sidebar">
+    <div>
+        <h2>BPTX</h2>
+        <p style="font-size:12px;color:#666;">25 nodes · Community 28</p>
+    </div>
+    <input id="search" type="text" placeholder="Search nodes…" />
+    <div>
+        <h3>Node Info</h3>
+        <div id="info-panel"><i style="color:#666">Click a node to see details</i></div>
+    </div>
+    <div>
+        <h3>Navigation</h3>
+        <a href="index.html" class="nav-link" style="font-weight:bold;">← Overview</a><a href="community_30.html" class="nav-link"><span class="legend-dot" style="background:#4E79A7"></span>warnings (1 links)</a>
+    </div>
+</div>
+<div id="graph-container"></div>
+<script>
+(function() {
+    var nodesData = [{id:"apps_bptx_src_bptx_framework_py_bptx",label:"BPTX",title:"BPTX\nType: Class\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 25",color:"#9C755F",size:28.0},{id:"apps_bptx_src_bptx_framework_py_bptx_init",label:".__init__()",title:".__init__()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_load",label:".load()",title:".load()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_new",label:".new()",title:".new()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_save",label:".save()",title:".save()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_bytes",label:".bytes()",title:".bytes()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_close",label:".close()",title:".close()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_enter",label:".__enter__()",title:".__enter__()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_exit",label:".__exit__()",title:".__exit__()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_text",label:".replace_text()",title:".replace_text()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_text_many",label:".replace_text_many()",title:".replace_text_many()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_text_on_slide",label:".replace_text_on_slide()",title:".replace_text_on_slide()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_many_on_slide",label:".replace_many_on_slide()",title:".replace_many_on_slide()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_image",label:".replace_image()",title:".replace_image()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_image_on_slide",label:".replace_image_on_slide()",title:".replace_image_on_slide()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_table",label:".replace_table()",title:".replace_table()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_table_on_slide",label:".replace_table_on_slide()",title:".replace_table_on_slide()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_replace_table_rows",label:".replace_table_rows()",title:".replace_table_rows()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_copy_slide",label:".copy_slide()",title:".copy_slide()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_to",label:".copy_slide_to()",title:".copy_slide_to()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 2",color:"#9C755F",size:13.7},{id:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl",label:"._copy_slide_impl()",title:"._copy_slide_impl()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 3",color:"#9C755F",size:14.9},{id:"apps_bptx_src_bptx_framework_py_bptx_remove_slide",label:".remove_slide()",title:".remove_slide()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_find_placeholders",label:".find_placeholders()",title:".find_placeholders()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_log",label:".log()",title:".log()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0},{id:"apps_bptx_src_bptx_framework_py_bptx_summary",label:".summary()",title:".summary()\nType: Method\nFile: ./apps/bptx/src/bptx/_framework.py\nDegree: 1",color:"#9C755F",size:12.0}];
+    var edgesData = [{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_init",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_init\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_load",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_load\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_new",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_new\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_save",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_save\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_bytes",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_bytes\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_close",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_close\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_enter",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_enter\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_exit",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_exit\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_text",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_text\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_text_many",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_text_many\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_text_on_slide",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_text_on_slide\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_many_on_slide",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_many_on_slide\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_image",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_image\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_image_on_slide",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_image_on_slide\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_table",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_table\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_table_on_slide",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_table_on_slide\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_replace_table_rows",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_replace_table_rows\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_copy_slide",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_copy_slide\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_to",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_copy_slide_to\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_remove_slide",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_remove_slide\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_find_placeholders",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_find_placeholders\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_log",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_log\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx",to:"apps_bptx_src_bptx_framework_py_bptx_summary",label:"defines",dashes:false,title:"defines: apps_bptx_src_bptx_framework_py_bptx → apps_bptx_src_bptx_framework_py_bptx_summary\nConfidence: Extracted"},{from:"apps_bptx_src_bptx_framework_py_bptx_bytes",to:"apps_bptx_src_bptx_framework_py_bptx_save",label:"calls",dashes:true,title:"calls: apps_bptx_src_bptx_framework_py_bptx_bytes → apps_bptx_src_bptx_framework_py_bptx_save\nConfidence: Inferred"},{from:"apps_bptx_src_bptx_framework_py_bptx_exit",to:"apps_bptx_src_bptx_framework_py_bptx_close",label:"calls",dashes:true,title:"calls: apps_bptx_src_bptx_framework_py_bptx_exit → apps_bptx_src_bptx_framework_py_bptx_close\nConfidence: Inferred"},{from:"apps_bptx_src_bptx_framework_py_bptx_replace_table_rows",to:"apps_bptx_src_bptx_framework_py_bptx_replace_table",label:"calls",dashes:true,title:"calls: apps_bptx_src_bptx_framework_py_bptx_replace_table_rows → apps_bptx_src_bptx_framework_py_bptx_replace_table\nConfidence: Inferred"},{from:"apps_bptx_src_bptx_framework_py_bptx_copy_slide",to:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl",label:"calls",dashes:true,title:"calls: apps_bptx_src_bptx_framework_py_bptx_copy_slide → apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl\nConfidence: Inferred"},{from:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_to",to:"apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl",label:"calls",dashes:true,title:"calls: apps_bptx_src_bptx_framework_py_bptx_copy_slide_to → apps_bptx_src_bptx_framework_py_bptx_copy_slide_impl\nConfidence: Inferred"}];
+    var container = document.getElementById('graph-container');
+    var nodes = new vis.DataSet(nodesData);
+    var edges = new vis.DataSet(edgesData);
+    var options = {
+        physics: {solver:'forceAtlas2Based',forceAtlas2Based:{gravitationalConstant:-50,centralGravity:0.01,springLength:120,springConstant:0.08,damping:0.4,avoidOverlap:0.5},stabilization:{iterations:200}},
+        nodes: { shape: 'dot', font: { color: '#e0e0e0', size: 12 }, borderWidth: 2 },
+        edges: { color: { color: '#4a4a6a', highlight: '#9C755F', hover: '#9C755F' }, font: { color: '#888', size: 10 }, arrows: { to: { enabled: false } }, smooth: { type: 'continuous' } },
+        interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true }
+    };
+    var network = new vis.Network(container, { nodes: nodes, edges: edges }, options);
+    network.on('stabilizationIterationsDone', function() { network.setOptions({ physics: { enabled: false } }); });
+    network.on('click', function(params) {
+        var panel = document.getElementById('info-panel');
+        if (params.nodes.length > 0) {
+            var node = nodes.get(params.nodes[0]);
+            if (node) {
+                panel.innerHTML = '<div><span class="prop">Label:</span> <span class="val">' + node.label + '</span></div><div><span class="prop">ID:</span> <span class="val">' + node.id + '</span></div>';
+                network.focus(params.nodes[0], { scale: 1.2, animation: true });
+            }
+        }
+    });
+    var searchEl = document.getElementById('search');
+    var sTimer = null;
+    searchEl.addEventListener('input', function() {
+        clearTimeout(sTimer);
+        sTimer = setTimeout(function() {
+            var term = searchEl.value.toLowerCase();
+            var updates = [];
+            nodes.forEach(function(n) {
+                var h = term && !n.label.toLowerCase().includes(term);
+                if (n.hidden !== h) { updates.push({ id: n.id, hidden: h }); }
+            });
+            if (updates.length > 0) { nodes.update(updates); }
+        }, 200);
+    });
+})();
+</script>
+</body>
+</html>

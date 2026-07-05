@@ -1,0 +1,16 @@
+# test_auto_weekly_periods_clamped
+
+- **ID:** `apps_sr_generator_tests_test_auto_weekly_periods_clamped_py`
+- **Type:** File
+- **File:** `./apps/sr-generator/tests/test_auto_weekly_periods_clamped.py`
+- **Community:** 93 (TestAutoWeeklyPeriodsClamped)
+
+## Relationships
+
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_sys (imports, Extracted)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_unittest (imports, Extracted)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_datetime_date (imports, Extracted)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_pathlib_path (imports, Extracted)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_pipeline_common_auto_weekly_periods_clamped (imports, Extracted)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped (defines, Extracted)
+

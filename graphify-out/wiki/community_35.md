@@ -1,0 +1,53 @@
+# Community 35: ThemeSwatch()
+
+**Members:** 22
+
+## Nodes
+
+- **settings** (`apps_web_src_routes_dashboard_settings_tsx`, File, degree: 21)
+- **cn()** (`apps_web_src_routes_dashboard_settings_tsx_cn`, Function, degree: 1)
+- **@/components/app-setup-panel/AppSetupPanel** (`apps_web_src_routes_dashboard_settings_tsx_import_components_app_setup_panel_appsetuppanel`, Module, degree: 1)
+- **@/components/theme-provider/useTheme** (`apps_web_src_routes_dashboard_settings_tsx_import_components_theme_provider_usetheme`, Module, degree: 1)
+- **@/components/ui/card/Card** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_card`, Module, degree: 1)
+- **@/components/ui/card/CardContent** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_cardcontent`, Module, degree: 1)
+- **@/components/ui/card/CardDescription** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_carddescription`, Module, degree: 1)
+- **@/components/ui/card/CardHeader** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_cardheader`, Module, degree: 1)
+- **@/components/ui/card/CardTitle** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_cardtitle`, Module, degree: 1)
+- **@/components/ui/label/Label** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_label_label`, Module, degree: 1)
+- **@/components/ui/radio-group/RadioGroup** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_radio_group_radiogroup`, Module, degree: 1)
+- **@/components/ui/radio-group/RadioGroupItem** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_radio_group_radiogroupitem`, Module, degree: 1)
+- **@/components/ui/separator/Separator** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_separator_separator`, Module, degree: 1)
+- **@/components/ui/switch/Switch** (`apps_web_src_routes_dashboard_settings_tsx_import_components_ui_switch_switch`, Module, degree: 1)
+- **@/hooks/use-auth-session/useAuthSession** (`apps_web_src_routes_dashboard_settings_tsx_import_hooks_use_auth_session_useauthsession`, Module, degree: 1)
+- **@/hooks/use-background-mode/useBackgroundMode** (`apps_web_src_routes_dashboard_settings_tsx_import_hooks_use_background_mode_usebackgroundmode`, Module, degree: 1)
+- **@/lib/utils/cn** (`apps_web_src_routes_dashboard_settings_tsx_import_lib_utils_cn`, Module, degree: 1)
+- **lucide-react/MonitorIcon** (`apps_web_src_routes_dashboard_settings_tsx_import_lucide_react_monitoricon`, Module, degree: 1)
+- **react/useEffect** (`apps_web_src_routes_dashboard_settings_tsx_import_react_useeffect`, Module, degree: 1)
+- **react/useState** (`apps_web_src_routes_dashboard_settings_tsx_import_react_usestate`, Module, degree: 1)
+- **@tanstack/react-router/createFileRoute** (`apps_web_src_routes_dashboard_settings_tsx_import_tanstack_react_router_createfileroute`, Module, degree: 1)
+- **ThemeSwatch()** (`apps_web_src_routes_dashboard_settings_tsx_themeswatch`, Function, degree: 1)
+
+## Relationships
+
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_tanstack_react_router_createfileroute (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_lucide_react_monitoricon (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_react_useeffect (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_react_usestate (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_app_setup_panel_appsetuppanel (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_theme_provider_usetheme (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_card (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_cardcontent (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_carddescription (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_cardheader (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_card_cardtitle (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_label_label (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_radio_group_radiogroup (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_radio_group_radiogroupitem (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_separator_separator (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_components_ui_switch_switch (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_hooks_use_auth_session_useauthsession (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_hooks_use_background_mode_usebackgroundmode (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_import_lib_utils_cn (imports)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_themeswatch (defines)
+- apps_web_src_routes_dashboard_settings_tsx → apps_web_src_routes_dashboard_settings_tsx_cn (defines)
+

@@ -1,0 +1,29 @@
+# Community 93: TestAutoWeeklyPeriodsClamped
+
+**Members:** 10
+
+## Nodes
+
+- **test_auto_weekly_periods_clamped** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py`, File, degree: 6)
+- **datetime.date** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_datetime_date`, Module, degree: 1)
+- **pathlib.Path** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_pathlib_path`, Module, degree: 1)
+- **pipeline.common._auto_weekly_periods_clamped** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_pipeline_common_auto_weekly_periods_clamped`, Module, degree: 1)
+- **sys** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_sys`, Module, degree: 1)
+- **unittest** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_unittest`, Module, degree: 1)
+- **TestAutoWeeklyPeriodsClamped** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped`, Class, degree: 4)
+- **.test_generates_five_full_weeks_overlapping_range()** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped_test_generates_five_full_weeks_overlapping_range`, Method, degree: 1)
+- **.test_invalid_range_raises()** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped_test_invalid_range_raises`, Method, degree: 1)
+- **.test_short_range_returns_overlapping_full_week()** (`apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped_test_short_range_returns_overlapping_full_week`, Method, degree: 1)
+
+## Relationships
+
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_sys (imports)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_unittest (imports)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_datetime_date (imports)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_pathlib_path (imports)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_import_pipeline_common_auto_weekly_periods_clamped (imports)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped (defines)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped_test_generates_five_full_weeks_overlapping_range (defines)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped_test_short_range_returns_overlapping_full_week (defines)
+- apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped → apps_sr_generator_tests_test_auto_weekly_periods_clamped_py_testautoweeklyperiodsclamped_test_invalid_range_raises (defines)
+

@@ -1,0 +1,16 @@
+---
+id: apps_web_src_server_trpc_routers_indexanalyzer_ts_str
+type: Function
+source: ./apps/web/src/server/trpc/routers/indexAnalyzer.ts
+community: 67
+community_label: unusedIndexes()
+---
+
+## Connections
+
+- [[indexAnalyzer]] (defines)
+- [[unusedIndexes__]] (calls)
+- [[missingIndexes__]] (calls)
+- [[tableSizes__]] (calls)
+- [[indexColumns__]] (calls)
+- [[indexDrift__]] (calls)

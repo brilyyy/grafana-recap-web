@@ -1,0 +1,30 @@
+# _dashboard
+
+- **ID:** `apps_web_src_routes_dashboard_tsx`
+- **Type:** File
+- **File:** `./apps/web/src/routes/_dashboard.tsx`
+- **Community:** 36 (getPageTitle())
+
+## Relationships
+
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_tanstack_react_router_createfileroute (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_tanstack_react_router_outlet (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_tanstack_react_router_usenavigate (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_tanstack_react_router_userouterstate (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_react_useeffect (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_animated_background_animatedbackground (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_app_sidebar_appsidebar (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_theme_toggle_themetoggle (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_breadcrumb_breadcrumb (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_breadcrumb_breadcrumbitem (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_breadcrumb_breadcrumblist (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_breadcrumb_breadcrumbpage (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_separator_separator (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_sidebar_sidebarinset (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_sidebar_sidebarprovider (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_sidebar_sidebartrigger (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_components_ui_skeleton_skeleton (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_hooks_use_auth_session_useauthsession (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_import_hooks_use_background_mode_usebackgroundmode (imports, Extracted)
+- apps_web_src_routes_dashboard_tsx → apps_web_src_routes_dashboard_tsx_getpagetitle (defines, Extracted)
+

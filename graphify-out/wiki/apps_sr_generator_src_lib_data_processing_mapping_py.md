@@ -1,0 +1,20 @@
+# _mapping
+
+- **ID:** `apps_sr_generator_src_lib_data_processing_mapping_py`
+- **Type:** File
+- **File:** `./apps/sr-generator/src/lib/data_processing/_mapping.py`
+- **Community:** 109 (..utils.auto_derive_weekly_periods)
+
+## Relationships
+
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_json (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_dataclasses_dataclass (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_dataclasses_field (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_datetime_date (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_pathlib_path (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_typing_optional (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_logging_get_logger (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_import_utils_auto_derive_weekly_periods (imports, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_coerce_date (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_mapping_py → apps_sr_generator_src_lib_data_processing_mapping_py_appmapping (defines, Extracted)
+

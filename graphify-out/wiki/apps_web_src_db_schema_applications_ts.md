@@ -1,0 +1,27 @@
+# applications
+
+- **ID:** `apps_web_src_db_schema_applications_ts`
+- **Type:** File
+- **File:** `./apps/web/src/db/schema/applications.ts`
+- **Community:** 46 (./logging/appProcessingLog)
+
+## Relationships
+
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_relations (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_date (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_decimal (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_index (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_integer (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_jsonb (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_pgtable (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_serial (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_smallint (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_text (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_timestamp (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_uniqueindex (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_drizzle_orm_pg_core_varchar (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_dictionary_responsecodedictionary (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_dictionary_unmappedrc (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_enums_errortypeenum (imports, Extracted)
+- apps_web_src_db_schema_applications_ts → apps_web_src_db_schema_applications_ts_import_logging_appprocessinglog (imports, Extracted)
+

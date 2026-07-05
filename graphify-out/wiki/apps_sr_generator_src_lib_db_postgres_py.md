@@ -1,0 +1,37 @@
+# postgres
+
+- **ID:** `apps_sr_generator_src_lib_db_postgres_py`
+- **Type:** File
+- **File:** `./apps/sr-generator/src/lib/db/postgres.py`
+- **Community:** 23 (_row_to_record())
+
+## Relationships
+
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_csv (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_os (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_datetime_date (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_datetime_timedelta (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_functools_lru_cache (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_pathlib_path (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_typing_any (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_psycopg_sql (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_psycopg_rows_dict_row (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_lib_data_processing_transactionrecord (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_lib_settings_databasesettings (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_import_lib_utils_is_dev (imports, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_repo_root (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_mock_enabled (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_mock_app_identifier_csv (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_mock_success_rate_csv (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_load_mock_apps (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_normalize_mock_fact_row (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_load_mock_facts (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_connect (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_list_app_ids (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_list_apps (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_get_app_name (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_row_to_record (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_fetch_transaction_records_master_window (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_month_half_open (defines, Extracted)
+- apps_sr_generator_src_lib_db_postgres_py → apps_sr_generator_src_lib_db_postgres_py_inclusive_range_half_open (defines, Extracted)
+

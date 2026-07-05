@@ -1,0 +1,20 @@
+# TestAppMappingFilterByDate
+
+- **ID:** `apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate`
+- **Type:** Class
+- **File:** `./apps/sr-generator/tests/test_app_mapping.py`
+- **Location:** L104
+- **Community:** 96 (_write_mapping())
+
+## Relationships
+
+- apps_sr_generator_tests_test_app_mapping_py → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_setup (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_teardown (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_record (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_test_filter_includes_records_in_range (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_test_filter_excludes_records_before_range (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_test_filter_excludes_records_after_range (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_test_filter_includes_boundary_dates (defines, Extracted)
+- apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate → apps_sr_generator_tests_test_app_mapping_py_testappmappingfilterbydate_test_filter_no_date_range_returns_all (defines, Extracted)
+

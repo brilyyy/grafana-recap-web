@@ -1,0 +1,32 @@
+# nav-user
+
+- **ID:** `apps_web_src_components_nav_user_tsx`
+- **Type:** File
+- **File:** `./apps/web/src/components/nav-user.tsx`
+- **Community:** 29 (NavUser())
+
+## Relationships
+
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_tanstack_react_router_usenavigate (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_tanstack_react_router_userouter (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_lucide_react_chevronsupdown (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_lucide_react_loader2 (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_lucide_react_logout (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_react_usestate (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_avatar_avatar (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_avatar_avatarfallback (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_dropdown_menu_dropdownmenu (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_dropdown_menu_dropdownmenucontent (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_dropdown_menu_dropdownmenuitem (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_dropdown_menu_dropdownmenulabel (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_dropdown_menu_dropdownmenuseparator (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_dropdown_menu_dropdownmenutrigger (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_sidebar_sidebarmenu (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_sidebar_sidebarmenubutton (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_sidebar_sidebarmenuitem (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_components_ui_sidebar_usesidebar (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_hooks_use_auth_session_sessionuser (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_lib_auth_client_authclient (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_import_router_trpc (imports, Extracted)
+- apps_web_src_components_nav_user_tsx → apps_web_src_components_nav_user_tsx_navuser (defines, Extracted)
+

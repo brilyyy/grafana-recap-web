@@ -1,0 +1,28 @@
+# success-rate
+
+- **ID:** `apps_web_src_server_uploads_success_rate_ts`
+- **Type:** File
+- **File:** `./apps/web/src/server/uploads/success-rate.ts`
+- **Community:** 40 (processSuccessRateUpload())
+
+## Relationships
+
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_drizzle_orm_and (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_drizzle_orm_eq (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_drizzle_orm_inarray (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_db_db (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_db_schema_appidentifier (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_db_schema_appsuccessrate (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_db_schema_responsecodedictionary (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_db_schema_unmappedrc (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_audit_logauditevent (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_auth_sessionpayload (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_file_parser_buildcolumnindex (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_file_parser_getrowvalue (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_file_parser_parsedatevalue (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_file_parser_parsefile (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_lib_file_parser_validateheaders (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_types_apiresponse (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_import_types_successrateentry (imports, Extracted)
+- apps_web_src_server_uploads_success_rate_ts → apps_web_src_server_uploads_success_rate_ts_processsuccessrateupload (defines, Extracted)
+

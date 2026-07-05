@@ -1,0 +1,24 @@
+# unmappedRc
+
+- **ID:** `apps_web_src_server_trpc_routers_unmappedrc_ts`
+- **Type:** File
+- **File:** `./apps/web/src/server/trpc/routers/unmappedRc.ts`
+- **Community:** 62 (applyMapping())
+
+## Relationships
+
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_drizzle_orm_and (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_drizzle_orm_count (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_drizzle_orm_eq (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_drizzle_orm_sql (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_zod_z (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_db_db (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_db_schema_appidentifier (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_db_schema_appsuccessrate (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_db_schema_responsecodedictionary (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_db_schema_unmappedrc (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_lib_audit_logauditevent (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_init_protectedprocedure (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_import_init_router (imports, Extracted)
+- apps_web_src_server_trpc_routers_unmappedrc_ts → apps_web_src_server_trpc_routers_unmappedrc_ts_applymapping (defines, Extracted)
+

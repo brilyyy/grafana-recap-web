@@ -1,0 +1,18 @@
+# SyntheticAppMapping
+
+- **ID:** `apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping`
+- **Type:** Class
+- **File:** `./apps/sr-generator/src/lib/data_processing/_synthetic.py`
+- **Location:** L27
+- **Community:** 118 (SyntheticAppMapping)
+
+## Relationships
+
+- apps_sr_generator_src_lib_data_processing_synthetic_py → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping_is_success (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping_is_business_error (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping_is_system_error (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping_filter_by_date (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping_is_skipped (defines, Extracted)
+- apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping → apps_sr_generator_src_lib_data_processing_synthetic_py_syntheticappmapping_from_file (defines, Extracted)
+

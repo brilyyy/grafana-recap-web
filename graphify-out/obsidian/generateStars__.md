@@ -1,0 +1,11 @@
+---
+id: apps_web_src_components_animated_background_tsx_generatestars
+type: Function
+source: ./apps/web/src/components/animated-background.tsx
+community: 185
+community_label: generateStars()
+---
+
+## Connections
+
+- [[animated-background]] (defines)

@@ -1,0 +1,20 @@
+# process_synthetic_template()
+
+- **ID:** `apps_sr_generator_src_generators_synthetic_py_process_synthetic_template`
+- **Type:** Function
+- **File:** `./apps/sr-generator/src/generators/synthetic.py`
+- **Location:** L535
+- **Community:** 169 (_sorted_distinct_features())
+
+## Relationships
+
+- apps_sr_generator_src_generators_synthetic_py → apps_sr_generator_src_generators_synthetic_py_process_synthetic_template (defines, Extracted)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_chart_daily_sr_action (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_sorted_distinct_features (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_format_feature_title_text (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_chart_feature_breakdown (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_synthetic_action_breakdown_rows (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_paginate_action_breakdown_tables (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_process_synthetic_template → apps_sr_generator_src_generators_synthetic_py_top_failed_features_table (calls, Inferred)
+- apps_sr_generator_src_generators_synthetic_py_main → apps_sr_generator_src_generators_synthetic_py_process_synthetic_template (calls, Inferred)
+

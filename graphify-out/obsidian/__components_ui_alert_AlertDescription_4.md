@@ -1,0 +1,11 @@
+---
+id: apps_web_src_components_dictionary_card_tsx_import_components_ui_alert_alertdescription
+type: Module
+source: ./apps/web/src/components/dictionary-card.tsx
+community: 5
+community_label: toggleSort() (5)
+---
+
+## Connections
+
+- [[dictionary-card]] (imports)
